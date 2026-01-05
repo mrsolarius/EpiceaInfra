@@ -1,0 +1,31 @@
+name: jellyfin
+
+services:
+  jellyfin:
+    image: docker.io/jellyfin/jellyfin
+    hostname: jellyfin-server
+    container_name: jellyfin
+    # Optional - specify the uid and gid you would like Jellyfin to use instead of root
+    # user: uid:gid
+    ports:
+      - 7359:7359/udp
+    networks:
+      - proxy-nw
+    volumes:
+      - ./config:/config
+      - ./cache:/cache
+      - ${MEDIA_ONE}:/media:z
+      - ${MEDIA_TWO}:/media2:ro,z
+      - ${FONT}:/usr/local/share/fonts/custom:ro,z
+    restart: 'unless-stopped'
+    # Optional - alternative address used for autodiscovery
+    #environment:
+    #  - JELLYFIN_PublishedServerUrl=http://example.com
+    # Optional - may be necessary for docker healthcheck to pass if running in host network mode
+    #extra_hosts:
+    #  - 'host.docker.internal:host-gateway'
+
+networks:
+  proxy-nw:
+    external: true # Utilise le réseau créé précédemment
+    name: proxy-nw

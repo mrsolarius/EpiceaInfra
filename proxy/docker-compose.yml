@@ -1,0 +1,20 @@
+name: proxy
+services:
+  nginx-proxy-manager:
+    container_name: nginx-proxy-manager
+    image: 'docker.io/jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'   # Port HTTP standard
+      - '81:81'   # Interface d'administration Web
+      - '443:443' # Port HTTPS standard
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    networks:
+      - proxy-nw
+
+networks:
+  proxy-nw:
+    external: true
+    name: proxy-nw

@@ -1,0 +1,19 @@
+
+name: dozzle
+
+services:
+  dozzle:
+    image: docker.io/amir20/dozzle:latest
+    hostname: dozzle-app
+    volumes:
+      - /run/podman/podman.sock:/var/run/docker.sock:ro
+    ports:
+      - 8081:8080
+    restart: unless-stopped
+    networks:
+      - proxy-nw
+
+networks:
+  proxy-nw:
+    external: true # Utilise le réseau créé précédemment
+    name: proxy-nw

@@ -1,0 +1,58 @@
+name: nextcloud
+
+services:
+  nextcloud-db:
+    image: docker.io/library/mariadb:10.11
+    container_name: nextcloud_db
+    hostname: nextcloud-db
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    volumes:
+      - ./db:/var/lib/mysql:Z
+    environment:
+      - MARIADB_ROOT_PASSWORD=${NC_DB_ROOT_PASSWORD}
+      - MARIADB_PASSWORD=${NC_DB_PASSWORD}
+      - MARIADB_DATABASE=nextcloud
+      - MARIADB_USER=nextcloud
+    networks:
+      - nextcloud-internal
+
+  nextcloud-redis:
+    image: docker.io/library/redis:alpine
+    container_name: nextcloud_redis
+    restart: always
+    networks:
+      - nextcloud-internal
+
+  nextcloud-app:
+    image: docker.io/library/nextcloud:latest
+    container_name: nextcloud-app
+    hostname: nextcloud-app
+    restart: always
+    expose:
+      - 80
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+    volumes:
+      - ./data:/var/www/html:Z
+    environment:
+      - NEXTCLOUD_ADMIN_USER=${NC_ADMIN_USER}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
+      - MYSQL_PASSWORD=${NC_DB_PASSWORD}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_HOST=nextcloud-db
+      - REDIS_HOST=nextcloud-redis
+      # Confiance au proxy pour les IPs réelles
+      - TRUSTED_PROXIES=10.88.0.0/16
+    networks:
+      - nextcloud-internal
+      - proxy-nw
+
+networks:
+  nextcloud-internal:
+    driver: bridge
+  proxy-nw:
+    external: true
+    name: proxy-nw
