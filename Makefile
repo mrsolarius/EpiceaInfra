@@ -73,10 +73,7 @@ secrets:
 # ========================================
 test-deploy:
 	@echo "🚀 Déploiement sur environnement TEST..."
-	$(ANSIBLE_PLAYBOOK) \
-		-i $(ANSIBLE_INVENTORY) \
-		--limit test \
-		ansible/playbooks/site.yml
+	@multipass exec epicea-test -- bash -c "cd /home/ubuntu/infra/ansible && ANSIBLE_CONFIG=/home/ubuntu/infra/ansible/ansible.cfg ansible-playbook -i inventory/hosts.yml --limit test playbooks/site.yml"
 
 deploy:
 	@echo "🚀 Déploiement sur PRODUCTION..."
