@@ -1,0 +1,57 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - traefik-proxy
+    ports:
+      - "80:80"      # HTTP
+      - "443:443"    # HTTPS
+      - "8080:8080"  # Dashboard
+    environment:
+      - TZ=${TZ:-Europe/Paris}
+      # Let's Encrypt (production seulement)
+      - TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL=${ACME_EMAIL}
+    volumes:
+      # Socket Docker pour auto-discovery
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Configuration file-based
+      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./config/dynamic:/etc/traefik/dynamic:ro
+      # Certificats Let's Encrypt
+      - ./letsencrypt:/letsencrypt
+      # Logs
+      - ./logs:/logs
+    labels:
+      # ========================================
+      # Traefik Dashboard
+      # ========================================
+      - "traefik.enable=true"
+
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.traefik-http.entrypoints=web"
+      - "traefik.http.routers.traefik-http.rule=Host(`${TRAEFIK_DOMAIN}`)"
+      - "traefik.http.routers.traefik-http.middlewares=redirect-to-https@file"
+
+      # HTTPS router
+      - "traefik.http.routers.traefik-https.entrypoints=websecure"
+      - "traefik.http.routers.traefik-https.rule=Host(`${TRAEFIK_DOMAIN}`)"
+      - "traefik.http.routers.traefik-https.tls=${TRAEFIK_TLS_ENABLED:-false}"
+      - "traefik.http.routers.traefik-https.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-}"
+      - "traefik.http.routers.traefik-https.service=api@internal"
+      - "traefik.http.routers.traefik-https.middlewares=traefik-auth@file"
+
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  traefik-proxy:
+    external: true
+    name: traefik-proxy

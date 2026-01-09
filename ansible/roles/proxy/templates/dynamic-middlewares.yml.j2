@@ -1,0 +1,96 @@
+# ========================================
+# Middlewares dynamiques Traefik
+# Générée par Ansible pour {{ environment }}
+# ========================================
+
+http:
+  middlewares:
+    # ========================================
+    # Redirect HTTP → HTTPS
+    # ========================================
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+    # ========================================
+    # Auth Basic pour Traefik dashboard
+    # ========================================
+    traefik-auth:
+      basicAuth:
+        users:
+          - "{{ traefik_auth }}"
+        removeHeader: true
+
+    # ========================================
+    # Security Headers
+    # ========================================
+    security-headers:
+      headers:
+        frameDeny: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+
+    # ========================================
+    # Rate Limiting (DDoS protection)
+    # ========================================
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1m
+
+    # ========================================
+    # IP Whitelist (admin services)
+    # ========================================
+{% if environment == 'production' %}
+    admin-whitelist:
+      ipWhiteList:
+        sourceRange:
+          - "192.168.1.0/24"  # LAN local
+          - "127.0.0.1/32"    # Localhost
+{% endif %}
+
+    # ========================================
+    # Compression
+    # ========================================
+    compression:
+      compress:
+        excludedContentTypes:
+          - text/event-stream
+
+    # ========================================
+    # CORS (pour APIs)
+    # ========================================
+    cors-headers:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        accessControlAllowOriginList:
+          - "https://{{ base_domain }}"
+{% for domain, subdomain in service_domains.items() %}
+          - "https://{{ subdomain }}"
+{% endfor %}
+        accessControlMaxAge: 100
+        addVaryHeader: true
+
+# ========================================
+# Services (pour tests)
+# ========================================
+http:
+  services:
+    noop:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1"

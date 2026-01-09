@@ -1,0 +1,119 @@
+# ========================================
+# Configuration statique Traefik
+# Générée par Ansible pour {{ environment }}
+# ========================================
+
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+# ========================================
+# Logs
+# ========================================
+log:
+  level: {{ traefik_log_level }}
+  filePath: /logs/traefik.log
+  format: json
+
+accessLog:
+  filePath: /logs/access.log
+  format: json
+  bufferingSize: 100
+  filters:
+    statusCodes:
+      - "400-599"  # Ne log que les erreurs
+
+# ========================================
+# API & Dashboard
+# ========================================
+api:
+  dashboard: {{ traefik_dashboard_enabled | lower }}
+  insecure: false  # Toujours sécurisé via auth
+
+# ========================================
+# Entry Points
+# ========================================
+entryPoints:
+  web:
+    address: ":80"
+{% if enable_letsencrypt %}
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+{% endif %}
+
+  websecure:
+    address: ":443"
+{% if enable_letsencrypt %}
+    http:
+      tls:
+        certResolver: letsencrypt
+        domains:
+          - main: "{{ base_domain }}"
+            sans:
+              - "*.{{ base_domain }}"
+{% endif %}
+
+  metrics:
+    address: ":8082"
+
+# ========================================
+# Providers
+# ========================================
+providers:
+  # Docker auto-discovery
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: traefik-proxy
+    watch: true
+
+  # File-based config (middlewares, etc.)
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# ========================================
+# Let's Encrypt (production uniquement)
+# ========================================
+{% if enable_letsencrypt %}
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: {{ traefik_acme_email }}
+      storage: /letsencrypt/acme.json
+      keyType: EC384
+{% if traefik_acme_dns_challenge | default(false) %}
+      # DNS Challenge (Cloudflare, OVH, etc.)
+      dnsChallenge:
+        provider: {{ traefik_acme_dns_provider }}
+        delayBeforeCheck: 0
+{% else %}
+      # HTTP Challenge (par défaut)
+      httpChallenge:
+        entryPoint: web
+{% endif %}
+      # Staging pour tests (production: commenté)
+{% if traefik_acme_staging | default(false) %}
+      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+{% endif %}
+{% endif %}
+
+# ========================================
+# Metrics (Prometheus)
+# ========================================
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    entryPoint: metrics
+
+# ========================================
+# Health Check
+# ========================================
+ping:
+  entryPoint: web

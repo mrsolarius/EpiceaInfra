@@ -1,0 +1,81 @@
+---
+# ========================================
+# Role: docker
+# Description: Installation + configuration Docker
+# ========================================
+
+- name: Vérifier si Docker est déjà installé
+  ansible.builtin.command: docker --version
+  register: docker_check
+  failed_when: false
+  changed_when: false
+
+- name: Installer Docker via script officiel
+  ansible.builtin.shell: curl -fsSL https://get.docker.com | sh
+  when: docker_check.rc != 0
+
+- name: Installer Docker Compose v2
+  ansible.builtin.apt:
+    name: docker-compose-plugin
+    state: present
+    update_cache: true
+
+- name: Créer le dossier de configuration Docker
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    mode: '0755'
+
+- name: Configurer Docker daemon (log rotation)
+  ansible.builtin.copy:
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "{{ docker_log_max_size }}",
+          "max-file": "{{ docker_log_max_file }}"
+        }{% if enable_gpu | bool %},
+        "runtimes": {
+          "nvidia": {
+            "path": "nvidia-container-runtime",
+            "runtimeArgs": []
+          }
+        },
+        "default-runtime": "nvidia"{% endif %}
+      }
+    dest: /etc/docker/daemon.json
+    mode: '0644'
+  notify: restart docker
+
+- name: Ajouter utilisateur au groupe docker
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: true
+
+- name: Démarrer et activer Docker
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Créer le réseau traefik-proxy
+  community.docker.docker_network:
+    name: "{{ proxy_network_name }}"
+    driver: bridge
+    state: present
+
+- name: Vérifier Docker fonctionne
+  ansible.builtin.command: docker ps
+  changed_when: false
+
+- name: Afficher version Docker
+  ansible.builtin.command: docker --version
+  register: docker_version
+  changed_when: false
+
+- name: Afficher résultat
+  ansible.builtin.debug:
+    msg:
+      - "✅ Docker installé : {{ docker_version.stdout }}"
+      - "Réseau créé : {{ proxy_network_name }}"

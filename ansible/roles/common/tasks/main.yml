@@ -1,0 +1,115 @@
+---
+# ========================================
+# Role: common
+# Description: Configuration système de base
+# ========================================
+
+- name: Mise à jour du système
+  ansible.builtin.apt:
+    upgrade: dist
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Installation des paquets de base
+  ansible.builtin.apt:
+    name:
+      - curl
+      - wget
+      - git
+      - vim
+      - htop
+      - ncdu
+      - tree
+      - jq
+      - unzip
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - ufw
+      - fail2ban
+      - nfs-common
+    state: present
+
+- name: Configuration du timezone
+  community.general.timezone:
+    name: "{{ timezone }}"
+
+- name: Installation des collections Ansible
+  ansible.builtin.command:
+    cmd: ansible-galaxy collection install {{ item }} --force
+  loop:
+    - community.general
+    - community.docker
+    - ansible.posix
+  changed_when: false
+  become: false
+  delegate_to: localhost
+  run_once: true
+
+- name: Configuration UFW - règles de base
+  community.general.ufw:
+    rule: "{{ item.rule }}"
+    port: "{{ item.port }}"
+    proto: "{{ item.proto | default('tcp') }}"
+    comment: "{{ item.comment | default('') }}"
+  loop:
+    - { rule: 'allow', port: '22', comment: 'SSH' }
+    - { rule: 'allow', port: '80', comment: 'HTTP' }
+    - { rule: 'allow', port: '443', comment: 'HTTPS' }
+
+- name: Configuration UFW - règles additionnelles (production)
+  community.general.ufw:
+    rule: "{{ item.rule }}"
+    port: "{{ item.port | default(omit) }}"
+    proto: "{{ item.proto | default('tcp') }}"
+    from_ip: "{{ item.from | default(omit) }}"
+    comment: "{{ item.comment | default('') }}"
+  loop: "{{ ufw_additional_rules | default([]) }}"
+  when: environment == 'production'
+
+- name: Activation UFW
+  community.general.ufw:
+    state: enabled
+
+- name: Configuration fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: started
+    enabled: true
+  when: fail2ban_enabled | default(true)
+
+- name: Configuration DNS local (test uniquement)
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "127.0.0.1 {{ item }}"
+    state: present
+  loop:
+    - "{{ service_domains.traefik }}"
+    - "{{ service_domains.immich }}"
+    - "{{ service_domains.jellyfin }}"
+    - "{{ service_domains.nextcloud }}"
+    - "{{ service_domains.grafana }}"
+    - "{{ service_domains.dozzle }}"
+  when: environment == 'test'
+
+- name: Installer drivers NVIDIA (production avec GPU)
+  ansible.builtin.apt:
+    name:
+      - nvidia-driver-{{ gpu_driver_version }}
+      - nvidia-container-toolkit
+    state: present
+    update_cache: true
+  when:
+    - environment == 'production'
+    - enable_gpu | bool
+  notify: reboot system
+
+- name: Afficher résumé configuration
+  ansible.builtin.debug:
+    msg:
+      - "✅ Paquets de base installés"
+      - "✅ Firewall UFW configuré"
+      - "✅ Fail2ban activé"
+      - "✅ Collections Ansible installées"
+      - "{% if environment == 'test' %}✅ DNS local configuré{% endif %}"
+      - "{% if enable_gpu %}✅ Drivers NVIDIA installés{% endif %}"

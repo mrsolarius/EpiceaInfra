@@ -1,0 +1,54 @@
+---
+- name: Epicea Infrastructure Deployment
+  hosts: all
+  become: true
+
+  vars_files:
+    - ../secrets/vault.yml
+
+  pre_tasks:
+    - name: Vérification des prérequis
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_major_version | int >= 22
+        fail_msg: "Ce playbook nécessite Ubuntu 22.04 ou supérieur"
+
+    - name: Afficher environnement détecté
+      ansible.builtin.debug:
+        msg:
+          - "Environnement : {{ environment }}"
+          - "GPU activé : {{ enable_gpu }}"
+          - "Let's Encrypt : {{ enable_letsencrypt }}"
+
+  roles:
+    # Infrastructure de base
+    - role: common
+      tags: [common, base]
+
+    - role: docker
+      tags: [docker, base]
+
+    - role: storage
+      tags: [storage, base]
+
+    # Reverse proxy
+    - role: proxy
+      tags: [proxy, services]
+      when: "'traefik' in enabled_services"
+
+  post_tasks:
+    - name: Résumé du déploiement
+      ansible.builtin.debug:
+        msg:
+          - "================================================"
+          - "✅ Déploiement terminé avec succès !"
+          - "================================================"
+          - "Services déployés : {{ enabled_services | join(', ') }}"
+          - "Environnement : {{ environment }}"
+          - ""
+          - "Accès Traefik : http://{{ service_domains.traefik }}"
+          - ""
+          - "Prochaines étapes :"
+          - "  make status  # Vérifier les services"
+          - "  make logs    # Voir les logs"

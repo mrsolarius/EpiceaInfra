@@ -1,0 +1,112 @@
+---
+# ========================================
+# Variables environnement PRODUCTION
+# ========================================
+
+environment: production
+
+# Features conditionnelles
+enable_gpu: true
+enable_letsencrypt: true
+enable_zfs_snapshots: true
+
+# Domaine de base (À MODIFIER)
+base_domain: "votre-domaine.fr"
+
+# Domaines des services
+service_domains:
+  traefik: "traefik.{{ base_domain }}"
+  immich: "photos.{{ base_domain }}"
+  jellyfin: "media.{{ base_domain }}"
+  nextcloud: "cloud.{{ base_domain }}"
+  grafana: "monitoring.{{ base_domain }}"
+  dozzle: "logs.{{ base_domain }}"
+  amp: "games.{{ base_domain }}"
+
+# Configuration NFS (Ubiquiti NAS Pro)
+nfs_server: "192.168.1.50"  # À MODIFIER : IP de ton NAS Pro
+nfs_mounts:
+  - src: "{{ nfs_server }}:/volume1/media"
+    path: "/mnt/media"
+    opts: "rw,hard,intr,nfsvers=4.1"
+  - src: "{{ nfs_server }}:/volume1/photos"
+    path: "/mnt/photos"
+    opts: "rw,hard,intr,nfsvers=4.1"
+  - src: "{{ nfs_server }}:/volume1/cloud"
+    path: "/mnt/cloud"
+    opts: "rw,hard,intr,nfsvers=4.1"
+
+# NFS Backup (Ubiquiti NAS Quad)
+nfs_backup_server: "192.168.1.51"  # À MODIFIER : IP de ton NAS Quad
+nfs_backup_mount:
+  src: "{{ nfs_backup_server }}:/volume1/backups"
+  path: "/mnt/backups"
+  opts: "rw,hard,intr,nfsvers=4.1"
+
+# Services activés
+enabled_services:
+  - shared-services  # Postgres + Redis mutualisés
+  - traefik
+  - immich
+  - jellyfin
+  - nextcloud
+  - monitoring
+  - games  # AMP
+
+# Chemins de base
+base_path: "/opt/epicea"
+docker_compose_path: "{{ base_path }}/docker"
+config_path: "{{ base_path }}/config"
+data_path: "{{ base_path }}/data"
+
+# Configuration ZFS (SSD local 1To)
+zfs_pool_name: "tank"
+zfs_datasets:
+  - name: "{{ zfs_pool_name }}/docker"
+    mountpoint: "/var/lib/docker"
+  - name: "{{ zfs_pool_name }}/postgres"
+    mountpoint: "{{ data_path }}/postgres"
+  - name: "{{ zfs_pool_name }}/redis"
+    mountpoint: "{{ data_path }}/redis"
+
+# Configuration GPU (RTX 5060 LP)
+gpu_driver_version: "550"  # Version driver NVIDIA (à adapter)
+gpu_docker_runtime: true
+gpu_monitoring: true
+
+# Configuration Traefik (production)
+traefik_acme_enabled: true
+traefik_acme_email: "admin@{{ base_domain }}"  # À MODIFIER
+traefik_acme_storage: "{{ config_path }}/traefik/acme.json"
+traefik_dashboard_enabled: true
+traefik_log_level: "INFO"
+
+# Configuration Docker
+docker_log_max_size: "50m"
+docker_log_max_file: "5"
+
+# Monitoring
+prometheus_retention: "90d"
+grafana_install_plugins: true
+
+# Backup
+backup_enabled: true
+backup_retention_days: 30
+backup_schedule: "0 3 * * *"  # Tous les jours à 3h du matin
+
+# Notifications (Discord/Telegram)
+notification_enabled: true
+# discord_webhook_url: "{{ vault_discord_webhook }}"  # Dans vault.yml
+# telegram_bot_token: "{{ vault_telegram_token }}"    # Dans vault.yml
+# telegram_chat_id: "{{ vault_telegram_chat_id }}"    # Dans vault.yml
+
+# Fail2ban
+fail2ban_enabled: true
+fail2ban_bantime: "1h"
+fail2ban_maxretry: 5
+
+# UFW Rules additionnelles (production)
+ufw_additional_rules:
+  - { rule: 'allow', port: '8080', proto: 'tcp', comment: 'Traefik dashboard' }
+  - { rule: 'allow', port: '9090', proto: 'tcp', comment: 'Prometheus (internal)' }
+  - { rule: 'allow', from: '192.168.1.0/24', comment: 'LAN local' }

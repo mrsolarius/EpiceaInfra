@@ -1,0 +1,33 @@
+---
+# ========================================
+# Role: storage
+# Description: Montages NFS + configuration stockage
+# ========================================
+
+- name: Créer les points de montage
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ nfs_mounts }}"
+
+- name: Monter les partages NFS
+  ansible.posix.mount:
+    src: "{{ item.src }}"
+    path: "{{ item.path }}"
+    fstype: nfs
+    opts: "{{ item.opts }}"
+    state: mounted
+  loop: "{{ nfs_mounts }}"
+
+- name: Vérifier les montages
+  ansible.builtin.command: df -h {{ item.path }}
+  loop: "{{ nfs_mounts }}"
+  changed_when: false
+  register: nfs_check
+
+- name: Afficher résumé stockage
+  ansible.builtin.debug:
+    msg:
+      - "✅ Montages NFS configurés :"
+      - "{% for mount in nfs_mounts %}  - {{ mount.path }} → {{ mount.src }}{% endfor %}"

@@ -1,0 +1,114 @@
+---
+# ========================================
+# Role: proxy (Traefik)
+# Description: Déploiement reverse proxy Traefik
+# ========================================
+
+- name: Créer structure dossiers Traefik
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - "{{ docker_compose_path }}/traefik"
+    - "{{ docker_compose_path }}/traefik/config"
+    - "{{ docker_compose_path }}/traefik/config/dynamic"
+    - "{{ docker_compose_path }}/traefik/letsencrypt"
+    - "{{ docker_compose_path }}/traefik/logs"
+
+- name: Configurer permissions acme.json (Let's Encrypt)
+  ansible.builtin.file:
+    path: "{{ docker_compose_path }}/traefik/letsencrypt/acme.json"
+    state: touch
+    mode: '0600'
+    owner: root
+    group: root
+  when: enable_letsencrypt | bool
+
+- name: Déployer configuration statique Traefik
+  ansible.builtin.template:
+    src: traefik.yml.j2
+    dest: "{{ docker_compose_path }}/traefik/config/traefik.yml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart traefik
+
+- name: Déployer middlewares dynamiques
+  ansible.builtin.template:
+    src: dynamic-middlewares.yml.j2
+    dest: "{{ docker_compose_path }}/traefik/config/dynamic/middlewares.yml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart traefik
+
+- name: Générer fichier .env Traefik
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ docker_compose_path }}/traefik/.env"
+    mode: '0600'
+    owner: root
+    group: root
+  notify: restart traefik
+
+- name: Copier docker-compose.yml Traefik
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../docker/traefik/docker-compose.yml"
+    dest: "{{ docker_compose_path }}/traefik/docker-compose.yml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart traefik
+
+- name: Créer réseau Docker traefik-proxy
+  community.docker.docker_network:
+    name: traefik-proxy
+    driver: bridge
+    state: present
+
+- name: Vérifier configuration Traefik (dry-run)
+  ansible.builtin.command:
+    cmd: docker compose config
+    chdir: "{{ docker_compose_path }}/traefik"
+  changed_when: false
+  register: traefik_config_check
+  failed_when: traefik_config_check.rc != 0
+
+- name: Démarrer Traefik
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_path }}/traefik"
+    state: present
+    pull: "always"
+    remove_orphans: true
+  register: traefik_deploy
+
+- name: Attendre que Traefik soit up
+  ansible.builtin.wait_for:
+    host: localhost
+    port: 80
+    delay: 5
+    timeout: 60
+    state: started
+  when: traefik_deploy.changed
+
+- name: Vérifier health check Traefik
+  ansible.builtin.uri:
+    url: "http://localhost/ping"
+    method: GET
+    status_code: 200
+  retries: 5
+  delay: 3
+  register: traefik_health
+  until: traefik_health.status == 200
+
+- name: Afficher statut Traefik
+  ansible.builtin.debug:
+    msg:
+      - "✅ Traefik déployé avec succès"
+      - "Dashboard: http://{{ service_domains.traefik }}"
+      - "Auth: admin / admin (par défaut)"
+      - "Ping: http://localhost/ping"
+      - "Metrics: http://localhost:8082/metrics"

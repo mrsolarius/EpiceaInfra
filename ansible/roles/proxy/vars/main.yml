@@ -1,0 +1,20 @@
+---
+# ========================================
+# Variables: proxy (Traefik)
+# ========================================
+
+# Liste des middlewares disponibles
+traefik_middlewares:
+  - redirect-to-https
+  - security-headers
+  - rate-limit
+  - compression
+  - cors-headers
+  - traefik-auth
+
+# Ports exposés
+traefik_ports:
+  http: 80
+  https: 443
+  dashboard: 8080
+  metrics: 8082
