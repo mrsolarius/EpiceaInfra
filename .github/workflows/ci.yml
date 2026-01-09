@@ -19,6 +19,7 @@ jobs:
         run: pip install ansible ansible-lint
       - name: Ansible Syntax Check
         run: |
-          ansible-playbook --syntax-check \
-            -i ansible/inventory/hosts.yml \
-            ansible/playbooks/site.yml
+          cd ansible
+          ANSIBLE_CONFIG=ansible.cfg ansible-playbook --syntax-check \
+            -i inventory/hosts.yml \
+            playbooks/site.yml
