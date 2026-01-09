@@ -1,2 +1,36 @@
+# IDE
 .idea
+
+# Secrets
 **/.env
+ansible/secrets/vault.yml
+*.key
+*.pem
+
+# Docker volumes
+**/data/
+**/postgres/
+**/redis/
+**/cache/
+**/library/
+**/letsencrypt/
+docker/traefik/logs/
+
+# Ansible
+*.retry
+ansible/.vault_pass
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup

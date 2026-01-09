@@ -1,35 +1,118 @@
-# Chemins des fichiers Compose
-NET_FILE = network/docker-compose.yml
-PROXY_FILE = proxy/docker-compose.yml
-IMMICH_FILE = immich/docker-compose.yml
-JELLYFIN_FILE = jellyfin/docker-compose.yml
-NEXTCLOUD_FILE = nextcloud/docker-compose.yml
-DOZZLE_FILE = dozzle/docker-compose.yml
+.PHONY: help test-init test-deploy test-status multipass-setup multipass-destroy
 
-up:
-	# 1. Configuration système
-	sudo sysctl -w net.ipv4.ip_unprivileged_port_start=80
+# ========================================
+# Makefile Epicea Infrastructure
+# Point d'entrée unique pour tout
+# ========================================
 
-	# 2. Lancement du réseau global
-	sudo podman-compose -f $(NET_FILE) up -d
+# Chemins
+ANSIBLE_PLAYBOOK := ansible-playbook
+ANSIBLE_INVENTORY := ansible/inventory/hosts.yml
+ANSIBLE_VAULT := ansible-vault
 
-	# 3. Lancement du Proxy
-	sudo podman-compose -f $(PROXY_FILE) up -d
+# ========================================
+# HELP
+# ========================================
+help:
+	@echo "========================================"
+	@echo "  Epicea Infrastructure - Makefile"
+	@echo "========================================"
+	@echo ""
+	@echo "Tests Multipass :"
+	@echo "  make multipass-setup    # Créer les VMs de test"
+	@echo "  make multipass-destroy  # Détruire les VMs"
+	@echo "  make test-init          # Initialiser secrets test"
+	@echo "  make test-deploy        # Déployer sur VM test"
+	@echo "  make test-status        # Status services test"
+	@echo ""
+	@echo "Production :"
+	@echo "  make init               # Initialiser secrets"
+	@echo "  make deploy             # Déployer infrastructure"
+	@echo "  make status             # Status services"
+	@echo ""
 
-	# 4. Lancement des applications (séparés pour conserver le contexte .env)
-	sudo podman-compose -f $(IMMICH_FILE) up -d
-	sudo podman-compose -f $(JELLYFIN_FILE) up -d
-	sudo podman-compose -f $(NEXTCLOUD_FILE) up -d
-	sudo podman-compose -f $(DOZZLE_FILE) up -d
+# ========================================
+# MULTIPASS (tests)
+# ========================================
+multipass-setup:
+	@echo "🚀 Création des VMs Multipass..."
+	bash ./scripts/multipass/setup-vms.sh
 
-down:
-	sudo podman-compose -f $(NEXTCLOUD_FILE) down
-	sudo podman-compose -f $(JELLYFIN_FILE) down
-	sudo podman-compose -f $(IMMICH_FILE) down
-	sudo podman-compose -f $(PROXY_FILE) down
-	sudo podman-compose -f $(NET_FILE) down
-	sudo podman-compose -f $(DOZZLE_FILE) down
+multipass-destroy:
+	@echo "🗑️  Destruction des VMs Multipass..."
+	bash ./scripts/multipass/destroy-vms.sh
 
-logs:
-	# Affiche les logs de tout le monde en même temps
-	sudo podman-compose -f $(PROXY_FILE) -f $(IMMICH_FILE) -f $(JELLYFIN_FILE) -f $(NEXTCLOUD_FILE) -f $(DOZZLE_FILE) logs -f
+# ========================================
+# INIT SECRETS
+# ========================================
+test-init:
+	@echo "🔐 Initialisation secrets test..."
+	@if [ ! -f ansible/secrets/vault.yml ]; then \
+		cp ansible/secrets/vault.yml.example ansible/secrets/vault.yml; \
+		echo "✅ Fichier vault.yml créé (non chiffré pour tests)"; \
+	else \
+		echo "✅ vault.yml existe déjà"; \
+	fi
+
+init:
+	@echo "🔐 Initialisation secrets production..."
+	@if [ ! -f ansible/secrets/vault.yml ]; then \
+		cp ansible/secrets/vault.yml.example ansible/secrets/vault.yml; \
+		$(ANSIBLE_VAULT) encrypt ansible/secrets/vault.yml; \
+		echo "✅ vault.yml créé et chiffré"; \
+		echo "Éditez avec: make secrets"; \
+	else \
+		echo "✅ vault.yml existe déjà"; \
+	fi
+
+secrets:
+	$(ANSIBLE_VAULT) edit ansible/secrets/vault.yml
+
+# ========================================
+# DÉPLOIEMENT
+# ========================================
+test-deploy:
+	@echo "🚀 Déploiement sur environnement TEST..."
+	$(ANSIBLE_PLAYBOOK) \
+		-i $(ANSIBLE_INVENTORY) \
+		--limit test \
+		ansible/playbooks/site.yml
+
+deploy:
+	@echo "🚀 Déploiement sur PRODUCTION..."
+	$(ANSIBLE_PLAYBOOK) \
+		-i $(ANSIBLE_INVENTORY) \
+		--limit production \
+		--ask-vault-pass \
+		ansible/playbooks/site.yml
+
+# ========================================
+# OPÉRATIONS
+# ========================================
+test-status:
+	@echo "📊 Status services TEST..."
+	@multipass exec epicea-test -- docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+status:
+	@echo "📊 Status services..."
+	@docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+test-logs:
+	@echo "📋 Logs services TEST..."
+	@multipass exec epicea-test -- docker compose -f /opt/epicea/docker/traefik/docker-compose.yml logs -f --tail=100
+
+# ========================================
+# VALIDATION
+# ========================================
+validate:
+	@echo "✅ Validation configuration..."
+	@$(ANSIBLE_PLAYBOOK) --syntax-check ansible/playbooks/site.yml
+	@echo "✅ Syntax Ansible OK"
+
+# ========================================
+# NETTOYAGE
+# ========================================
+clean:
+	@echo "🧹 Nettoyage Docker..."
+	@docker system prune -af --volumes
+	@echo "✅ Nettoyage terminé"
