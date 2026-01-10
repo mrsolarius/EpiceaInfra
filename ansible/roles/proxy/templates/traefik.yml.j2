@@ -28,7 +28,8 @@ accessLog:
 # ========================================
 api:
   dashboard: {{ traefik_dashboard_enabled | lower }}
-  insecure: true  # Nécessaire pour exposer /metrics sur le port 8080 en interne
+  # En production, on désactive le mode insecure pour ne pas exposer l'API sur 8080 sans auth
+  insecure: {{ 'false' if deploy_environment == 'production' else 'true' }}
 
 # ========================================
 # Entry Points
@@ -56,6 +57,10 @@ entryPoints:
             sans:
               - "*.{{ base_domain }}"
 {% endif %}
+
+  # EntryPoint dédié aux métriques/API (interne seulement)
+  traefik:
+    address: ":8080"
 
 # ========================================
 # Providers
@@ -107,7 +112,7 @@ metrics:
     addEntryPointsLabels: true
     addRoutersLabels: true
     addServicesLabels: true
-    entryPoint: traefik # Expose les métriques sur le port de l'API (8080 par défaut)
+    entryPoint: traefik # Expose les métriques sur le port 8080
 
 # ========================================
 # Health Check
