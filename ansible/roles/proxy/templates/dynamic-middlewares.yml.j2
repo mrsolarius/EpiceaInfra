@@ -1,6 +1,6 @@
 # ========================================
 # Middlewares dynamiques Traefik
-# Générée par Ansible pour {{ environment }}
+# Générée par Ansible pour {{ deploy_environment }}
 # ========================================
 
 http:
@@ -19,7 +19,7 @@ http:
     traefik-auth:
       basicAuth:
         users:
-          - "{{ traefik_auth }}"
+          - '{{ traefik_auth }}'
         removeHeader: true
 
     # ========================================
@@ -50,7 +50,7 @@ http:
     # ========================================
     # IP Whitelist (admin services)
     # ========================================
-{% if environment == 'production' %}
+{% if deploy_environment == 'production' %}
     admin-whitelist:
       ipWhiteList:
         sourceRange:
@@ -85,10 +85,38 @@ http:
         accessControlMaxAge: 100
         addVaryHeader: true
 
-# ========================================
-# Services (pour tests)
-# ========================================
-http:
+  # ========================================
+  # Routers (configuration file-based)
+  # ========================================
+  routers:
+    # Dashboard Traefik HTTP (test sans TLS)
+    traefik-dashboard-http:
+      entryPoints:
+        - web
+      rule: "Host(`{{ service_domains.traefik }}`)"
+      service: api@internal
+      middlewares:
+        - traefik-auth
+{% if enable_letsencrypt %}
+        - redirect-to-https
+{% endif %}
+
+{% if enable_letsencrypt %}
+    # Dashboard Traefik HTTPS (production avec TLS)
+    traefik-dashboard-https:
+      entryPoints:
+        - websecure
+      rule: "Host(`{{ service_domains.traefik }}`)"
+      service: api@internal
+      middlewares:
+        - traefik-auth
+      tls:
+        certResolver: letsencrypt
+{% endif %}
+
+  # ========================================
+  # Services (pour tests)
+  # ========================================
   services:
     noop:
       loadBalancer:

@@ -1,6 +1,6 @@
 # ========================================
 # Configuration statique Traefik
-# Générée par Ansible pour {{ environment }}
+# Générée par Ansible pour {{ deploy_environment }}
 # ========================================
 
 global:
@@ -28,7 +28,7 @@ accessLog:
 # ========================================
 api:
   dashboard: {{ traefik_dashboard_enabled | lower }}
-  insecure: false  # Toujours sécurisé via auth
+  insecure: {{ 'true' if deploy_environment == 'test' else 'false' }}  # Insecure en test pour debug
 
 # ========================================
 # Entry Points

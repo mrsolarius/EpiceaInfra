@@ -65,7 +65,7 @@
     from_ip: "{{ item.from | default(omit) }}"
     comment: "{{ item.comment | default('') }}"
   loop: "{{ ufw_additional_rules | default([]) }}"
-  when: environment == 'production'
+  when: deploy_environment == 'production'
 
 - name: Activation UFW
   community.general.ufw:
@@ -90,7 +90,7 @@
     - "{{ service_domains.nextcloud }}"
     - "{{ service_domains.grafana }}"
     - "{{ service_domains.dozzle }}"
-  when: environment == 'test'
+  when: deploy_environment == 'test'
 
 - name: Installer drivers NVIDIA (production avec GPU)
   ansible.builtin.apt:
@@ -100,7 +100,7 @@
     state: present
     update_cache: true
   when:
-    - environment == 'production'
+    - deploy_environment == 'production'
     - enable_gpu | bool
   notify: reboot system
 
@@ -111,5 +111,5 @@
       - "✅ Firewall UFW configuré"
       - "✅ Fail2ban activé"
       - "✅ Collections Ansible installées"
-      - "{% if environment == 'test' %}✅ DNS local configuré{% endif %}"
+      - "{% if deploy_environment == 'test' %}✅ DNS local configuré{% endif %}"
       - "{% if enable_gpu %}✅ Drivers NVIDIA installés{% endif %}"

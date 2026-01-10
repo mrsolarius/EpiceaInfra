@@ -25,24 +25,8 @@ services:
       - ./letsencrypt:/letsencrypt
       # Logs
       - ./logs:/logs
-    labels:
-      # ========================================
-      # Traefik Dashboard
-      # ========================================
-      - "traefik.enable=true"
-
-      # HTTP → HTTPS redirect
-      - "traefik.http.routers.traefik-http.entrypoints=web"
-      - "traefik.http.routers.traefik-http.rule=Host(`${TRAEFIK_DOMAIN}`)"
-      - "traefik.http.routers.traefik-http.middlewares=redirect-to-https@file"
-
-      # HTTPS router
-      - "traefik.http.routers.traefik-https.entrypoints=websecure"
-      - "traefik.http.routers.traefik-https.rule=Host(`${TRAEFIK_DOMAIN}`)"
-      - "traefik.http.routers.traefik-https.tls=${TRAEFIK_TLS_ENABLED:-false}"
-      - "traefik.http.routers.traefik-https.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-}"
-      - "traefik.http.routers.traefik-https.service=api@internal"
-      - "traefik.http.routers.traefik-https.middlewares=traefik-auth@file"
+    # Dashboard exposé via file-based config (dynamic-middlewares.yml)
+    # Pas besoin de labels Docker car Traefik ne se détecte pas lui-même
 
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]

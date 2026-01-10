@@ -3,7 +3,7 @@
 # Variables environnement TEST (Multipass)
 # ========================================
 
-environment: test
+deploy_environment: test
 
 # Features conditionnelles
 enable_gpu: false
@@ -58,7 +58,7 @@ data_path: "{{ base_path }}/data"
 traefik_acme_enabled: false  # Pas de Let's Encrypt en test
 traefik_dashboard_enabled: true
 traefik_log_level: "DEBUG"
-traefik_auth: "admin:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj"  # admin/admin en test (htpasswd)
+traefik_auth: "admin:$apr1$1aZVZLrd$t8WqKSkO2NX/JYudCgp06."  # admin/admin en test (htpasswd)
 
 # Configuration Docker
 docker_log_max_size: "10m"

@@ -3,7 +3,7 @@
 # Variables environnement PRODUCTION
 # ========================================
 
-environment: production
+deploy_environment: production
 
 # Features conditionnelles
 enable_gpu: true
