@@ -61,14 +61,12 @@ scrape_configs:
   # ========================================
   # cAdvisor (Docker metrics)
   # ========================================
-{% if prometheus_cadvisor_enabled | default(false) %}
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['cadvisor:8080']
         labels:
           service: 'cadvisor'
           environment: '{{ deploy_environment }}'
-{% endif %}
 
   # ========================================
   # Services applicatifs (à ajouter)
