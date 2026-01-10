@@ -1,0 +1,108 @@
+---
+# ========================================
+# Role: monitoring (Prometheus + Grafana)
+# Description: Stack de monitoring complète
+# ========================================
+
+- name: Créer structure dossiers Monitoring
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - "{{ docker_compose_path }}/monitoring"
+    - "{{ docker_compose_path }}/monitoring/prometheus"
+    - "{{ docker_compose_path }}/monitoring/grafana/provisioning/datasources"
+    - "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards"
+
+- name: Déployer configuration Prometheus
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ docker_compose_path }}/monitoring/prometheus/prometheus.yml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
+- name: Déployer datasource Grafana (Prometheus)
+  ansible.builtin.template:
+    src: grafana-datasource.yml.j2
+    dest: "{{ docker_compose_path }}/monitoring/grafana/provisioning/datasources/prometheus.yml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
+- name: Déployer provisioning dashboards Grafana
+  ansible.builtin.template:
+    src: grafana-dashboards.yml.j2
+    dest: "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards/dashboards.yml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
+- name: Déployer dashboard Traefik pour Grafana
+  ansible.builtin.copy:
+    src: traefik-dashboard.json
+    dest: "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards/traefik.json"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
+- name: Générer fichier .env Monitoring
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ docker_compose_path }}/monitoring/.env"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
+- name: Copier docker-compose.yml Monitoring
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../docker/monitoring/docker-compose.yml"
+    dest: "{{ docker_compose_path }}/monitoring/docker-compose.yml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
+- name: Vérifier configuration Monitoring (dry-run)
+  ansible.builtin.command:
+    cmd: docker compose config
+    chdir: "{{ docker_compose_path }}/monitoring"
+  changed_when: false
+  register: monitoring_config_check
+  failed_when: monitoring_config_check.rc != 0
+
+- name: Démarrer stack Monitoring
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_path }}/monitoring"
+    state: present
+    pull: "always"
+    remove_orphans: true
+  register: monitoring_deploy
+
+- name: Attendre que Grafana soit up
+  ansible.builtin.wait_for:
+    host: localhost
+    port: 3000
+    delay: 5
+    timeout: 60
+    state: started
+  when: monitoring_deploy.changed
+  ignore_errors: true  # Grafana n'expose pas de port si via Traefik uniquement
+
+- name: Afficher statut Monitoring
+  ansible.builtin.debug:
+    msg:
+      - "✅ Stack Monitoring déployée avec succès"
+      - "Grafana: {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.grafana }}"
+      - "User: {{ grafana_admin_user | default('admin') }}"
+      - "Password: (voir vault.yml)"
+      - ""
+      - "Prometheus scrape Traefik metrics automatiquement"

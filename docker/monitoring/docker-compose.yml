@@ -1,0 +1,88 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: prometheus
+    restart: unless-stopped
+    user: root
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-15d}'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - traefik-proxy
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: grafana
+    restart: unless-stopped
+    user: root
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL}
+      - GF_INSTALL_PLUGINS=${GRAFANA_PLUGINS:-}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - traefik-proxy
+      - monitoring
+    labels:
+      # Exposition via Traefik
+      - "traefik.enable=true"
+
+      # HTTP
+      - "traefik.http.routers.grafana-http.entrypoints=web"
+      - "traefik.http.routers.grafana-http.rule=Host(`${GRAFANA_DOMAIN}`)"
+      - "traefik.http.routers.grafana-http.service=grafana"
+
+      # HTTPS (production)
+      - "traefik.http.routers.grafana-https.entrypoints=websecure"
+      - "traefik.http.routers.grafana-https.rule=Host(`${GRAFANA_DOMAIN}`)"
+      - "traefik.http.routers.grafana-https.service=grafana"
+      - "traefik.http.routers.grafana-https.tls=${GRAFANA_TLS_ENABLED:-false}"
+      - "traefik.http.routers.grafana-https.tls.certresolver=${GRAFANA_CERT_RESOLVER:-}"
+
+      # Service
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+      # Middlewares (optionnel, Grafana a son propre auth)
+      - "traefik.http.routers.grafana-http.middlewares=${GRAFANA_MIDDLEWARES:-}"
+      - "traefik.http.routers.grafana-https.middlewares=${GRAFANA_MIDDLEWARES:-}"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  traefik-proxy:
+    external: true
+    name: traefik-proxy
+  monitoring:
+    driver: bridge

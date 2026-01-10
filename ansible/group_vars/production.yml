@@ -10,18 +10,19 @@ enable_gpu: true
 enable_letsencrypt: true
 enable_zfs_snapshots: true
 
-# Domaine de base (À MODIFIER)
-base_domain: "votre-domaine.fr"
+# Domaine de base
+base_domain: "louisvolat.fr"
+litopia: "litopia.fr"
 
 # Domaines des services
 service_domains:
   traefik: "traefik.{{ base_domain }}"
   immich: "photos.{{ base_domain }}"
-  jellyfin: "media.{{ base_domain }}"
+  jellyfin: "jellyfin.{{ base_domain }}"
   nextcloud: "cloud.{{ base_domain }}"
   grafana: "monitoring.{{ base_domain }}"
   dozzle: "logs.{{ base_domain }}"
-  amp: "games.{{ base_domain }}"
+  amp: "dashboard.{{ litopia }}"
 
 # Configuration NFS (Ubiquiti NAS Pro)
 nfs_server: "192.168.1.50"  # À MODIFIER : IP de ton NAS Pro

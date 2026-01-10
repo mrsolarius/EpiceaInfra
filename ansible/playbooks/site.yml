@@ -37,6 +37,11 @@
       tags: [proxy, services]
       when: "'traefik' in enabled_services"
 
+    # Monitoring
+    - role: monitoring
+      tags: [monitoring, services]
+      when: "'monitoring' in enabled_services"
+
   post_tasks:
     - name: Résumé du déploiement
       ansible.builtin.debug:
@@ -47,7 +52,9 @@
           - "Services déployés : {{ enabled_services | join(', ') }}"
           - "Environnement : {{ deploy_environment }}"
           - ""
-          - "Accès Traefik : http://{{ service_domains.traefik }}"
+          - "🔧 Accès services :"
+          - "  Traefik   : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}"
+          - "  Grafana   : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.grafana }}"
           - ""
           - "Prochaines étapes :"
           - "  make status  # Vérifier les services"
