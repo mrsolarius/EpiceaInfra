@@ -6,6 +6,7 @@ services:
     env_file: .env
     volumes:
       - ${DATA_PATH}/nextcloud:/var/www/html
+      - /mnt/cloud:/var/www/html/data
     networks:
       - default
       - proxy

@@ -2,7 +2,7 @@
 # ==============================================================================
 # PostgreSQL Stack
 # ==============================================================================
-- name: Créer les répertoires pour PostgreSQL
+- name: Créer le répertoire pour PostgreSQL
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -11,8 +11,15 @@
     group: "1000"
   loop:
     - "{{ data_path }}/postgres"
-    - "{{ data_path }}/pgadmin"
     - "{{ docker_compose_path }}/postgres"
+
+- name: Créer le répertoire pour pgAdmin
+  ansible.builtin.file:
+    path: "{{ data_path }}/pgadmin"
+    state: directory
+    mode: '0755'
+    owner: "5050"
+    group: "5050"
 
 - name: Copier le script d'initialisation SQL
   ansible.builtin.template:

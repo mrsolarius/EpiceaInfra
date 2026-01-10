@@ -4,7 +4,7 @@ services:
     image: ghcr.io/immich-app/immich-server:release
     command: [ "start.sh", "immich" ]
     volumes:
-      - ${DATA_PATH}/immich/upload:/usr/src/app/upload
+      - /mnt/photos:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
     env_file: .env
     depends_on:
@@ -26,7 +26,7 @@ services:
       - "traefik.http.routers.immich-https.tls=true"
       - "traefik.http.routers.immich-https.tls.certresolver=myresolver"
       # Service
-      - "traefik.http.services.immich.loadbalancer.server.port=3001"
+      - "traefik.http.services.immich.loadbalancer.server.port=2283"
 
   immich-machine-learning:
     container_name: immich_machine_learning
