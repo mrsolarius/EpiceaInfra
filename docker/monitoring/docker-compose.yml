@@ -4,6 +4,12 @@ services:
     container_name: prometheus
     restart: unless-stopped
     user: root
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -29,6 +35,12 @@ services:
     container_name: cadvisor
     restart: unless-stopped
     privileged: true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
     devices:
       - /dev/kmsg
     volumes:
@@ -57,6 +69,12 @@ services:
     container_name: grafana
     restart: unless-stopped
     user: root
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}

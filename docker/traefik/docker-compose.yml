@@ -7,6 +7,12 @@ services:
       - no-new-privileges:true
     networks:
       - traefik-proxy
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
     ports:
       - "80:80"      # HTTP
       - "443:443"    # HTTPS
