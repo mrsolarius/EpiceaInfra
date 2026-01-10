@@ -43,6 +43,17 @@
       when: "'monitoring' in enabled_services"
 
   post_tasks:
+    - name: Vérifier que tous les services sont up
+      ansible.builtin.command:
+        cmd: docker ps --filter "name={{ item }}" --format "{{ '{{' }}.Names{{ '}}' }}"
+      loop:
+        - traefik
+        - prometheus
+        - grafana
+      register: services_check
+      changed_when: false
+      failed_when: false
+
     - name: Résumé du déploiement
       ansible.builtin.debug:
         msg:
@@ -55,6 +66,9 @@
           - "🔧 Accès services :"
           - "  Traefik   : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}"
           - "  Grafana   : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.grafana }}"
+          - ""
+          - "🐳 Services actifs :"
+          - "{% for service in services_check.results %}  - {{ service.stdout | default('NOT RUNNING') }}{% endfor %}"
           - ""
           - "Prochaines étapes :"
           - "  make status  # Vérifier les services"

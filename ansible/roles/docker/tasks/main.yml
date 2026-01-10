@@ -10,14 +10,67 @@
   failed_when: false
   changed_when: false
 
-- name: Installer Docker via script officiel
-  ansible.builtin.shell: curl -fsSL https://get.docker.com | sh
+- name: Afficher la version Docker actuelle (si installée)
+  ansible.builtin.debug:
+    msg: "Docker déjà installé : {{ docker_check.stdout }}"
+  when: docker_check.rc == 0
+
+- name: Supprimer les anciennes versions de Docker
+  ansible.builtin.apt:
+    name:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+    state: absent
   when: docker_check.rc != 0
 
-- name: Installer Docker Compose v2
+- name: Installer les dépendances pour le repository Docker
   ansible.builtin.apt:
-    name: docker-compose-plugin
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
     state: present
+    update_cache: true
+
+- name: Créer le dossier pour les clés GPG
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Ajouter la clé GPG officielle Docker
+  ansible.builtin.shell: |
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    chmod a+r /etc/apt/keyrings/docker.gpg
+  args:
+    creates: /etc/apt/keyrings/docker.gpg
+  when: docker_check.rc != 0
+
+- name: Ajouter le repository Docker
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+    filename: docker
+  when: docker_check.rc != 0
+
+- name: Mettre à jour le cache APT
+  ansible.builtin.apt:
+    update_cache: true
+  when: docker_check.rc != 0
+
+- name: Installer Docker Engine (dernière version)
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: latest  # ← Force la dernière version
     update_cache: true
 
 - name: Créer le dossier de configuration Docker
@@ -69,13 +122,20 @@
   ansible.builtin.command: docker ps
   changed_when: false
 
-- name: Afficher version Docker
-  ansible.builtin.command: docker --version
-  register: docker_version
+- name: Récupérer la version Docker installée
+  ansible.builtin.command: docker version --format '{{ "{{" }}.Server.Version{{ "}}" }}'
+  register: docker_version_installed
+  changed_when: false
+
+- name: Récupérer l'API version Docker
+  ansible.builtin.command: docker version --format '{{ "{{" }}.Server.APIVersion{{ "}}" }}'
+  register: docker_api_version
   changed_when: false
 
 - name: Afficher résultat
   ansible.builtin.debug:
     msg:
-      - "✅ Docker installé : {{ docker_version.stdout }}"
+      - "✅ Docker installé : {{ docker_version_installed.stdout }}"
+      - "✅ Docker API version : {{ docker_api_version.stdout }}"
       - "Réseau créé : {{ proxy_network_name }}"
+      - "{% if docker_api_version.stdout is version('1.44', '>=') %}✅ Compatible avec Traefik v3.3+{% else %}⚠️  API trop ancienne pour Traefik v3.3 (minimum 1.44){% endif %}"

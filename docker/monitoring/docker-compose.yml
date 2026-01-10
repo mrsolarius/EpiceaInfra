@@ -32,7 +32,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
-      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL}
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://monitoring.epicea-test.local}
       - GF_INSTALL_PLUGINS=${GRAFANA_PLUGINS:-}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_AUTH_ANONYMOUS_ENABLED=false
@@ -44,27 +44,25 @@ services:
       - traefik-proxy
       - monitoring
     labels:
-      # Exposition via Traefik
+      # Traefik activation
       - "traefik.enable=true"
 
-      # HTTP
+      # HTTP Router
       - "traefik.http.routers.grafana-http.entrypoints=web"
-      - "traefik.http.routers.grafana-http.rule=Host(`${GRAFANA_DOMAIN}`)"
+      - "traefik.http.routers.grafana-http.rule=Host(`monitoring.epicea-test.local`)"
       - "traefik.http.routers.grafana-http.service=grafana"
+      - "traefik.http.routers.grafana-http.middlewares=compression@file"
 
-      # HTTPS (production)
+      # HTTPS Router (pour production)
       - "traefik.http.routers.grafana-https.entrypoints=websecure"
-      - "traefik.http.routers.grafana-https.rule=Host(`${GRAFANA_DOMAIN}`)"
+      - "traefik.http.routers.grafana-https.rule=Host(`monitoring.epicea-test.local`)"
       - "traefik.http.routers.grafana-https.service=grafana"
-      - "traefik.http.routers.grafana-https.tls=${GRAFANA_TLS_ENABLED:-false}"
-      - "traefik.http.routers.grafana-https.tls.certresolver=${GRAFANA_CERT_RESOLVER:-}"
+      - "traefik.http.routers.grafana-https.tls=false"
+      - "traefik.http.routers.grafana-https.middlewares=compression@file"
 
-      # Service
+      # Service definition
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
-      # Middlewares (optionnel, Grafana a son propre auth)
-      - "traefik.http.routers.grafana-http.middlewares=${GRAFANA_MIDDLEWARES:-}"
-      - "traefik.http.routers.grafana-https.middlewares=${GRAFANA_MIDDLEWARES:-}"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
@@ -72,7 +70,8 @@ services:
       retries: 3
       start_period: 30s
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
 
 volumes:
   prometheus-data:

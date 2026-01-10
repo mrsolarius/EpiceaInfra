@@ -12,3 +12,8 @@ proxy_network_name: "traefik-proxy"
 
 # GPU (conditionnel depuis group_vars)
 enable_gpu: false
+
+# Version Docker (info)
+# Le rôle installe toujours la dernière version disponible
+# Minimum requis pour Traefik v3.3 : Docker API 1.44+
+docker_min_api_version: "1.44"
