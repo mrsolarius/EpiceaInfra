@@ -107,18 +107,19 @@ multipass exec "$EPICEA_VM" -- bash ./scripts/multipass/init-epicea-vm.sh "$STOR
 # 7. Mettre à jour l'inventory Ansible avec les bonnes IPs
 echo -e "${GREEN}📝 Mise à jour inventory Ansible...${NC}"
 INVENTORY_FILE="$PROJECT_ROOT/ansible/inventory/hosts.yml"
+GROUP_VARS_FILE="$PROJECT_ROOT/ansible/group_vars/test.yml"
 
 # Sur Windows avec Git Bash, utiliser sed compatible
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
     sed -i "s/ansible_host: .* # IP_EPICEA_TEST/ansible_host: $EPICEA_IP # IP_EPICEA_TEST/" "$INVENTORY_FILE"
-    sed -i "s/nfs_server: .* # IP_STORAGE_TEST/nfs_server: \"$STORAGE_IP\" # IP_STORAGE_TEST/" "$INVENTORY_FILE"
+    sed -i "s/nfs_server: \".*\" # IP_STORAGE_TEST/nfs_server: \"$STORAGE_IP\" # IP_STORAGE_TEST/" "$GROUP_VARS_FILE"
 else
     sed -i.bak "s/ansible_host: .* # IP_EPICEA_TEST/ansible_host: $EPICEA_IP # IP_EPICEA_TEST/" "$INVENTORY_FILE"
-    sed -i.bak "s/nfs_server: .* # IP_STORAGE_TEST/nfs_server: \"$STORAGE_IP\" # IP_STORAGE_TEST/" "$INVENTORY_FILE"
-    rm -f "${INVENTORY_FILE}.bak"
+    sed -i.bak "s/nfs_server: \".*\" # IP_STORAGE_TEST/nfs_server: \"$STORAGE_IP\" # IP_STORAGE_TEST/" "$GROUP_VARS_FILE"
+    rm -f "${INVENTORY_FILE}.bak" "${GROUP_VARS_FILE}.bak"
 fi
 
-echo -e "${GREEN}✅ Inventory mis à jour${NC}\n"
+echo -e "${GREEN}✅ Inventory et group_vars mis à jour${NC}\n"
 
 # 7. Afficher résumé
 echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
