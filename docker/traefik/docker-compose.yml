@@ -10,7 +10,6 @@ services:
     ports:
       - "80:80"      # HTTP
       - "443:443"    # HTTPS
-      - "8080:8080"  # Dashboard
     environment:
       - TZ=${TZ:-Europe/Paris}
       # Let's Encrypt (production seulement)

@@ -108,7 +108,7 @@
   ansible.builtin.debug:
     msg:
       - "✅ Traefik déployé avec succès"
-      - "Dashboard: http://{{ service_domains.traefik }}"
-      - "Auth: admin / admin (par défaut)"
-      - "Ping: http://localhost/ping"
-      - "Metrics: http://localhost:8082/metrics"
+      - "Dashboard: {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}"
+      - "Metrics: {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}/metrics"
+      - "Ping: {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}/ping"
+      - "Auth: {{ 'Configuré dans vault.yml' if deploy_environment == 'production' else 'admin / admin' }}"

@@ -114,6 +114,22 @@ http:
         certResolver: letsencrypt
 {% endif %}
 
+    # Metrics Prometheus
+    traefik-metrics:
+      entryPoints:
+        - web
+{% if enable_letsencrypt %}
+        - websecure
+{% endif %}
+      rule: "Host(`{{ service_domains.traefik }}`) && PathPrefix(`/metrics`)"
+      service: prometheus@internal
+      middlewares:
+        - traefik-auth
+{% if enable_letsencrypt %}
+      tls:
+        certResolver: letsencrypt
+{% endif %}
+
   # ========================================
   # Services (pour tests)
   # ========================================

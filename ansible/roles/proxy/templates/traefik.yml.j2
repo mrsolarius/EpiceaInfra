@@ -28,7 +28,7 @@ accessLog:
 # ========================================
 api:
   dashboard: {{ traefik_dashboard_enabled | lower }}
-  insecure: {{ 'true' if deploy_environment == 'test' else 'false' }}  # Insecure en test pour debug
+  insecure: false  # Toujours sécurisé (via router file-based)
 
 # ========================================
 # Entry Points
@@ -56,9 +56,6 @@ entryPoints:
             sans:
               - "*.{{ base_domain }}"
 {% endif %}
-
-  metrics:
-    address: ":8082"
 
 # ========================================
 # Providers
@@ -110,7 +107,7 @@ metrics:
     addEntryPointsLabels: true
     addRoutersLabels: true
     addServicesLabels: true
-    entryPoint: metrics
+    # Pas d'entryPoint dédié, exposé via router /metrics
 
 # ========================================
 # Health Check
