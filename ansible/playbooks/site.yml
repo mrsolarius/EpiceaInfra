@@ -10,8 +10,8 @@
     - name: Vérification des prérequis
       ansible.builtin.assert:
         that:
-          - ansible_distribution == "Ubuntu"
-          - ansible_distribution_major_version | int >= 22
+          - ansible_facts['distribution'] == "Ubuntu"
+          - ansible_facts['distribution_major_version'] | int >= 22
         fail_msg: "Ce playbook nécessite Ubuntu 22.04 ou supérieur"
 
     - name: Afficher environnement détecté

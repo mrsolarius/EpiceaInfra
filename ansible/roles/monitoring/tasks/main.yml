@@ -92,19 +92,19 @@
   community.docker.docker_compose_v2:
     project_src: "{{ docker_compose_path }}/monitoring"
     state: present
-    pull: "always"
     remove_orphans: true
   register: monitoring_deploy
 
-- name: Attendre que Grafana soit up
-  ansible.builtin.wait_for:
-    host: localhost
-    port: 3000
-    delay: 5
-    timeout: 60
-    state: started
+- name: Vérifier que les conteneurs sont running
+  ansible.builtin.shell:
+    cmd: docker compose ps --format json | jq -r '.State' | grep -c running || true
+    chdir: "{{ docker_compose_path }}/monitoring"
+  register: monitoring_status
+  until: monitoring_status.stdout | int > 0
+  retries: 12
+  delay: 5
+  changed_when: false
   when: monitoring_deploy.changed
-  ignore_errors: true  # Grafana n'expose pas de port si via Traefik uniquement
 
 - name: Afficher statut Monitoring
   ansible.builtin.debug:

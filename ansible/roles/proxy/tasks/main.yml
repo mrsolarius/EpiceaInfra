@@ -81,7 +81,6 @@
   community.docker.docker_compose_v2:
     project_src: "{{ docker_compose_path }}/traefik"
     state: present
-    pull: "always"
     remove_orphans: true
   register: traefik_deploy
 
