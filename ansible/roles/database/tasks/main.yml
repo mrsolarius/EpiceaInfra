@@ -1,0 +1,71 @@
+---
+# ==============================================================================
+# PostgreSQL Stack
+# ==============================================================================
+- name: Créer les répertoires pour PostgreSQL
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "1000"
+    group: "1000"
+  loop:
+    - "{{ data_path }}/postgres"
+    - "{{ data_path }}/pgadmin"
+    - "{{ docker_compose_path }}/postgres"
+
+- name: Copier le script d'initialisation SQL
+  ansible.builtin.template:
+    src: init.sql.j2
+    dest: "{{ docker_compose_path }}/postgres/init.sql"
+    mode: '0644'
+
+- name: Générer le fichier .env pour PostgreSQL
+  ansible.builtin.template:
+    src: postgres.env.j2
+    dest: "{{ docker_compose_path }}/postgres/.env"
+    mode: '0600'
+
+- name: Copier le docker-compose pour PostgreSQL
+  ansible.builtin.copy:
+    src: ../../../docker/stateful/postgres/docker-compose.yml
+    dest: "{{ docker_compose_path }}/postgres/docker-compose.yml"
+    mode: '0644'
+
+- name: Démarrer la stack PostgreSQL
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_path }}/postgres"
+    state: present
+    pull: always
+
+# ==============================================================================
+# Redis Stack
+# ==============================================================================
+- name: Créer les répertoires pour Redis
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "1000"
+    group: "1000"
+  loop:
+    - "{{ data_path }}/redis"
+    - "{{ docker_compose_path }}/redis"
+
+- name: Générer le fichier .env pour Redis
+  ansible.builtin.template:
+    src: redis.env.j2
+    dest: "{{ docker_compose_path }}/redis/.env"
+    mode: '0600'
+
+- name: Copier le docker-compose pour Redis
+  ansible.builtin.copy:
+    src: ../../../docker/stateful/redis/docker-compose.yml
+    dest: "{{ docker_compose_path }}/redis/docker-compose.yml"
+    mode: '0644'
+
+- name: Démarrer la stack Redis
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_path }}/redis"
+    state: present
+    pull: always

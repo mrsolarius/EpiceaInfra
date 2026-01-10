@@ -1,0 +1,18 @@
+-- Création utilisateur et base Nextcloud
+CREATE USER {{ postgres_databases.nextcloud.user }} WITH PASSWORD '{{ postgres_databases.nextcloud.password }}';
+CREATE DATABASE {{ postgres_databases.nextcloud.user }} OWNER {{ postgres_databases.nextcloud.user }};
+
+-- Création utilisateur et base Immich
+CREATE USER {{ postgres_databases.immich.user }} WITH PASSWORD '{{ postgres_databases.immich.password }}';
+CREATE DATABASE {{ postgres_databases.immich.user }} OWNER {{ postgres_databases.immich.user }};
+
+-- Connexion à la base Immich pour installer les extensions
+\c {{ postgres_databases.immich.user }}
+
+-- Extensions requises pour Immich
+CREATE EXTENSION IF NOT EXISTS vectors;
+CREATE EXTENSION IF NOT EXISTS cube;
+CREATE EXTENSION IF NOT EXISTS earthdistance;
+
+-- Donner les droits sur le schéma public
+ALTER SCHEMA public OWNER TO {{ postgres_databases.immich.user }};

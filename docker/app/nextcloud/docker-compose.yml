@@ -1,0 +1,36 @@
+services:
+  nextcloud:
+    image: nextcloud:latest
+    container_name: nextcloud
+    restart: always
+    env_file: .env
+    volumes:
+      - ${DATA_PATH}/nextcloud:/var/www/html
+    networks:
+      - default
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      # HTTP Router
+      - "traefik.http.routers.nextcloud-http.rule=Host(`${NEXTCLOUD_TRUSTED_DOMAINS}`)"
+      - "traefik.http.routers.nextcloud-http.entrypoints=web"
+      - "traefik.http.routers.nextcloud-http.service=nextcloud"
+      # HTTPS Router
+      - "traefik.http.routers.nextcloud-https.rule=Host(`${NEXTCLOUD_TRUSTED_DOMAINS}`)"
+      - "traefik.http.routers.nextcloud-https.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud-https.service=nextcloud"
+      - "traefik.http.routers.nextcloud-https.tls=true"
+      - "traefik.http.routers.nextcloud-https.tls.certresolver=myresolver"
+      # Middlewares
+      - "traefik.http.middlewares.nextcloud-dav.redirectregex.regex=^/.well-known/(card|cal)dav"
+      - "traefik.http.middlewares.nextcloud-dav.redirectregex.replacement=/remote.php/dav/"
+      - "traefik.http.routers.nextcloud-http.middlewares=nextcloud-dav"
+      - "traefik.http.routers.nextcloud-https.middlewares=nextcloud-dav"
+      # Service
+      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
+
+networks:
+  default:
+  proxy:
+    name: ${PROXY_NETWORK}
+    external: true

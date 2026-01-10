@@ -16,6 +16,10 @@ ansible/secrets/vault.yml
 **/letsencrypt/
 docker/traefik/logs/
 
+# Exceptions for configuration folders
+!docker/stateful/postgres/
+!docker/stateful/redis/
+
 # Ansible
 *.retry
 ansible/.vault_pass

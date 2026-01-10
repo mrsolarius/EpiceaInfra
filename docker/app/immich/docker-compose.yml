@@ -1,0 +1,46 @@
+services:
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:release
+    command: [ "start.sh", "immich" ]
+    volumes:
+      - ${DATA_PATH}/immich/upload:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+    env_file: .env
+    depends_on:
+      - immich-machine-learning
+    restart: always
+    networks:
+      - default
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      # HTTP Router
+      - "traefik.http.routers.immich-http.rule=Host(`${IMMICH_DOMAIN}`)"
+      - "traefik.http.routers.immich-http.entrypoints=web"
+      - "traefik.http.routers.immich-http.service=immich"
+      # HTTPS Router
+      - "traefik.http.routers.immich-https.rule=Host(`${IMMICH_DOMAIN}`)"
+      - "traefik.http.routers.immich-https.entrypoints=websecure"
+      - "traefik.http.routers.immich-https.service=immich"
+      - "traefik.http.routers.immich-https.tls=true"
+      - "traefik.http.routers.immich-https.tls.certresolver=myresolver"
+      # Service
+      - "traefik.http.services.immich.loadbalancer.server.port=3001"
+
+  immich-machine-learning:
+    container_name: immich_machine_learning
+    image: ghcr.io/immich-app/immich-machine-learning:release
+    volumes:
+      - ${DATA_PATH}/immich/model-cache:/cache
+    env_file: .env
+    restart: always
+    networks:
+      - default
+      - proxy
+
+networks:
+  default:
+  proxy:
+    name: ${PROXY_NETWORK}
+    external: true

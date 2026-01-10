@@ -1,0 +1,29 @@
+---
+- name: Créer les répertoires de données
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "33" # www-data
+    group: "33"
+  loop:
+    - "{{ data_path }}/nextcloud"
+    - "{{ docker_compose_path }}/nextcloud"
+
+- name: Générer le fichier .env
+  ansible.builtin.template:
+    src: .env.j2
+    dest: "{{ docker_compose_path }}/nextcloud/.env"
+    mode: '0600'
+
+- name: Copier le fichier docker-compose
+  ansible.builtin.copy:
+    src: ../../../docker/app/nextcloud/docker-compose.yml
+    dest: "{{ docker_compose_path }}/nextcloud/docker-compose.yml"
+    mode: '0644'
+
+- name: Démarrer Nextcloud
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_path }}/nextcloud"
+    state: present
+    pull: always

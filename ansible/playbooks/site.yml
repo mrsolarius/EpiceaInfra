@@ -42,6 +42,20 @@
       tags: [monitoring, services]
       when: "'monitoring' in enabled_services"
 
+    # Services partagés (BDD, Cache)
+    - role: database
+      tags: [database, services]
+      when: "'shared-services' in enabled_services"
+
+    # Applications
+    - role: nextcloud
+      tags: [nextcloud, services]
+      when: "'nextcloud' in enabled_services"
+
+    - role: immich
+      tags: [immich, services]
+      when: "'immich' in enabled_services"
+
   post_tasks:
     - name: Vérifier que tous les services sont up
       ansible.builtin.command:
@@ -50,6 +64,10 @@
         - traefik
         - prometheus
         - grafana
+        - postgres
+        - redis
+        - nextcloud
+        - immich_server
       register: services_check
       changed_when: false
       failed_when: false
@@ -66,6 +84,10 @@
           - "🔧 Accès services :"
           - "  Traefik   : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}"
           - "  Grafana   : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.grafana }}"
+          - "  Nextcloud : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.nextcloud }}"
+          - "  Immich    : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.immich }}"
+          - "  PgAdmin   : {{ 'https' if enable_letsencrypt else 'http' }}://pgadmin.{{ base_domain }}"
+          - "  Redis Cmd : {{ 'https' if enable_letsencrypt else 'http' }}://redis.{{ base_domain }}"
           - ""
           - "🐳 Services actifs :"
           - "{% for service in services_check.results %}  - {{ service.stdout | default('NOT RUNNING') }}{% endfor %}"

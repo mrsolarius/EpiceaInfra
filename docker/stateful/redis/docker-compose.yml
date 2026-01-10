@@ -1,0 +1,47 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    volumes:
+      - ${DATA_PATH}/redis:/data
+    networks:
+      - default
+      - proxy
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    restart: always
+    environment:
+      REDIS_HOSTS: "local:redis:6379"
+    networks:
+      - default
+      - proxy
+    depends_on:
+      - redis
+    labels:
+      - "traefik.enable=true"
+      # HTTP Router
+      - "traefik.http.routers.redis-commander-http.rule=Host(`redis.${BASE_DOMAIN}`)"
+      - "traefik.http.routers.redis-commander-http.entrypoints=web"
+      - "traefik.http.routers.redis-commander-http.service=redis-commander"
+      # HTTPS Router
+      - "traefik.http.routers.redis-commander-https.rule=Host(`redis.${BASE_DOMAIN}`)"
+      - "traefik.http.routers.redis-commander-https.entrypoints=websecure"
+      - "traefik.http.routers.redis-commander-https.service=redis-commander"
+      - "traefik.http.routers.redis-commander-https.tls=true"
+      - "traefik.http.routers.redis-commander-https.tls.certresolver=myresolver"
+      # Service
+      - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"
+
+networks:
+  default:
+  proxy:
+    name: ${PROXY_NETWORK}
+    external: true

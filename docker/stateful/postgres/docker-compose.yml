@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: tensorchord/pgvecto-rs:pg16-v0.2.0
+    container_name: postgres
+    restart: always
+    env_file: .env
+    volumes:
+      - ${DATA_PATH}/postgres:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - default
+      - proxy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: always
+    env_file: .env
+    volumes:
+      - ${DATA_PATH}/pgadmin:/var/lib/pgadmin
+    networks:
+      - default
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      # HTTP Router
+      - "traefik.http.routers.pgadmin-http.rule=Host(`pgadmin.${BASE_DOMAIN}`)"
+      - "traefik.http.routers.pgadmin-http.entrypoints=web"
+      - "traefik.http.routers.pgadmin-http.service=pgadmin"
+      # HTTPS Router
+      - "traefik.http.routers.pgadmin-https.rule=Host(`pgadmin.${BASE_DOMAIN}`)"
+      - "traefik.http.routers.pgadmin-https.entrypoints=websecure"
+      - "traefik.http.routers.pgadmin-https.service=pgadmin"
+      - "traefik.http.routers.pgadmin-https.tls=true"
+      - "traefik.http.routers.pgadmin-https.tls.certresolver=myresolver"
+      # Service
+      - "traefik.http.services.pgadmin.loadbalancer.server.port=80"
+
+networks:
+  default:
+  proxy:
+    name: ${PROXY_NETWORK}
+    external: true
