@@ -6,33 +6,33 @@ updates:
     schedule:
       interval: "weekly"
 
-  # Maintenance des images Docker
-  - package-ecosystem: "docker"
-    directory: "/docker/traefik"
+  # Maintenance des images docker-compose
+  - package-ecosystem: "docker-compose"
+    directory: "/docker"
     schedule:
       interval: "weekly"
 
-  - package-ecosystem: "docker"
+  - package-ecosystem: "docker-compose"
     directory: "/docker/monitoring"
     schedule:
       interval: "weekly"
 
-  - package-ecosystem: "docker"
+  - package-ecosystem: "docker-compose"
     directory: "/docker/stateful/redis"
     schedule:
       interval: "weekly"
 
-  - package-ecosystem: "docker"
+  - package-ecosystem: "docker-compose"
     directory: "/docker/stateful/postgres"
     schedule:
       interval: "weekly"
 
-  - package-ecosystem: "docker"
+  - package-ecosystem: "docker-compose"
     directory: "/docker/app/immich"
     schedule:
       interval: "weekly"
 
-  - package-ecosystem: "docker"
+  - package-ecosystem: "docker-compose"
     directory: "/docker/app/nextcloud"
     schedule:
       interval: "weekly"
