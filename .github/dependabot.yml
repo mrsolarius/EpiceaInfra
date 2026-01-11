@@ -8,7 +8,7 @@ updates:
 
   # Maintenance des images docker-compose
   - package-ecosystem: "docker-compose"
-    directory: "/docker"
+    directory: "/docker/traefik"
     schedule:
       interval: "weekly"
 
