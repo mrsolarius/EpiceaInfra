@@ -4,6 +4,8 @@ services:
     container_name: redis
     command: redis-server --requirepass ${REDIS_PASSWORD}
     restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
     volumes:
       - ${DATA_PATH}/redis/data:/data
     networks:
@@ -14,34 +16,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: redis-commander
-    restart: always
-    environment:
-      REDIS_HOSTS: "local:redis:6379:0:${REDIS_PASSWORD}"
-    networks:
-      - default
-      - proxy
-    depends_on:
-      - redis
-    labels:
-      - "traefik.enable=true"
-      # HTTP Router
-      - "traefik.http.routers.redis-commander-http.rule=Host(`redis.${BASE_DOMAIN}`)"
-      - "traefik.http.routers.redis-commander-http.entrypoints=web"
-      - "traefik.http.routers.redis-commander-http.service=redis-commander"
-      # HTTPS Router (activé uniquement si Let's Encrypt est activé)
-      {% if enable_letsencrypt %}
-      - "traefik.http.routers.redis-commander-https.rule=Host(`redis.${BASE_DOMAIN}`)"
-      - "traefik.http.routers.redis-commander-https.entrypoints=websecure"
-      - "traefik.http.routers.redis-commander-https.service=redis-commander"
-      - "traefik.http.routers.redis-commander-https.tls=true"
-      - "traefik.http.routers.redis-commander-https.tls.certresolver=letsencrypt"
-      {% endif %}
-      # Service
-      - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"
 
 networks:
   default:

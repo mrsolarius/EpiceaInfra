@@ -13,14 +13,6 @@
     - "{{ data_path }}/postgres"
     - "{{ docker_compose_path }}/postgres"
 
-- name: Créer le répertoire pour pgAdmin
-  ansible.builtin.file:
-    path: "{{ data_path }}/pgadmin"
-    state: directory
-    mode: '0755'
-    owner: "5050"
-    group: "5050"
-
 - name: Copier le script d'initialisation SQL
   ansible.builtin.template:
     src: init.sql.j2
@@ -33,8 +25,8 @@
     dest: "{{ docker_compose_path }}/postgres/.env"
     mode: '0600'
 
-- name: Générer le docker-compose pour PostgreSQL
-  ansible.builtin.template:
+- name: Copier le docker-compose pour PostgreSQL
+  ansible.builtin.copy:
     src: ../../../docker/stateful/postgres/docker-compose.yml
     dest: "{{ docker_compose_path }}/postgres/docker-compose.yml"
     mode: '0644'
@@ -73,8 +65,8 @@
     dest: "{{ docker_compose_path }}/redis/.env"
     mode: '0600'
 
-- name: Générer le docker-compose pour Redis
-  ansible.builtin.template:
+- name: Copier le docker-compose pour Redis
+  ansible.builtin.copy:
     src: ../../../docker/stateful/redis/docker-compose.yml
     dest: "{{ docker_compose_path }}/redis/docker-compose.yml"
     mode: '0644'
