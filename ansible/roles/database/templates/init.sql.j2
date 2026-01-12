@@ -16,3 +16,4 @@ CREATE EXTENSION IF NOT EXISTS earthdistance;
 
 -- Donner les droits sur le schéma public
 ALTER SCHEMA public OWNER TO {{ postgres_databases.immich.user }};
+ALTER SCHEMA vectors OWNER TO {{ postgres_databases.immich.user }};
