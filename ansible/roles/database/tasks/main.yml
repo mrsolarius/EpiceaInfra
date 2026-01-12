@@ -33,8 +33,8 @@
     dest: "{{ docker_compose_path }}/postgres/.env"
     mode: '0600'
 
-- name: Copier le docker-compose pour PostgreSQL
-  ansible.builtin.copy:
+- name: Générer le docker-compose pour PostgreSQL
+  ansible.builtin.template:
     src: ../../../docker/stateful/postgres/docker-compose.yml
     dest: "{{ docker_compose_path }}/postgres/docker-compose.yml"
     mode: '0644'
@@ -65,8 +65,8 @@
     dest: "{{ docker_compose_path }}/redis/.env"
     mode: '0600'
 
-- name: Copier le docker-compose pour Redis
-  ansible.builtin.copy:
+- name: Générer le docker-compose pour Redis
+  ansible.builtin.template:
     src: ../../../docker/stateful/redis/docker-compose.yml
     dest: "{{ docker_compose_path }}/redis/docker-compose.yml"
     mode: '0644'

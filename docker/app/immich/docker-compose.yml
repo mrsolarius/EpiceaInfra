@@ -19,12 +19,14 @@ services:
       - "traefik.http.routers.immich-http.rule=Host(`${IMMICH_DOMAIN}`)"
       - "traefik.http.routers.immich-http.entrypoints=web"
       - "traefik.http.routers.immich-http.service=immich"
-      # HTTPS Router
+      # HTTPS Router (activé uniquement si Let's Encrypt est activé)
+      {% if enable_letsencrypt %}
       - "traefik.http.routers.immich-https.rule=Host(`${IMMICH_DOMAIN}`)"
       - "traefik.http.routers.immich-https.entrypoints=websecure"
       - "traefik.http.routers.immich-https.service=immich"
       - "traefik.http.routers.immich-https.tls=true"
-      - "traefik.http.routers.immich-https.tls.certresolver=myresolver"
+      - "traefik.http.routers.immich-https.tls.certresolver=letsencrypt"
+      {% endif %}
       # Service
       - "traefik.http.services.immich.loadbalancer.server.port=2283"
 

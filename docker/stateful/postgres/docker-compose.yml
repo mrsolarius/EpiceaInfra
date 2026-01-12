@@ -49,12 +49,14 @@ services:
       - "traefik.http.routers.pgadmin-http.rule=Host(`pgadmin.${BASE_DOMAIN}`)"
       - "traefik.http.routers.pgadmin-http.entrypoints=web"
       - "traefik.http.routers.pgadmin-http.service=pgadmin"
-      # HTTPS Router
+      # HTTPS Router (activé uniquement si Let's Encrypt est activé)
+      {% if enable_letsencrypt %}
       - "traefik.http.routers.pgadmin-https.rule=Host(`pgadmin.${BASE_DOMAIN}`)"
       - "traefik.http.routers.pgadmin-https.entrypoints=websecure"
       - "traefik.http.routers.pgadmin-https.service=pgadmin"
       - "traefik.http.routers.pgadmin-https.tls=true"
-      - "traefik.http.routers.pgadmin-https.tls.certresolver=myresolver"
+      - "traefik.http.routers.pgadmin-https.tls.certresolver=letsencrypt"
+      {% endif %}
       # Service
       - "traefik.http.services.pgadmin.loadbalancer.server.port=80"
 

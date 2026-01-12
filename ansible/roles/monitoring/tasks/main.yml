@@ -71,8 +71,8 @@
     group: root
   notify: restart monitoring
 
-- name: Copier docker-compose.yml Monitoring
-  ansible.builtin.copy:
+- name: Générer docker-compose.yml Monitoring
+  ansible.builtin.template:
     src: "{{ playbook_dir }}/../../docker/monitoring/docker-compose.yml"
     dest: "{{ docker_compose_path }}/monitoring/docker-compose.yml"
     mode: '0644'
