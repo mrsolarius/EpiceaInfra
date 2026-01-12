@@ -20,6 +20,16 @@
     state: mounted
   loop: "{{ nfs_mounts }}"
 
+- name: Configurer les permissions après montage
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode: "{{ item.mode | default(omit) }}"
+  loop: "{{ nfs_mounts }}"
+  when: item.owner is defined or item.group is defined or item.mode is defined
+
 - name: Vérifier les montages
   ansible.builtin.command: df -h {{ item.path }}
   loop: "{{ nfs_mounts }}"
