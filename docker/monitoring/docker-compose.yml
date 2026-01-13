@@ -19,6 +19,7 @@ services:
       - '--web.enable-lifecycle'
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
       - prometheus-data:/prometheus
     networks:
       - traefik-proxy

@@ -1,6 +1,16 @@
 # Custom queries for PostgreSQL Exporter
 # Focus on pg_stat_statements and pgvector-specific metrics
 
+# Query for PostgreSQL uptime
+pg_postmaster_uptime:
+  query: |
+    SELECT
+      EXTRACT(EPOCH FROM (NOW() - pg_postmaster_start_time())) as uptime_seconds
+  metrics:
+    - uptime_seconds:
+        usage: "GAUGE"
+        description: "PostgreSQL uptime in seconds since last restart"
+
 # Query for pg_stat_statements - Top queries by total time
 pg_stat_statements:
   query: |

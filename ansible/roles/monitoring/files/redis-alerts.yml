@@ -123,7 +123,7 @@ groups:
           component: redis
         annotations:
           summary: "Redis RDB save has not completed recently"
-          description: "Redis instance {{ $labels.instance }} has not completed an RDB save in over 1 hour, and has {{ redis_rdb_changes_since_last_save }} changes pending."
+          description: "Redis instance {{ $labels.instance }} has not completed an RDB save in over 1 hour, and has changes pending."
 
       # AOF rewrite in progress for too long
       - alert: RedisAOFRewriteTooLong

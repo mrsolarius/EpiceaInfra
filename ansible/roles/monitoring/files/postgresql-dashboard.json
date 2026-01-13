@@ -39,7 +39,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -88,7 +88,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pg_postmaster_start_time_seconds{instance=\"postgres-main\"}",
+          "expr": "pg_postmaster_uptime_uptime_seconds",
           "refId": "A"
         }
       ],
@@ -98,7 +98,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -156,6 +156,7 @@
             "uid": "Prometheus"
           },
           "expr": "pg_stat_database_numbackends{datname!~\"template.*\"}",
+          "legendFormat": "{{datname}}",
           "refId": "A"
         }
       ],
@@ -165,7 +166,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -253,7 +254,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -320,7 +321,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -378,7 +379,8 @@
             "uid": "Prometheus"
           },
           "expr": "rate(pg_stat_database_deadlocks{datname!~\"template.*\"}[5m])",
-          "refId": "A"
+          "refId": "A",
+          "legendFormat": "{{datname}}"
         }
       ],
       "title": "Deadlocks/s",
@@ -400,7 +402,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -531,7 +533,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -629,13 +631,13 @@
       },
       "id": 20,
       "panels": [],
-      "title": "Top Query Offenders - pg_stat_statements",
+      "title": "Database Activity Analysis",
       "type": "row"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -665,7 +667,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Total Time (ms)"
+              "options": "Total I/O Time (ms)"
             },
             "properties": [
               {
@@ -746,7 +748,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "Total Time (ms)"
+            "displayName": "Total I/O Time (ms)"
           }
         ]
       },
@@ -757,13 +759,13 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "topk(10, pg_stat_statements_total_time{datname!~\"template.*\"})",
+          "expr": "topk(10, rate(pg_stat_database_blk_read_time{datname!~\"template.*\"}[5m]) + rate(pg_stat_database_blk_write_time{datname!~\"template.*\"}[5m]))",
           "format": "table",
           "instant": true,
           "refId": "A"
         }
       ],
-      "title": "Top 10 Queries by Total Execution Time",
+      "title": "Top 10 Databases by I/O Time",
       "transformations": [
         {
           "id": "organize",
@@ -776,7 +778,7 @@
             },
             "indexByName": {},
             "renameByName": {
-              "Value": "Total Time (ms)",
+              "Value": "Total I/O Time (ms)",
               "datname": "Database",
               "queryid": "Query ID",
               "usename": "User"
@@ -789,7 +791,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -860,7 +862,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "Calls"
+            "displayName": "Commits/s"
           }
         ]
       },
@@ -871,13 +873,13 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "topk(10, pg_stat_statements_calls{datname!~\"template.*\"})",
+          "expr": "topk(10, rate(pg_stat_database_xact_commit{datname!~\"template.*\"}[5m]))",
           "format": "table",
           "instant": true,
           "refId": "A"
         }
       ],
-      "title": "Top 10 Most Frequently Called Queries",
+      "title": "Top 10 Most Active Databases by Commits",
       "transformations": [
         {
           "id": "organize",
@@ -890,7 +892,7 @@
             },
             "indexByName": {},
             "renameByName": {
-              "Value": "Calls",
+              "Value": "Commits/s",
               "datname": "Database",
               "queryid": "Query ID",
               "usename": "User"
@@ -903,7 +905,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -941,7 +943,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Temp Blocks Written"
+              "options": "Temp Bytes/s"
             },
             "properties": [
               {
@@ -982,7 +984,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "Temp Blocks Written"
+            "displayName": "Temp Bytes/s"
           }
         ]
       },
@@ -993,13 +995,13 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "topk(10, pg_stat_statements_temp_blks_written{datname!~\"template.*\"} > 0)",
+          "expr": "topk(10, rate(pg_stat_database_temp_bytes{datname!~\"template.*\"}[5m]))",
           "format": "table",
           "instant": true,
           "refId": "A"
         }
       ],
-      "title": "Top 10 Queries with Disk Spillage (Temp Files)",
+      "title": "Top 10 Databases with Temp File Usage",
       "transformations": [
         {
           "id": "organize",
@@ -1012,7 +1014,7 @@
             },
             "indexByName": {},
             "renameByName": {
-              "Value": "Temp Blocks Written",
+              "Value": "Temp Bytes/s",
               "datname": "Database",
               "queryid": "Query ID",
               "usename": "User"
@@ -1038,7 +1040,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -1147,7 +1149,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -1256,7 +1258,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -1339,7 +1341,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pg_long_running_transactions_transaction_duration_seconds",
+          "expr": "pg_stat_activity_max_tx_duration{datname!~\"template.*\"} > 300",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -1371,7 +1373,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -1535,7 +1537,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -1565,7 +1567,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Index Size"
+              "options": "Database Size"
             },
             "properties": [
               {
@@ -1585,7 +1587,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Index Scans"
+              "options": "Inserts/s"
             },
             "properties": [
               {
@@ -1629,7 +1631,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "Index Size"
+            "displayName": "Database Size"
           }
         ]
       },
@@ -1640,7 +1642,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pgvector_index_stats_index_size_bytes",
+          "expr": "pg_database_size_bytes{datname=\"immich\"}",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -1650,13 +1652,13 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pgvector_index_stats_idx_scan",
+          "expr": "rate(pg_stat_database_tup_inserted{datname=\"immich\"}[5m])",
           "format": "table",
           "instant": true,
           "refId": "B"
         }
       ],
-      "title": "Vector Indexes (HNSW / IVFFlat / vectors)",
+      "title": "Database Statistics",
       "transformations": [
         {
           "id": "merge",
@@ -1667,20 +1669,15 @@
           "options": {
             "excludeByName": {
               "Time": true,
-              "index_size_pretty": false,
               "instance": true,
               "job": true,
               "service": true
             },
             "indexByName": {},
             "renameByName": {
-              "Value #A": "Index Size",
-              "Value #B": "Index Scans",
-              "index_name": "Index Name",
-              "index_size_pretty": "Size (Human)",
-              "index_type": "Type",
-              "schema_name": "Schema",
-              "table_name": "Table"
+              "Value #A": "Database Size",
+              "Value #B": "Inserts/s",
+              "datname": "Database"
             }
           }
         }
@@ -1690,7 +1687,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -1743,13 +1740,13 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": ".*Sequential.*"
+              "options": ".*Fetched.*"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "red",
+                  "fixedColor": "blue",
                   "mode": "fixed"
                 }
               }
@@ -1758,13 +1755,13 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": ".*Index.*"
+              "options": ".*Returned.*"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "green",
+                  "fixedColor": "orange",
                   "mode": "fixed"
                 }
               }
@@ -1801,8 +1798,8 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "rate(pg_stat_user_tables_scan_ratio_seq_scan{schemaname=\"vectors\"}[5m])",
-          "legendFormat": "{{tablename}} - Sequential Scans",
+          "expr": "rate(pg_stat_database_tup_fetched{datname=\"immich\"}[5m])",
+          "legendFormat": "{{datname}} - Tuples Fetched",
           "refId": "A"
         },
         {
@@ -1810,18 +1807,18 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "rate(pg_stat_user_tables_scan_ratio_idx_scan{schemaname=\"vectors\"}[5m])",
-          "legendFormat": "{{tablename}} - Index Scans",
+          "expr": "rate(pg_stat_database_tup_returned{datname=\"immich\"}[5m])",
+          "legendFormat": "{{datname}} - Tuples Returned",
           "refId": "B"
         }
       ],
-      "title": "Vector Tables: Sequential vs Index Scans",
+      "title": "Database Tuple Activity",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -1901,12 +1898,12 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pgvector_index_stats_index_size_bytes",
-          "legendFormat": "{{index_name}} ({{index_type}})",
+          "expr": "pg_database_size_bytes{datname!~\"template.*|postgres\"}",
+          "legendFormat": "{{datname}}",
           "refId": "A"
         }
       ],
-      "title": "Vector Index Size Evolution",
+      "title": "Database Size Evolution",
       "type": "timeseries"
     },
     {
@@ -1925,7 +1922,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -1957,13 +1954,13 @@
               }
             ]
           },
-          "unit": "percent"
+          "unit": "short"
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "Dead Tuple %"
+              "options": "Deletes/s"
             },
             "properties": [
               {
@@ -1977,7 +1974,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Total Size"
+              "options": "Database Size"
             },
             "properties": [
               {
@@ -1989,7 +1986,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Dead Tuples"
+              "options": "Updates/s"
             },
             "properties": [
               {
@@ -2021,7 +2018,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "Dead Tuple %"
+            "displayName": "Deletes/s"
           }
         ]
       },
@@ -2032,7 +2029,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pg_table_bloat_dead_tuple_percent > 0",
+          "expr": "rate(pg_stat_database_tup_deleted{datname!~\"template.*\"}[5m])",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -2042,7 +2039,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pg_table_bloat_total_size_bytes",
+          "expr": "pg_database_size_bytes{datname!~\"template.*\"}",
           "format": "table",
           "instant": true,
           "refId": "B"
@@ -2052,13 +2049,13 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pg_table_bloat_n_dead_tup",
+          "expr": "rate(pg_stat_database_tup_updated{datname!~\"template.*\"}[5m])",
           "format": "table",
           "instant": true,
           "refId": "C"
         }
       ],
-      "title": "Table Bloat (Dead Tuples)",
+      "title": "Database Tuple Operations",
       "transformations": [
         {
           "id": "merge",
@@ -2071,17 +2068,14 @@
               "Time": true,
               "instance": true,
               "job": true,
-              "service": true,
-              "total_size_pretty": false
+              "service": true
             },
             "indexByName": {},
             "renameByName": {
-              "Value #A": "Dead Tuple %",
-              "Value #B": "Total Size",
-              "Value #C": "Dead Tuples",
-              "schemaname": "Schema",
-              "tablename": "Table",
-              "total_size_pretty": "Size"
+              "Value #A": "Deletes/s",
+              "Value #B": "Database Size",
+              "Value #C": "Updates/s",
+              "datname": "Database"
             }
           }
         }
