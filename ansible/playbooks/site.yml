@@ -56,6 +56,10 @@
       tags: [immich, services]
       when: "'immich' in enabled_services"
 
+    - role: jellyfin
+      tags: [jellyfin, services]
+      when: "'jellyfin' in enabled_services"
+
   post_tasks:
     - name: Vérifier que tous les services sont up
       ansible.builtin.command:
@@ -68,6 +72,7 @@
         - redis
         - nextcloud
         - immich_server
+        - jellyfin
       register: services_check
       changed_when: false
       failed_when: false
@@ -86,6 +91,7 @@
           - "  Grafana   : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.grafana }}"
           - "  Nextcloud : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.nextcloud }}"
           - "  Immich    : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.immich }}"
+          - "  Jellyfin  : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.jellyfin }}"
           - "  PgAdmin   : {{ 'https' if enable_letsencrypt else 'http' }}://pgadmin.{{ base_domain }}"
           - "  Redis Cmd : {{ 'https' if enable_letsencrypt else 'http' }}://redis.{{ base_domain }}"
           - ""

@@ -1,0 +1,36 @@
+services:
+  jellyfin:
+    image: docker.io/jellyfin/jellyfin:latest
+    container_name: jellyfin
+    hostname: jellyfin-server
+    restart: always
+    env_file: .env
+    volumes:
+      - ${DATA_PATH}/jellyfin/config:/config
+      - ${DATA_PATH}/jellyfin/cache:/cache
+      - /mnt/media:/media:ro
+    ports:
+      - 7359:7359/udp  # Auto-discovery
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      # HTTP Router
+      - "traefik.http.routers.jellyfin-http.rule=Host(`${JELLYFIN_DOMAIN}`)"
+      - "traefik.http.routers.jellyfin-http.entrypoints=web"
+      - "traefik.http.routers.jellyfin-http.service=jellyfin"
+      # HTTPS Router (activé uniquement si Let's Encrypt est activé)
+      {% if enable_letsencrypt %}
+      - "traefik.http.routers.jellyfin-https.rule=Host(`${JELLYFIN_DOMAIN}`)"
+      - "traefik.http.routers.jellyfin-https.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin-https.service=jellyfin"
+      - "traefik.http.routers.jellyfin-https.tls=true"
+      - "traefik.http.routers.jellyfin-https.tls.certresolver=letsencrypt"
+      {% endif %}
+      # Service
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+
+networks:
+  proxy:
+    name: ${PROXY_NETWORK}
+    external: true
