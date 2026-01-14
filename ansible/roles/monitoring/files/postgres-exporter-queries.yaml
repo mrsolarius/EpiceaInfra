@@ -2,6 +2,13 @@
 # Focus on pg_stat_statements and pgvector-specific metrics
 
 # Query for pg_stat_statements - Top queries by total time
+pg_postmaster:
+  query: "SELECT EXTRACT(EPOCH FROM pg_postmaster_start_time()) as start_time_seconds"
+  metrics:
+    - start_time_seconds:
+        usage: "GAUGE"
+        description: "Time at which postmaster started"
+
 pg_stat_statements:
   query: |
     SELECT
