@@ -1,0 +1,22 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      timeInterval: 15s
+      queryTimeout: 60s
+      # Enable additional Prometheus features
+      prometheusType: Prometheus
+      prometheusVersion: 2.48.0
+      incrementalQuerying: true
+      disableMetricsLookup: false
+      customQueryParameters: ""
+      # Cache settings for better performance
+      cacheLevel: High
+    version: 1

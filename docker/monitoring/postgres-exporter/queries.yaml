@@ -1,0 +1,497 @@
+# Custom queries for PostgreSQL Exporter
+# Focus on pg_stat_statements and pgvector-specific metrics
+
+# Query for PostgreSQL uptime
+pg_postmaster_uptime:
+  query: |
+    SELECT
+      EXTRACT(EPOCH FROM (NOW() - pg_postmaster_start_time())) as uptime_seconds
+  metrics:
+    - uptime_seconds:
+        usage: "GAUGE"
+        description: "PostgreSQL uptime in seconds since last restart"
+
+# Query for pg_stat_statements - Top queries by total time
+pg_stat_statements:
+  query: |
+    SELECT
+      queryid::text AS queryid,
+      datname,
+      usename,
+      calls,
+      total_exec_time as total_time,
+      mean_exec_time as mean_time,
+      min_exec_time as min_time,
+      max_exec_time as max_time,
+      stddev_exec_time as stddev_time,
+      rows,
+      shared_blks_hit,
+      shared_blks_read,
+      shared_blks_dirtied,
+      shared_blks_written,
+      local_blks_hit,
+      local_blks_read,
+      local_blks_dirtied,
+      local_blks_written,
+      temp_blks_read,
+      temp_blks_written,
+      blk_read_time,
+      blk_write_time
+    FROM pg_stat_statements
+    JOIN pg_database ON pg_stat_statements.dbid = pg_database.oid
+    JOIN pg_user ON pg_stat_statements.userid = pg_user.usesysid
+    WHERE calls > 0
+    ORDER BY total_exec_time DESC
+    LIMIT 100;
+  metrics:
+    - queryid:
+        usage: "LABEL"
+        description: "Query ID from pg_stat_statements"
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - usename:
+        usage: "LABEL"
+        description: "User name"
+    - calls:
+        usage: "COUNTER"
+        description: "Number of times executed"
+    - total_time:
+        usage: "COUNTER"
+        description: "Total time spent in the statement, in milliseconds"
+    - mean_time:
+        usage: "GAUGE"
+        description: "Mean time spent in the statement, in milliseconds"
+    - min_time:
+        usage: "GAUGE"
+        description: "Minimum time spent in the statement, in milliseconds"
+    - max_time:
+        usage: "GAUGE"
+        description: "Maximum time spent in the statement, in milliseconds"
+    - stddev_time:
+        usage: "GAUGE"
+        description: "Population standard deviation of time spent in the statement, in milliseconds"
+    - rows:
+        usage: "COUNTER"
+        description: "Total number of rows retrieved or affected by the statement"
+    - shared_blks_hit:
+        usage: "COUNTER"
+        description: "Total number of shared block cache hits by the statement"
+    - shared_blks_read:
+        usage: "COUNTER"
+        description: "Total number of shared blocks read by the statement"
+    - shared_blks_dirtied:
+        usage: "COUNTER"
+        description: "Total number of shared blocks dirtied by the statement"
+    - shared_blks_written:
+        usage: "COUNTER"
+        description: "Total number of shared blocks written by the statement"
+    - local_blks_hit:
+        usage: "COUNTER"
+        description: "Total number of local block cache hits by the statement"
+    - local_blks_read:
+        usage: "COUNTER"
+        description: "Total number of local blocks read by the statement"
+    - local_blks_dirtied:
+        usage: "COUNTER"
+        description: "Total number of local blocks dirtied by the statement"
+    - local_blks_written:
+        usage: "COUNTER"
+        description: "Total number of local blocks written by the statement"
+    - temp_blks_read:
+        usage: "COUNTER"
+        description: "Total number of temp blocks read by the statement (disk spillage)"
+    - temp_blks_written:
+        usage: "COUNTER"
+        description: "Total number of temp blocks written by the statement (disk spillage)"
+    - blk_read_time:
+        usage: "COUNTER"
+        description: "Total time the statement spent reading blocks, in milliseconds"
+    - blk_write_time:
+        usage: "COUNTER"
+        description: "Total time the statement spent writing blocks, in milliseconds"
+
+# Query for database-level I/O statistics
+pg_stat_database_io:
+  query: |
+    SELECT
+      datname,
+      blks_read,
+      blks_hit,
+      tup_returned,
+      tup_fetched,
+      tup_inserted,
+      tup_updated,
+      tup_deleted,
+      conflicts,
+      temp_files,
+      temp_bytes,
+      deadlocks,
+      blk_read_time,
+      blk_write_time
+    FROM pg_stat_database
+    WHERE datname NOT IN ('template0', 'template1');
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - blks_read:
+        usage: "COUNTER"
+        description: "Number of disk blocks read in this database"
+    - blks_hit:
+        usage: "COUNTER"
+        description: "Number of times disk blocks were found already in the buffer cache"
+    - tup_returned:
+        usage: "COUNTER"
+        description: "Number of rows returned by queries in this database"
+    - tup_fetched:
+        usage: "COUNTER"
+        description: "Number of rows fetched by queries in this database"
+    - tup_inserted:
+        usage: "COUNTER"
+        description: "Number of rows inserted by queries in this database"
+    - tup_updated:
+        usage: "COUNTER"
+        description: "Number of rows updated by queries in this database"
+    - tup_deleted:
+        usage: "COUNTER"
+        description: "Number of rows deleted by queries in this database"
+    - conflicts:
+        usage: "COUNTER"
+        description: "Number of queries canceled due to conflicts"
+    - temp_files:
+        usage: "COUNTER"
+        description: "Number of temporary files created by queries"
+    - temp_bytes:
+        usage: "COUNTER"
+        description: "Total amount of data written to temporary files by queries"
+    - deadlocks:
+        usage: "COUNTER"
+        description: "Number of deadlocks detected in this database"
+    - blk_read_time:
+        usage: "COUNTER"
+        description: "Time spent reading data file blocks by backends, in milliseconds"
+    - blk_write_time:
+        usage: "COUNTER"
+        description: "Time spent writing data file blocks by backends, in milliseconds"
+
+# Query for table-level statistics with focus on sequential vs index scans
+pg_stat_user_tables_scan_ratio:
+  query: |
+    SELECT
+      schemaname,
+      relname as tablename,
+      seq_scan,
+      seq_tup_read,
+      idx_scan,
+      idx_tup_fetch,
+      n_tup_ins,
+      n_tup_upd,
+      n_tup_del,
+      n_tup_hot_upd,
+      n_live_tup,
+      n_dead_tup,
+      vacuum_count,
+      autovacuum_count,
+      analyze_count,
+      autoanalyze_count
+    FROM pg_stat_user_tables
+    WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+    ORDER BY seq_scan + idx_scan DESC
+    LIMIT 50;
+  metrics:
+    - schemaname:
+        usage: "LABEL"
+        description: "Schema name"
+    - tablename:
+        usage: "LABEL"
+        description: "Table name"
+    - seq_scan:
+        usage: "COUNTER"
+        description: "Number of sequential scans initiated on this table"
+    - seq_tup_read:
+        usage: "COUNTER"
+        description: "Number of live rows fetched by sequential scans"
+    - idx_scan:
+        usage: "COUNTER"
+        description: "Number of index scans initiated on this table"
+    - idx_tup_fetch:
+        usage: "COUNTER"
+        description: "Number of live rows fetched by index scans"
+    - n_tup_ins:
+        usage: "COUNTER"
+        description: "Number of rows inserted"
+    - n_tup_upd:
+        usage: "COUNTER"
+        description: "Number of rows updated"
+    - n_tup_del:
+        usage: "COUNTER"
+        description: "Number of rows deleted"
+    - n_tup_hot_upd:
+        usage: "COUNTER"
+        description: "Number of rows HOT updated"
+    - n_live_tup:
+        usage: "GAUGE"
+        description: "Estimated number of live rows"
+    - n_dead_tup:
+        usage: "GAUGE"
+        description: "Estimated number of dead rows"
+    - vacuum_count:
+        usage: "COUNTER"
+        description: "Number of times this table has been manually vacuumed"
+    - autovacuum_count:
+        usage: "COUNTER"
+        description: "Number of times this table has been vacuumed by autovacuum"
+    - analyze_count:
+        usage: "COUNTER"
+        description: "Number of times this table has been manually analyzed"
+    - autoanalyze_count:
+        usage: "COUNTER"
+        description: "Number of times this table has been analyzed by autoanalyze"
+
+# Query for index statistics (including pgvector indexes)
+pg_stat_user_indexes_usage:
+  query: |
+    SELECT
+      schemaname,
+      tablename,
+      indexrelname as indexname,
+      idx_scan,
+      idx_tup_read,
+      idx_tup_fetch,
+      pg_size_pretty(pg_relation_size(indexrelid)) as index_size_pretty,
+      pg_relation_size(indexrelid) as index_size_bytes
+    FROM pg_stat_user_indexes
+    WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+    ORDER BY idx_scan DESC
+    LIMIT 50;
+  metrics:
+    - schemaname:
+        usage: "LABEL"
+        description: "Schema name"
+    - tablename:
+        usage: "LABEL"
+        description: "Table name"
+    - indexname:
+        usage: "LABEL"
+        description: "Index name"
+    - idx_scan:
+        usage: "COUNTER"
+        description: "Number of index scans initiated on this index"
+    - idx_tup_read:
+        usage: "COUNTER"
+        description: "Number of index entries returned by scans on this index"
+    - idx_tup_fetch:
+        usage: "COUNTER"
+        description: "Number of live table rows fetched by simple index scans using this index"
+    - index_size_pretty:
+        usage: "LABEL"
+        description: "Human-readable index size"
+    - index_size_bytes:
+        usage: "GAUGE"
+        description: "Index size in bytes"
+
+# Query for pgvector-specific metrics (vector indexes)
+pgvector_index_stats:
+  query: |
+    SELECT
+      n.nspname as schema_name,
+      c.relname as table_name,
+      i.relname as index_name,
+      am.amname as index_type,
+      pg_size_pretty(pg_relation_size(i.oid)) as index_size_pretty,
+      pg_relation_size(i.oid) as index_size_bytes,
+      COALESCE(s.idx_scan, 0) as idx_scan,
+      COALESCE(s.idx_tup_read, 0) as idx_tup_read,
+      COALESCE(s.idx_tup_fetch, 0) as idx_tup_fetch
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    JOIN pg_index ix ON c.oid = ix.indrelid
+    JOIN pg_class i ON i.oid = ix.indexrelid
+    JOIN pg_am am ON i.relam = am.oid
+    LEFT JOIN pg_stat_user_indexes s ON s.indexrelid = i.oid
+    WHERE am.amname IN ('hnsw', 'ivfflat', 'vectors')
+      AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+    ORDER BY pg_relation_size(i.oid) DESC;
+  metrics:
+    - schema_name:
+        usage: "LABEL"
+        description: "Schema name"
+    - table_name:
+        usage: "LABEL"
+        description: "Table name with vector column"
+    - index_name:
+        usage: "LABEL"
+        description: "Vector index name"
+    - index_type:
+        usage: "LABEL"
+        description: "Vector index type (hnsw, ivfflat, vectors)"
+    - index_size_pretty:
+        usage: "LABEL"
+        description: "Human-readable index size"
+    - index_size_bytes:
+        usage: "GAUGE"
+        description: "Vector index size in bytes"
+    - idx_scan:
+        usage: "COUNTER"
+        description: "Number of vector index scans"
+    - idx_tup_read:
+        usage: "COUNTER"
+        description: "Number of vector index entries read"
+    - idx_tup_fetch:
+        usage: "COUNTER"
+        description: "Number of vectors fetched via index"
+
+# Query for active sessions and wait events
+pg_stat_activity_sessions:
+  query: |
+    SELECT
+      datname,
+      state,
+      wait_event_type,
+      COALESCE(wait_event, 'CPU') as wait_event,
+      COUNT(*) as session_count,
+      COUNT(*) FILTER (WHERE state = 'active') as active_sessions,
+      COUNT(*) FILTER (WHERE state = 'idle') as idle_sessions,
+      COUNT(*) FILTER (WHERE state = 'idle in transaction') as idle_in_transaction,
+      COUNT(*) FILTER (WHERE state = 'idle in transaction (aborted)') as idle_in_transaction_aborted,
+      MAX(EXTRACT(EPOCH FROM (NOW() - state_change))) as max_state_duration_seconds
+    FROM pg_stat_activity
+    WHERE datname IS NOT NULL
+      AND pid != pg_backend_pid()
+    GROUP BY datname, state, wait_event_type, wait_event;
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - state:
+        usage: "LABEL"
+        description: "Session state"
+    - wait_event_type:
+        usage: "LABEL"
+        description: "Wait event type"
+    - wait_event:
+        usage: "LABEL"
+        description: "Wait event name"
+    - session_count:
+        usage: "GAUGE"
+        description: "Number of sessions in this state"
+    - active_sessions:
+        usage: "GAUGE"
+        description: "Number of active sessions"
+    - idle_sessions:
+        usage: "GAUGE"
+        description: "Number of idle sessions"
+    - idle_in_transaction:
+        usage: "GAUGE"
+        description: "Number of idle in transaction sessions"
+    - idle_in_transaction_aborted:
+        usage: "GAUGE"
+        description: "Number of idle in transaction (aborted) sessions"
+    - max_state_duration_seconds:
+        usage: "GAUGE"
+        description: "Maximum duration a session has been in this state"
+
+# Query for long-running transactions
+pg_long_running_transactions:
+  query: |
+    SELECT
+      datname,
+      usename,
+      state,
+      EXTRACT(EPOCH FROM (NOW() - xact_start)) as transaction_duration_seconds,
+      EXTRACT(EPOCH FROM (NOW() - state_change)) as state_duration_seconds,
+      EXTRACT(EPOCH FROM (NOW() - query_start)) as query_duration_seconds
+    FROM pg_stat_activity
+    WHERE xact_start IS NOT NULL
+      AND pid != pg_backend_pid()
+      AND EXTRACT(EPOCH FROM (NOW() - xact_start)) > 300
+    ORDER BY xact_start ASC
+    LIMIT 20;
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - usename:
+        usage: "LABEL"
+        description: "User name"
+    - state:
+        usage: "LABEL"
+        description: "Session state"
+    - transaction_duration_seconds:
+        usage: "GAUGE"
+        description: "Transaction duration in seconds"
+    - state_duration_seconds:
+        usage: "GAUGE"
+        description: "State duration in seconds"
+    - query_duration_seconds:
+        usage: "GAUGE"
+        description: "Query duration in seconds"
+
+# Query for locks
+pg_locks_stats:
+  query: |
+    SELECT
+      database.datname,
+      locks.mode,
+      locks.locktype,
+      COUNT(*) as lock_count,
+      COUNT(*) FILTER (WHERE NOT locks.granted) as locks_waiting
+    FROM pg_locks locks
+    JOIN pg_database database ON locks.database = database.oid
+    WHERE database.datname NOT IN ('template0', 'template1')
+    GROUP BY database.datname, locks.mode, locks.locktype;
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - mode:
+        usage: "LABEL"
+        description: "Lock mode"
+    - locktype:
+        usage: "LABEL"
+        description: "Lock type"
+    - lock_count:
+        usage: "GAUGE"
+        description: "Total number of locks"
+    - locks_waiting:
+        usage: "GAUGE"
+        description: "Number of locks waiting to be granted"
+
+# Query for table bloat estimation
+pg_table_bloat:
+  query: |
+    SELECT
+      schemaname,
+      tablename,
+      pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as total_size_pretty,
+      pg_total_relation_size(schemaname||'.'||tablename) as total_size_bytes,
+      n_live_tup,
+      n_dead_tup,
+      ROUND(100.0 * n_dead_tup / NULLIF(n_live_tup + n_dead_tup, 0), 2) as dead_tuple_percent
+    FROM pg_stat_user_tables
+    WHERE n_dead_tup > 1000
+    ORDER BY n_dead_tup DESC
+    LIMIT 20;
+  metrics:
+    - schemaname:
+        usage: "LABEL"
+        description: "Schema name"
+    - tablename:
+        usage: "LABEL"
+        description: "Table name"
+    - total_size_pretty:
+        usage: "LABEL"
+        description: "Human-readable total table size"
+    - total_size_bytes:
+        usage: "GAUGE"
+        description: "Total table size in bytes (table + indexes + TOAST)"
+    - n_live_tup:
+        usage: "GAUGE"
+        description: "Estimated number of live rows"
+    - n_dead_tup:
+        usage: "GAUGE"
+        description: "Estimated number of dead rows"
+    - dead_tuple_percent:
+        usage: "GAUGE"
+        description: "Percentage of dead tuples"

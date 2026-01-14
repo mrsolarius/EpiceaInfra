@@ -18,8 +18,8 @@ global:
 #           - alertmanager:9093
 
 # Load rules once and periodically evaluate them
-# rule_files:
-#   - "alerts/*.yml"
+rule_files:
+  - '/etc/prometheus/rules/*.yml'
 
 # Scrape configurations
 scrape_configs:
@@ -67,6 +67,43 @@ scrape_configs:
         labels:
           service: 'cadvisor'
           environment: '{{ deploy_environment }}'
+
+  # ========================================
+  # PostgreSQL Exporter
+  # ========================================
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'postgresql'
+          environment: '{{ deploy_environment }}'
+          instance: 'postgres-main'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # ========================================
+  # Redis Exporter
+  # ========================================
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: 'redis'
+          environment: '{{ deploy_environment }}'
+          instance: 'redis-main'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # ========================================
+  # Grafana self-monitoring (optionnel)
+  # ========================================
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+        labels:
+          service: 'grafana'
+          environment: '{{ deploy_environment }}'
+    metrics_path: '/metrics'
 
   # ========================================
   # Services applicatifs (à ajouter)

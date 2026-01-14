@@ -14,6 +14,8 @@
   loop:
     - "{{ docker_compose_path }}/monitoring"
     - "{{ docker_compose_path }}/monitoring/prometheus"
+    - "{{ docker_compose_path }}/monitoring/prometheus/rules"
+    - "{{ docker_compose_path }}/monitoring/postgres-exporter"
     - "{{ docker_compose_path }}/monitoring/grafana/provisioning/datasources"
     - "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards"
 
@@ -21,6 +23,33 @@
   ansible.builtin.template:
     src: prometheus.yml.j2
     dest: "{{ docker_compose_path }}/monitoring/prometheus/prometheus.yml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
+- name: Déployer règles d'alerting PostgreSQL
+  ansible.builtin.copy:
+    src: postgres-alerts.yml
+    dest: "{{ docker_compose_path }}/monitoring/prometheus/rules/postgres-alerts.yml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
+- name: Déployer règles d'alerting Redis
+  ansible.builtin.copy:
+    src: redis-alerts.yml
+    dest: "{{ docker_compose_path }}/monitoring/prometheus/rules/redis-alerts.yml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
+- name: Déployer queries custom postgres-exporter
+  ansible.builtin.copy:
+    src: postgres-exporter-queries.yaml
+    dest: "{{ docker_compose_path }}/monitoring/postgres-exporter/queries.yaml"
     mode: '0644'
     owner: root
     group: root
@@ -62,6 +91,24 @@
     group: root
   notify: restart monitoring
 
+- name: Déployer dashboard PostgreSQL pour Grafana
+  ansible.builtin.copy:
+    src: postgresql-dashboard.json
+    dest: "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards/postgresql.json"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
+- name: Déployer dashboard Redis pour Grafana
+  ansible.builtin.copy:
+    src: redis-dashboard.json
+    dest: "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards/redis.json"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
 - name: Générer fichier .env Monitoring
   ansible.builtin.template:
     src: env.j2
@@ -71,8 +118,8 @@
     group: root
   notify: restart monitoring
 
-- name: Copier docker-compose.yml Monitoring
-  ansible.builtin.copy:
+- name: Générer docker-compose.yml Monitoring
+  ansible.builtin.template:
     src: "{{ playbook_dir }}/../../docker/monitoring/docker-compose.yml"
     dest: "{{ docker_compose_path }}/monitoring/docker-compose.yml"
     mode: '0644'

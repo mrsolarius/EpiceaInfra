@@ -24,7 +24,7 @@ service_domains:
   pgadmin: "db.{{ base_domain }}"
 
 # Configuration NFS (Storage VM)
-nfs_server: "172.17.215.39" # IP_STORAGE_TEST
+nfs_server: "172.20.77.149" # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "/mnt/media"
@@ -35,6 +35,8 @@ nfs_mounts:
   - src: "{{ nfs_server }}:/exports/cloud"
     path: "/mnt/cloud"
     opts: "rw,hard,intr,nfsvers=4"
+    owner: "33" # www-data
+    group: "33"
   - src: "{{ nfs_server }}:/exports/backups"
     path: "/mnt/backups"
     opts: "rw,hard,intr,nfsvers=4"

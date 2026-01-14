@@ -1,0 +1,193 @@
+groups:
+  - name: redis_alerts
+    interval: 30s
+    rules:
+      # Redis Instance Down
+      - alert: RedisDown
+        expr: redis_up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: redis
+        annotations:
+          summary: "Redis instance is down"
+          description: "Redis instance {{ $labels.instance }} has been down for more than 1 minute."
+
+      # Low cache hit rate
+      - alert: RedisLowCacheHitRate
+        expr: |
+          100 * rate(redis_keyspace_hits_total[5m]) /
+          (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) < 80
+        for: 10m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis cache hit rate is low"
+          description: "Redis instance {{ $labels.instance }} has a cache hit rate of {{ $value }}% (should be > 80%). Review key usage patterns."
+
+      # High memory usage
+      - alert: RedisHighMemoryUsage
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis instance {{ $labels.instance }} is using {{ $value }}% of max memory. Keys may start being evicted."
+
+      # Memory fragmentation
+      - alert: RedisHighMemoryFragmentation
+        expr: redis_memory_fragmentation_ratio > 2
+        for: 10m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis memory fragmentation is high"
+          description: "Redis instance {{ $labels.instance }} has a fragmentation ratio of {{ $value }} (should be < 1.5). Consider restarting Redis or enabling active defragmentation."
+
+      # Low memory fragmentation (possible issue)
+      - alert: RedisLowMemoryFragmentation
+        expr: redis_memory_fragmentation_ratio < 0.7
+        for: 10m
+        labels:
+          severity: info
+          component: redis
+        annotations:
+          summary: "Redis memory fragmentation is low"
+          description: "Redis instance {{ $labels.instance }} has a fragmentation ratio of {{ $value }} (< 0.7). This may indicate memory pages are being swapped to disk."
+
+      # Keys being evicted
+      - alert: RedisKeysEvicted
+        expr: rate(redis_evicted_keys_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis is evicting keys"
+          description: "Redis instance {{ $labels.instance }} is evicting {{ $value }} keys per second. Consider increasing maxmemory or reviewing TTL policies."
+
+      # Too many connected clients
+      - alert: RedisTooManyConnectedClients
+        expr: redis_connected_clients > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis has too many connected clients"
+          description: "Redis instance {{ $labels.instance }} has {{ $value }} connected clients. Investigate for connection leaks."
+
+      # Blocked clients
+      - alert: RedisBlockedClients
+        expr: redis_blocked_clients > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis has blocked clients"
+          description: "Redis instance {{ $labels.instance }} has {{ $value }} blocked clients. Check for slow operations or list/stream blocking commands."
+
+      # Rejected connections
+      - alert: RedisRejectedConnections
+        expr: rate(redis_rejected_connections_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis is rejecting connections"
+          description: "Redis instance {{ $labels.instance }} is rejecting {{ $value }} connections per second. Consider increasing maxclients."
+
+      # Slow commands detected
+      - alert: RedisSlowCommands
+        expr: redis_slowlog_length > 10
+        for: 5m
+        labels:
+          severity: info
+          component: redis
+        annotations:
+          summary: "Redis has slow commands in slowlog"
+          description: "Redis instance {{ $labels.instance }} has {{ $value }} slow commands in slowlog. Review and optimize slow operations."
+
+      # RDB save failures
+      - alert: RedisRDBSaveFailure
+        expr: redis_rdb_last_save_timestamp_seconds < (time() - 3600) and redis_rdb_changes_since_last_save > 1000
+        for: 10m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis RDB save has not completed recently"
+          description: "Redis instance {{ $labels.instance }} has not completed an RDB save in over 1 hour, and has changes pending."
+
+      # AOF rewrite in progress for too long
+      - alert: RedisAOFRewriteTooLong
+        expr: redis_aof_rewrite_in_progress == 1
+        for: 30m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis AOF rewrite taking too long"
+          description: "Redis instance {{ $labels.instance }} has been rewriting AOF for more than 30 minutes."
+
+      # High command latency
+      - alert: RedisHighCommandLatency
+        expr: |
+          (redis_command_duration_seconds_sum / redis_command_duration_seconds_count) * 1000000 > 10000
+        for: 10m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis command latency is high"
+          description: "Redis instance {{ $labels.instance }} command {{ $labels.cmd }} has average latency of {{ $value }}µs (> 10ms)."
+
+      # High CPU usage
+      - alert: RedisHighCPUUsage
+        expr: rate(redis_cpu_sys_seconds_total[5m]) * 100 + rate(redis_cpu_user_seconds_total[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis CPU usage is high"
+          description: "Redis instance {{ $labels.instance }} is using {{ $value }}% CPU. Investigate for expensive operations."
+
+      # No keys in Redis
+      - alert: RedisNoKeys
+        expr: sum(redis_db_keys) == 0
+        for: 10m
+        labels:
+          severity: info
+          component: redis
+        annotations:
+          summary: "Redis has no keys"
+          description: "Redis instance {{ $labels.instance }} has no keys. This may be normal for a new instance or indicate a problem."
+
+      # Master link down (replication)
+      - alert: RedisMasterLinkDown
+        expr: redis_master_link_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: redis
+        annotations:
+          summary: "Redis replica has lost connection to master"
+          description: "Redis replica {{ $labels.instance }} has lost connection to master for more than 2 minutes."
+
+      # Network saturation
+      - alert: RedisHighNetworkTraffic
+        expr: rate(redis_net_input_bytes_total[5m]) + rate(redis_net_output_bytes_total[5m]) > 100000000
+        for: 10m
+        labels:
+          severity: info
+          component: redis
+        annotations:
+          summary: "Redis network traffic is high"
+          description: "Redis instance {{ $labels.instance }} is handling {{ $value }} bytes/s of network traffic. Monitor for potential bottleneck."

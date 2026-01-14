@@ -54,8 +54,8 @@
     group: root
   notify: restart traefik
 
-- name: Copier docker-compose.yml Traefik
-  ansible.builtin.copy:
+- name: Générer docker-compose.yml Traefik
+  ansible.builtin.template:
     src: "{{ playbook_dir }}/../../docker/traefik/docker-compose.yml"
     dest: "{{ docker_compose_path }}/traefik/docker-compose.yml"
     mode: '0644'

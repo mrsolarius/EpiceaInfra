@@ -13,14 +13,6 @@
     - "{{ data_path }}/postgres"
     - "{{ docker_compose_path }}/postgres"
 
-- name: Créer le répertoire pour pgAdmin
-  ansible.builtin.file:
-    path: "{{ data_path }}/pgadmin"
-    state: directory
-    mode: '0755'
-    owner: "5050"
-    group: "5050"
-
 - name: Copier le script d'initialisation SQL
   ansible.builtin.template:
     src: init.sql.j2
@@ -48,7 +40,7 @@
 # ==============================================================================
 # Redis Stack
 # ==============================================================================
-- name: Créer les répertoires pour Redis
+- name: Créer les répertoires pour Redis (propriétaire user)
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -58,6 +50,14 @@
   loop:
     - "{{ data_path }}/redis"
     - "{{ docker_compose_path }}/redis"
+
+- name: Créer le répertoire de données pour Redis (propriétaire redis)
+  ansible.builtin.file:
+    path: "{{ data_path }}/redis/data"
+    state: directory
+    mode: '0755'
+    owner: "999"
+    group: "1000"
 
 - name: Générer le fichier .env pour Redis
   ansible.builtin.template:
