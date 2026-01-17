@@ -24,7 +24,7 @@ service_domains:
   pgadmin: "db.{{ base_domain }}"
 
 # Configuration NFS (Storage VM)
-nfs_server: "172.20.66.65" # IP_STORAGE_TEST
+nfs_server: "172.17.34.193" # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "/mnt/media"
@@ -81,4 +81,4 @@ backup_enabled: false  # Pas de backups automatiques en test
 backup_retention_days: 7
 
 # Notifications
-notification_enabled: false  # Pas de notifications Discord/Telegram en test
+# Pas de notifications Discord/Telegram par défaut si discord_webhook_url n'est pas défini dans le vault

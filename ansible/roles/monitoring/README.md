@@ -2,6 +2,7 @@
 
 Ce role Ansible déploie une stack complète de monitoring incluant :
 - **Prometheus** avec exporters pour PostgreSQL et Redis
+- **Alertmanager** pour les notifications Discord
 - **Grafana** avec dashboards pré-configurés
 - **Alerting** automatique via règles Prometheus
 
@@ -63,6 +64,9 @@ postgres_database: postgres
 
 # Variables Redis (pour redis_exporter)
 redis_password: "votre_mot_de_passe_redis"
+
+# Notifications (Discord)
+discord_webhook_url: "https://discord.com/api/webhooks/..." # (Variable Vault recommandée)
 
 # Optionnel
 prometheus_scrape_interval: "15s"
