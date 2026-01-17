@@ -17,14 +17,14 @@ base_domain: "epicea-test.local"
 service_domains:
   traefik: "traefik.{{ base_domain }}"
   immich: "photos.{{ base_domain }}"
-  jellyfin: "media.{{ base_domain }}"
+  jellyfin: "jellyfin.{{ base_domain }}"
   nextcloud: "cloud.{{ base_domain }}"
   grafana: "monitoring.{{ base_domain }}"
   dozzle: "logs.{{ base_domain }}"
   pgadmin: "db.{{ base_domain }}"
 
 # Configuration NFS (Storage VM)
-nfs_server: "172.20.77.149" # IP_STORAGE_TEST
+nfs_server: "172.20.66.65" # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "/mnt/media"
