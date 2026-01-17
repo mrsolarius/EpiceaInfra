@@ -1,0 +1,31 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'service', 'severity']
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 12h
+  receiver: 'discord-notifications'
+
+receivers:
+- name: 'discord-notifications'
+  discord_configs:
+  - webhook_url: '{{ discord_webhook_url }}'
+    send_resolved: true
+    title: |
+      {% raw %}{{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "critical" }}🚨 CRITIQUE{{ else }}⚠️ WARNING{{ end }}{{ else }}✅ RÉTABLI{{ end }} : {{ .CommonLabels.alertname }}{% endraw %}
+
+    message: |
+      {% raw %}### État du Système
+      > 📝 **Statut :** `{{ .Status | toUpper }}`
+      > ⚙️ **Service :** `{{ if .CommonLabels.service }}{{ .CommonLabels.service }}{{ else }}N/A{{ end }}`
+      > ⚡ **Sévérité :** `{{ .CommonLabels.severity | toUpper }}`
+
+      **Informations**
+      • **Résumé :** _{{ .CommonAnnotations.summary }}_
+      • **Description :** {{ .CommonAnnotations.description }}
+      • **Instance :** `{{ .CommonLabels.instance }}`
+
+      ---
+      *Envoyer avec* ❤️ *par Owl Alert* 🦉{% endraw %}

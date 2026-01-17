@@ -15,6 +15,7 @@
     - "{{ docker_compose_path }}/monitoring"
     - "{{ docker_compose_path }}/monitoring/prometheus"
     - "{{ docker_compose_path }}/monitoring/prometheus/rules"
+    - "{{ docker_compose_path }}/monitoring/alertmanager"
     - "{{ docker_compose_path }}/monitoring/postgres-exporter"
     - "{{ docker_compose_path }}/monitoring/grafana/provisioning/datasources"
     - "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards"
@@ -23,6 +24,15 @@
   ansible.builtin.template:
     src: prometheus.yml.j2
     dest: "{{ docker_compose_path }}/monitoring/prometheus/prometheus.yml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
+- name: Déployer configuration Alertmanager
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: "{{ docker_compose_path }}/monitoring/alertmanager/alertmanager.yml"
     mode: '0644'
     owner: root
     group: root

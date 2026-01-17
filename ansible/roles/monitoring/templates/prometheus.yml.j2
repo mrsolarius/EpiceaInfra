@@ -10,12 +10,12 @@ global:
     environment: '{{ deploy_environment }}'
     cluster: 'epicea'
 
-# Alertmanager configuration (optionnel)
-# alerting:
-#   alertmanagers:
-#     - static_configs:
-#         - targets:
-#           - alertmanager:9093
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
 
 # Load rules once and periodically evaluate them
 rule_files:
