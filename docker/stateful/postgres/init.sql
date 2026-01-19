@@ -1,9 +1,9 @@
 -- PostgreSQL initialization script for Epicea Infrastructure
 -- Enables performance monitoring extensions and creates necessary schemas
+-- Using ghcr.io/immich-app/postgres image with VectorChord support
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
-CREATE EXTENSION IF NOT EXISTS vectors;
 
 -- Configure pg_stat_statements
 ALTER SYSTEM SET pg_stat_statements.track = 'all';
@@ -32,9 +32,5 @@ ALTER SYSTEM SET log_connections = on;
 ALTER SYSTEM SET log_disconnections = on;
 ALTER SYSTEM SET log_duration = off; -- Already covered by log_min_duration_statement
 
--- Create vectors schema for pgvector if needed (Immich uses this)
-CREATE SCHEMA IF NOT EXISTS vectors;
-GRANT ALL ON SCHEMA vectors TO ${POSTGRES_USER};
-
--- Note: After this initialization, PostgreSQL will need to be restarted
+-- After this initialization, PostgreSQL will need to be restarted
 -- for some settings to take effect (pg_stat_statements.track, etc.)

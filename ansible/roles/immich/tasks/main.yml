@@ -9,7 +9,14 @@
   loop:
     - "{{ data_path }}/immich/upload"
     - "{{ data_path }}/immich/model-cache"
+    - "{{ data_path }}/immich/postgres"
     - "{{ docker_compose_path }}/immich"
+
+- name: Copier le script d'initialisation PostgreSQL
+  ansible.builtin.copy:
+    src: ../../../docker/app/immich/init-immich-db.sql
+    dest: "{{ docker_compose_path }}/immich/init-immich-db.sql"
+    mode: '0644'
 
 - name: Générer le fichier .env
   ansible.builtin.template:
