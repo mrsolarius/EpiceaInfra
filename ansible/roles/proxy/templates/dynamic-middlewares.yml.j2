@@ -89,7 +89,7 @@ http:
   # Routers (configuration file-based)
   # ========================================
   routers:
-    # Dashboard Traefik HTTP (test sans TLS)
+    # Dashboard Traefik HTTP
     traefik-dashboard-http:
       entryPoints:
         - web
@@ -97,12 +97,8 @@ http:
       service: api@internal
       middlewares:
         - traefik-auth
-{% if enable_letsencrypt %}
-        - redirect-to-https
-{% endif %}
 
-{% if enable_letsencrypt %}
-    # Dashboard Traefik HTTPS (production avec TLS)
+    # Dashboard Traefik HTTPS
     traefik-dashboard-https:
       entryPoints:
         - websecure
@@ -111,23 +107,26 @@ http:
       middlewares:
         - traefik-auth
       tls:
+{% if enable_letsencrypt %}
         certResolver: letsencrypt
+{% else %}
+        {}
 {% endif %}
 
     # Metrics Prometheus
     traefik-metrics:
       entryPoints:
         - web
-{% if enable_letsencrypt %}
         - websecure
-{% endif %}
       rule: "Host(`{{ service_domains.traefik }}`) && PathPrefix(`/metrics`)"
       service: prometheus@internal
       middlewares:
         - traefik-auth
-{% if enable_letsencrypt %}
       tls:
+{% if enable_letsencrypt %}
         certResolver: letsencrypt
+{% else %}
+        {}
 {% endif %}
 
   # ========================================

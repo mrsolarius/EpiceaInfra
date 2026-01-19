@@ -21,6 +21,8 @@
     src: ../../../docker/app/nextcloud/docker-compose.yml
     dest: "{{ docker_compose_path }}/nextcloud/docker-compose.yml"
     mode: '0644'
+    trim_blocks: true
+    lstrip_blocks: true
 
 - name: Démarrer Nextcloud
   community.docker.docker_compose_v2:

@@ -15,19 +15,16 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      # HTTP Router
       - "traefik.http.routers.jellyfin-http.rule=Host(`${JELLYFIN_DOMAIN}`)"
       - "traefik.http.routers.jellyfin-http.entrypoints=web"
       - "traefik.http.routers.jellyfin-http.service=jellyfin"
-      # HTTPS Router (activé uniquement si Let's Encrypt est activé)
-      {% if enable_letsencrypt %}
       - "traefik.http.routers.jellyfin-https.rule=Host(`${JELLYFIN_DOMAIN}`)"
       - "traefik.http.routers.jellyfin-https.entrypoints=websecure"
       - "traefik.http.routers.jellyfin-https.service=jellyfin"
       - "traefik.http.routers.jellyfin-https.tls=true"
+{% if enable_letsencrypt %}
       - "traefik.http.routers.jellyfin-https.tls.certresolver=letsencrypt"
-      {% endif %}
-      # Service
+{% endif %}
       - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
 
 networks:

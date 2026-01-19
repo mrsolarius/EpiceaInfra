@@ -37,7 +37,7 @@ api:
 entryPoints:
   web:
     address: ":80"
-{% if enable_letsencrypt %}
+{% if deploy_environment == 'production' or force_https_redirect | default(true) %}
     http:
       redirections:
         entryPoint:
@@ -112,10 +112,10 @@ metrics:
     addEntryPointsLabels: true
     addRoutersLabels: true
     addServicesLabels: true
-    entryPoint: traefik # Expose les métriques sur le port 8080
+    entryPoint: traefik
 
 # ========================================
 # Health Check
 # ========================================
 ping:
-  entryPoint: web
+  entryPoint: traefik

@@ -12,26 +12,20 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      # HTTP Router
       - "traefik.http.routers.nextcloud-http.rule=Host(`${NEXTCLOUD_TRUSTED_DOMAINS}`)"
       - "traefik.http.routers.nextcloud-http.entrypoints=web"
       - "traefik.http.routers.nextcloud-http.service=nextcloud"
-      # HTTPS Router (activé uniquement si Let's Encrypt est activé)
-      {% if enable_letsencrypt %}
       - "traefik.http.routers.nextcloud-https.rule=Host(`${NEXTCLOUD_TRUSTED_DOMAINS}`)"
       - "traefik.http.routers.nextcloud-https.entrypoints=websecure"
       - "traefik.http.routers.nextcloud-https.service=nextcloud"
       - "traefik.http.routers.nextcloud-https.tls=true"
+{% if enable_letsencrypt %}
       - "traefik.http.routers.nextcloud-https.tls.certresolver=letsencrypt"
-      {% endif %}
-      # Middlewares
+{% endif %}
       - "traefik.http.middlewares.nextcloud-dav.redirectregex.regex=^/.well-known/(card|cal)dav"
       - "traefik.http.middlewares.nextcloud-dav.redirectregex.replacement=/remote.php/dav/"
       - "traefik.http.routers.nextcloud-http.middlewares=nextcloud-dav"
-      {% if enable_letsencrypt %}
       - "traefik.http.routers.nextcloud-https.middlewares=nextcloud-dav"
-      {% endif %}
-      # Service
       - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
 
 networks:

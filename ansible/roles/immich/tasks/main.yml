@@ -29,6 +29,8 @@
     src: ../../../docker/app/immich/docker-compose.yml
     dest: "{{ docker_compose_path }}/immich/docker-compose.yml"
     mode: '0644'
+    trim_blocks: true
+    lstrip_blocks: true
 
 - name: Démarrer Immich
   community.docker.docker_compose_v2:

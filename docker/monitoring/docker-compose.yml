@@ -169,26 +169,19 @@ services:
       - traefik-proxy
       - monitoring
     labels:
-      # Traefik activation
       - "traefik.enable=true"
-
-      # HTTP Router
       - "traefik.http.routers.grafana-http.entrypoints=web"
       - "traefik.http.routers.grafana-http.rule=Host(`${GRAFANA_DOMAIN}`)"
       - "traefik.http.routers.grafana-http.service=grafana"
       - "traefik.http.routers.grafana-http.middlewares=compression@file"
-
-      # HTTPS Router (activé uniquement si Let's Encrypt est activé)
-      {% if enable_letsencrypt %}
       - "traefik.http.routers.grafana-https.entrypoints=websecure"
       - "traefik.http.routers.grafana-https.rule=Host(`${GRAFANA_DOMAIN}`)"
       - "traefik.http.routers.grafana-https.service=grafana"
       - "traefik.http.routers.grafana-https.tls=true"
+{% if enable_letsencrypt %}
       - "traefik.http.routers.grafana-https.tls.certresolver=letsencrypt"
+{% endif %}
       - "traefik.http.routers.grafana-https.middlewares=compression@file"
-      {% endif %}
-
-      # Service definition
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
     healthcheck:

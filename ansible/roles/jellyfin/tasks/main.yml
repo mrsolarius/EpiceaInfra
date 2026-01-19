@@ -20,6 +20,8 @@
     src: ../../../docker/app/jellyfin/docker-compose.yml
     dest: "{{ docker_compose_path }}/jellyfin/docker-compose.yml"
     mode: '0644'
+    trim_blocks: true
+    lstrip_blocks: true
 
 - name: Démarrer Jellyfin
   community.docker.docker_compose_v2:

@@ -24,7 +24,7 @@ service_domains:
   pgadmin: "db.{{ base_domain }}"
 
 # Configuration NFS (Storage VM)
-nfs_server: "172.17.39.164" # IP_STORAGE_TEST
+nfs_server: "172.17.40.32" # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "/mnt/media"
@@ -73,6 +73,7 @@ prometheus_evaluation_interval: "15s"
 prometheus_cadvisor_enabled: true  # Monitoring Docker
 grafana_admin_user: "admin"
 grafana_admin_password: "admin"  # À changer en production !
+grafana_root_url: "https://monitoring.epicea-test.local"
 grafana_plugins: ""  # Plugins Grafana à installer (séparés par ,)
 grafana_middlewares: ""  # Middlewares Traefik optionnels
 

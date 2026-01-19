@@ -84,7 +84,7 @@
     remove_orphans: true
   register: traefik_deploy
 
-- name: Attendre que Traefik soit up
+- name: Attendre que Traefik soit up (Port 80)
   ansible.builtin.wait_for:
     host: localhost
     port: 80
@@ -93,12 +93,21 @@
     state: started
   when: traefik_deploy.changed
 
+- name: Attendre que l'API Traefik soit up (Port 8080)
+  ansible.builtin.wait_for:
+    host: localhost
+    port: 8080
+    delay: 2
+    timeout: 30
+    state: started
+  when: traefik_deploy.changed
+
 - name: Vérifier health check Traefik
   ansible.builtin.uri:
-    url: "http://localhost/ping"
+    url: "http://localhost:8080/ping"
     method: GET
     status_code: 200
-  retries: 5
+  retries: 10
   delay: 3
   register: traefik_health
   until: traefik_health.status == 200

@@ -135,6 +135,8 @@
     mode: '0644'
     owner: root
     group: root
+    trim_blocks: true
+    lstrip_blocks: true
   notify: restart monitoring
 
 - name: Vérifier configuration Monitoring (dry-run)

@@ -88,6 +88,7 @@ docker_log_max_file: "5"
 
 # Monitoring
 prometheus_retention: "90d"
+grafana_root_url: "https://monitoring.louisvolat.fr"
 grafana_install_plugins: true
 prometheus_cadvisor_enabled: true
 
