@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v3.6.6
+    image: traefik:{{ docker_versions.traefik }}
     container_name: traefik
     restart: unless-stopped
     security_opt:

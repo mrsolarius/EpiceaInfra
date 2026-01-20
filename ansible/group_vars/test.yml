@@ -24,7 +24,7 @@ service_domains:
   pgadmin: "db.{{ base_domain }}"
 
 # Configuration NFS (Storage VM)
-nfs_server: "172.17.40.32" # IP_STORAGE_TEST
+nfs_server: "172.17.36.247" # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "/mnt/media"
@@ -80,6 +80,23 @@ grafana_middlewares: ""  # Middlewares Traefik optionnels
 # Backup
 backup_enabled: false  # Pas de backups automatiques en test
 backup_retention_days: 7
+
+# Versions des images Docker
+docker_versions:
+  traefik: "v3.6.6"
+  postgres: "pg16-v0.4.0"
+  redis: "8-alpine"
+  prometheus: "v3.9.1"
+  alertmanager: "v0.26.0"
+  cadvisor: "v0.55.1"
+  postgres_exporter: "v0.15.0"
+  redis_exporter: "v1.55.0"
+  grafana: "12.3.1"
+  immich_postgres: "16-vectorchord0.3.0-pgvectors0.3.0"
+  immich_ml: "v1.130.2"
+  immich: "v2.4.1"
+  jellyfin: "10.11.6"
+  nextcloud: "32.0.5"
 
 # Notifications
 # Pas de notifications Discord/Telegram par défaut si discord_webhook_url n'est pas défini dans le vault

@@ -1,7 +1,7 @@
 services:
   immich-postgres:
     container_name: immich_postgres
-    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+    image: ghcr.io/immich-app/postgres:{{ docker_versions.immich_postgres }}
     restart: always
     environment:
       POSTGRES_USER: ${DB_USERNAME}
@@ -20,7 +20,7 @@ services:
 
   immich-server:
     container_name: immich_server
-    image: ghcr.io/immich-app/immich-server:release
+    image: ghcr.io/immich-app/immich-server:{{ docker_versions.immich }}
     command: [ "start.sh", "immich" ]
     volumes:
       - /mnt/photos:/usr/src/app/upload
@@ -49,7 +49,7 @@ services:
 
   immich-machine-learning:
     container_name: immich_machine_learning
-    image: ghcr.io/immich-app/immich-machine-learning:release
+    image: ghcr.io/immich-app/immich-machine-learning:{{ docker_versions.immich_ml }}
     volumes:
       - ${DATA_PATH}/immich/model-cache:/cache
     env_file: .env

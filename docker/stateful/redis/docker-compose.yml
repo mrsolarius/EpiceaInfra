@@ -1,6 +1,6 @@
 services:
   redis:
-    image: redis:8-alpine
+    image: redis:{{ docker_versions.redis }}
     container_name: redis
     command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
     restart: always

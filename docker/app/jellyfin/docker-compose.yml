@@ -1,6 +1,6 @@
 services:
   jellyfin:
-    image: docker.io/jellyfin/jellyfin:latest
+    image: docker.io/jellyfin/jellyfin:{{ docker_versions.jellyfin }}
     container_name: jellyfin
     hostname: jellyfin-server
     restart: always

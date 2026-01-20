@@ -107,6 +107,22 @@ fail2ban_enabled: true
 fail2ban_bantime: "1h"
 fail2ban_maxretry: 5
 
+# Versions des images Docker
+docker_versions:
+  traefik: "v3.6.6"
+  postgres: "pg16-v0.4.0"
+  redis: "8-alpine"
+  prometheus: "v3.9.1"
+  alertmanager: "v0.26.0"
+  cadvisor: "v0.55.1"
+  postgres_exporter: "v0.15.0"
+  redis_exporter: "v1.55.0"
+  grafana: "12.3.1"
+  immich_postgres: "14-vectorchord0.4.3-pgvectors0.2.0"
+  immich: "v2.4.1-ig441"
+  jellyfin: "10.11.6"
+  nextcloud: "32.0.5"
+
 # UFW Rules additionnelles (production)
 ufw_additional_rules:
   - { rule: 'allow', port: '8080', proto: 'tcp', comment: 'Traefik dashboard' }

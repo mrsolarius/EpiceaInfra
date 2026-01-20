@@ -1,6 +1,6 @@
 services:
   prometheus:
-    image: prom/prometheus:v3.9.1
+    image: prom/prometheus:{{ docker_versions.prometheus }}
     container_name: prometheus
     restart: unless-stopped
     user: root
@@ -32,7 +32,7 @@ services:
       start_period: 10s
 
   alertmanager:
-    image: prom/alertmanager:v0.26.0
+    image: prom/alertmanager:{{ docker_versions.alertmanager }}
     container_name: alertmanager
     restart: unless-stopped
     deploy:
@@ -56,7 +56,7 @@ services:
       start_period: 10s
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.55.1
+    image: gcr.io/cadvisor/cadvisor:{{ docker_versions.cadvisor }}
     container_name: cadvisor
     restart: unless-stopped
     privileged: true
@@ -90,7 +90,7 @@ services:
       start_period: 10s
 
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:v0.15.0
+    image: prometheuscommunity/postgres-exporter:{{ docker_versions.postgres_exporter }}
     container_name: postgres-exporter
     restart: unless-stopped
     deploy:
@@ -117,7 +117,7 @@ services:
       start_period: 10s
 
   redis-exporter:
-    image: oliver006/redis_exporter:v1.55.0
+    image: oliver006/redis_exporter:{{ docker_versions.redis_exporter }}
     container_name: redis-exporter
     restart: unless-stopped
     deploy:
@@ -143,7 +143,7 @@ services:
       start_period: 10s
 
   grafana:
-    image: grafana/grafana:12.3.1
+    image: grafana/grafana:{{ docker_versions.grafana }}
     container_name: grafana
     restart: unless-stopped
     user: root

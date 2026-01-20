@@ -1,6 +1,6 @@
 services:
   nextcloud:
-    image: nextcloud:latest
+    image: nextcloud:{{ docker_versions.nextcloud }}
     container_name: nextcloud
     restart: always
     env_file: .env

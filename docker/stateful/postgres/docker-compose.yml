@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: tensorchord/pgvecto-rs:pg16-v0.4.0
+    image: tensorchord/pgvecto-rs:{{ docker_versions.postgres }}
     container_name: postgres
     restart: always
     env_file: .env
