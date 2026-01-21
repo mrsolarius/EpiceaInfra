@@ -1427,7 +1427,12 @@
   "refresh": false,
   "schemaVersion": 37,
   "style": "dark",
-  "tags": [],
+  "tags": [
+    "traefik",
+    "infrastructure",
+    "monitoring",
+    "performance"
+  ],
   "templating": {
     "list": [
       {
