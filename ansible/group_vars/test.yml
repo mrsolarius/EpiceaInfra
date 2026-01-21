@@ -68,6 +68,7 @@ docker_log_max_file: "3"
 
 # Monitoring
 prometheus_retention: "15d"  # Moins long en test
+loki_retention: "7d"
 prometheus_scrape_interval: "15s"
 prometheus_evaluation_interval: "15s"
 prometheus_cadvisor_enabled: true  # Monitoring Docker
@@ -92,6 +93,8 @@ docker_versions:
   postgres_exporter: "v0.15.0"
   redis_exporter: "v1.55.0"
   grafana: "12.3.1"
+  loki: "3.3.2"
+  promtail: "3.3.2"
   immich_postgres: "16-vectorchord0.3.0-pgvectors0.3.0"
   immich_ml: "v1.130.2"
   immich: "v2.4.1"

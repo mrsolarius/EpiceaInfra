@@ -17,6 +17,8 @@
     - "{{ docker_compose_path }}/monitoring/prometheus/rules"
     - "{{ docker_compose_path }}/monitoring/alertmanager"
     - "{{ docker_compose_path }}/monitoring/postgres-exporter"
+    - "{{ docker_compose_path }}/monitoring/loki"
+    - "{{ docker_compose_path }}/monitoring/promtail"
     - "{{ docker_compose_path }}/monitoring/grafana/provisioning/datasources"
     - "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards"
 
@@ -60,6 +62,24 @@
   ansible.builtin.copy:
     src: postgres-exporter-queries.yaml
     dest: "{{ docker_compose_path }}/monitoring/postgres-exporter/queries.yaml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
+- name: Déployer configuration Loki
+  ansible.builtin.template:
+    src: loki-config.yml.j2
+    dest: "{{ docker_compose_path }}/monitoring/loki/loki-config.yml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
+- name: Déployer configuration Promtail
+  ansible.builtin.template:
+    src: promtail-config.yml.j2
+    dest: "{{ docker_compose_path }}/monitoring/promtail/promtail-config.yml"
     mode: '0644'
     owner: root
     group: root
@@ -152,7 +172,26 @@
     project_src: "{{ docker_compose_path }}/monitoring"
     state: present
     remove_orphans: true
+    recreate: always
   register: monitoring_deploy
+  ignore_errors: true
+
+- name: Afficher logs Loki en cas d'échec (stdout + stderr)
+  ansible.builtin.shell:
+    cmd: docker logs loki 2>&1 | tail -100 || echo "Impossible de récupérer les logs"
+  register: loki_logs
+  when: monitoring_deploy.failed | default(false)
+  ignore_errors: true
+
+- name: Debug logs Loki complets
+  ansible.builtin.debug:
+    msg: "{{ loki_logs.stdout }}"
+  when: monitoring_deploy.failed | default(false)
+
+- name: Fail si monitoring ne démarre pas
+  ansible.builtin.fail:
+    msg: "Échec du démarrage de la stack Monitoring. Voir les logs ci-dessus."
+  when: monitoring_deploy.failed | default(false)
 
 - name: Vérifier que les conteneurs sont running
   ansible.builtin.shell:

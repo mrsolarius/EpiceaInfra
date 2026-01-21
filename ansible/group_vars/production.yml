@@ -88,6 +88,7 @@ docker_log_max_file: "5"
 
 # Monitoring
 prometheus_retention: "90d"
+loki_retention: "30d"
 grafana_root_url: "https://monitoring.louisvolat.fr"
 grafana_install_plugins: true
 prometheus_cadvisor_enabled: true
@@ -118,6 +119,8 @@ docker_versions:
   postgres_exporter: "v0.15.0"
   redis_exporter: "v1.55.0"
   grafana: "12.3.1"
+  loki: "3.3.2"
+  promtail: "3.3.2"
   immich_postgres: "14-vectorchord0.4.3-pgvectors0.2.0"
   immich: "v2.4.1-ig441"
   jellyfin: "10.11.6"
