@@ -1430,8 +1430,7 @@
   "tags": [
     "traefik",
     "infrastructure",
-    "monitoring",
-    "performance"
+    "monitoring"
   ],
   "templating": {
     "list": [
