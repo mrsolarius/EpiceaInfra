@@ -72,6 +72,8 @@ graph TD
             subgraph monitoring [Monitoring]
                 Prometheus[Prometheus]
                 Grafana[Grafana]
+                Loki[Loki]
+                Promtail[Promtail]
             end
         end
     end
@@ -89,6 +91,10 @@ graph TD
     Nextcloud -- "DB" --> PostgreSQL
     Prometheus -- "Scrape Metrics" --> Traefik
     Grafana -- "Data Source" --> Prometheus
+    Grafana -- "Data Source" --> Loki
+    Promtail -- "Collect Logs" --> Loki
+    Promtail -- "Read Logs" --> applications
+    Promtail -- "Read Logs" --> stateful
 
     %% --- Montages de Volumes (Persistance des données) ---
     Traefik -- "Config" --> NVME
