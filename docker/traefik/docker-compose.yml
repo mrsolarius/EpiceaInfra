@@ -11,9 +11,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          cpus: '0.50'
+          memory: 512M
         reservations:
-          memory: 256M
+          cpus: '0.10'
+          memory: 128M
     ports:
       - "80:80"      # HTTP
       - "443:443"    # HTTPS
@@ -52,6 +54,14 @@ services:
       - no-new-privileges:true
     networks:
       - docker-socket
+    deploy:
+      resources:
+        limits:
+          cpus: '0.10'
+          memory: 64M
+        reservations:
+          cpus: '0.05'
+          memory: 32M
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:

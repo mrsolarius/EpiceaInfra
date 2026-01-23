@@ -4,6 +4,14 @@ services:
     container_name: jellyfin
     hostname: jellyfin-server
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
     env_file: .env
     volumes:
       - ${DATA_PATH}/jellyfin/config:/config

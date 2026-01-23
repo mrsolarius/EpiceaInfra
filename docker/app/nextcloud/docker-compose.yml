@@ -3,6 +3,14 @@ services:
     image: nextcloud:{{ docker_versions.nextcloud }}
     container_name: nextcloud
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.2'
+          memory: 512M
     env_file: .env
     volumes:
       - ${DATA_PATH}/nextcloud:/var/www/html

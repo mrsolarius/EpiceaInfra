@@ -4,6 +4,14 @@ services:
     container_name: redis
     command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
     ports:
       - "127.0.0.1:6379:6379"
     volumes:

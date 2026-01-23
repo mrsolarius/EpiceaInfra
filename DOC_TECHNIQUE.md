@@ -612,24 +612,25 @@ ansible-playbook --ask-vault-pass playbooks/site.yml
 
 ### Versions (Production)
 
-| Service | Image | Version |
-|---------|-------|---------|
-| Traefik | `traefik` | v3.6.6 |
-| PostgreSQL | `tensorchord/pgvecto-rs` | pg16-v0.4.0 |
-| Redis | `redis` | 8-alpine |
-| Prometheus | `prom/prometheus` | v3.9.1 |
-| Alertmanager | `prom/alertmanager` | v0.26.0 |
-| Grafana | `grafana/grafana` | 12.3.1 |
-| Loki | `grafana/loki` | 3.3.2 |
-| Promtail | `grafana/promtail` | 3.3.2 |
-| cAdvisor | `gcr.io/cadvisor/cadvisor` | v0.55.1 |
-| postgres-exporter | `prometheuscommunity/postgres-exporter` | v0.15.0 |
-| redis-exporter | `oliver006/redis_exporter` | v1.55.0 |
-| Immich Server | `ghcr.io/immich-app/immich-server` | v2.4.1-ig441 |
-| Immich ML | `ghcr.io/immich-app/immich-machine-learning` | v1.130.2 |
-| Immich PostgreSQL | `ghcr.io/immich-app/postgres` | 14-vectorchord0.4.3-pgvectors0.2.0 |
-| Jellyfin | `jellyfin/jellyfin` | 10.11.6 |
-| Nextcloud | `nextcloud` | 32.0.5 |
+| Service | Image | Version | Limite CPU | Limite RAM |
+|---------|-------|---------|------------|------------|
+| Traefik | `traefik` | v3.6.6 | 0.5 | 512M |
+| PostgreSQL | `tensorchord/pgvecto-rs` | pg16-v0.4.0 | 1.0 | 2G |
+| Redis | `redis` | 8-alpine | 0.5 | 512M |
+| Prometheus | `prom/prometheus` | v3.9.1 | 1.0 | 2G |
+| Alertmanager | `prom/alertmanager` | v0.26.0 | 0.2 | 256M |
+| Grafana | `grafana/grafana` | 12.3.1 | 0.5 | 1G |
+| Loki | `grafana/loki` | 3.3.2 | 0.5 | 1G |
+| Promtail | `grafana/promtail` | 3.3.2 | 0.2 | 512M |
+| cAdvisor | `gcr.io/cadvisor/cadvisor` | v0.55.1 | 0.2 | 512M |
+| postgres-exporter | `prometheuscommunity/postgres-exporter` | v0.15.0 | 0.1 | 256M |
+| redis-exporter | `oliver006/redis_exporter` | v1.55.0 | 0.1 | 128M |
+| Immich Server | `ghcr.io/immich-app/immich-server` | v2.4.1-ig441 | 1.0 | 2G |
+| Immich ML | `ghcr.io/immich-app/immich-machine-learning` | v1.130.2 | 2.0 | 4G |
+| Immich PostgreSQL | `ghcr.io/immich-app/postgres` | 14-vectorchord0.4.3-pgvectors0.2.0 | 0.5 | 1G |
+| Jellyfin | `jellyfin/jellyfin` | 10.11.6 | 2.0 | 4G |
+| Nextcloud | `nextcloud` | 32.0.5 | 1.0 | 1G |
+| Socket Proxy | `docker-socket-proxy` | - | 0.1 | 64M |
 
 ---
 

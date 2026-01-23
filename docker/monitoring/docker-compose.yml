@@ -7,8 +7,10 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 2G
         reservations:
+          cpus: '0.2'
           memory: 1G
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -38,8 +40,10 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.2'
           memory: 256M
         reservations:
+          cpus: '0.05'
           memory: 128M
     volumes:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
@@ -63,8 +67,10 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.2'
           memory: 512M
         reservations:
+          cpus: '0.1'
           memory: 256M
     devices:
       - /dev/kmsg
@@ -100,8 +106,10 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.1'
           memory: 256M
         reservations:
+          cpus: '0.05'
           memory: 128M
     environment:
       DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-postgres}?sslmode=disable"
@@ -127,8 +135,10 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.1'
           memory: 128M
         reservations:
+          cpus: '0.05'
           memory: 64M
     environment:
       REDIS_ADDR: "redis:6379"
@@ -154,8 +164,10 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.5'
           memory: 1G
         reservations:
+          cpus: '0.1'
           memory: 512M
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
@@ -210,8 +222,10 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.5'
           memory: 1G
         reservations:
+          cpus: '0.1'
           memory: 512M
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
@@ -233,8 +247,10 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.2'
           memory: 512M
         reservations:
+          cpus: '0.05'
           memory: 256M
     command: -config.file=/etc/promtail/promtail-config.yml
     volumes:
@@ -253,6 +269,14 @@ services:
     image: tecnativa/docker-socket-proxy:{{ docker_versions.docker_socket_proxy }}
     container_name: docker-socket-proxy-monitoring
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.10'
+          memory: 64M
+        reservations:
+          cpus: '0.05'
+          memory: 32M
     security_opt:
       - no-new-privileges:true
     networks:

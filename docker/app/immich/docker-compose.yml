@@ -3,6 +3,14 @@ services:
     container_name: immich_postgres
     image: ghcr.io/immich-app/postgres:{{ docker_versions.immich_postgres }}
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.1'
+          memory: 256M
     environment:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -30,6 +38,14 @@ services:
       - immich-postgres
       - immich-machine-learning
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.2'
+          memory: 512M
     networks:
       - default
       - proxy
@@ -54,6 +70,14 @@ services:
       - ${DATA_PATH}/immich/model-cache:/cache
     env_file: .env
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
     networks:
       - default
       - proxy

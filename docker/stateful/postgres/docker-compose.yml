@@ -3,6 +3,14 @@ services:
     image: tensorchord/pgvecto-rs:{{ docker_versions.postgres }}
     container_name: postgres
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
     env_file: .env
     ports:
       - "127.0.0.1:5432:5432"
