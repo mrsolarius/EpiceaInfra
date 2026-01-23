@@ -24,7 +24,7 @@ service_domains:
   pgadmin: "db.{{ base_domain }}"
 
 # Configuration NFS (Storage VM)
-nfs_server: "172.17.36.247" # IP_STORAGE_TEST
+nfs_server: "172.21.22.146" # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "/mnt/media"
@@ -84,6 +84,7 @@ backup_retention_days: 7
 
 # Versions des images Docker
 docker_versions:
+  docker_socket_proxy: "latest"
   traefik: "v3.6.6"
   postgres: "pg16-v0.4.0"
   redis: "8-alpine"

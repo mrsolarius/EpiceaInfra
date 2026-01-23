@@ -74,20 +74,24 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - monitoring
+      - docker-socket
     command:
       - '--housekeeping_interval=10s'
       - '--docker_only=true'
       - '--store_container_labels=true'
       - '--whitelisted_container_labels=com.docker.compose.service,com.docker.compose.project'
+      - '--docker=http://docker-socket-proxy:2375'
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+    depends_on:
+      docker-socket-proxy:
+        condition: service_healthy
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:{{ docker_versions.postgres_exporter }}
@@ -235,13 +239,42 @@ services:
     command: -config.file=/etc/promtail/promtail-config.yml
     volumes:
       - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
     networks:
       - monitoring
+      - docker-socket
     depends_on:
       loki:
         condition: service_healthy
+      docker-socket-proxy:
+        condition: service_healthy
+
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:{{ docker_versions.docker_socket_proxy }}
+    container_name: docker-socket-proxy-monitoring
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - docker-socket
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CONTAINERS=1
+      - NETWORKS=1
+      - SERVICES=1  # Nécessaire pour le discovery
+      - SWARM=0     # Tu n'es pas en Swarm, laisse à 0
+      - TASKS=0
+      - IMAGES=1    # Permet de voir les versions d'images sur le dashboard
+      - VOLUMES=1   # Permet de voir les montages
+      - INFO=1      # Permet de voir les infos système (CPU/RAM de l'hôte)
+      - POST=0      # <--- IMPORTANT : Laisse à 0 pour empêcher de créer/supprimer
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2375"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 volumes:
   prometheus-data:
@@ -257,3 +290,5 @@ networks:
     name: traefik-proxy
   monitoring:
     driver: bridge
+  docker-socket:
+    internal: true

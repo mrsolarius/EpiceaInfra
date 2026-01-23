@@ -110,6 +110,7 @@ fail2ban_maxretry: 5
 
 # Versions des images Docker
 docker_versions:
+  docker_socket_proxy: "latest"
   traefik: "v3.6.6"
   postgres: "pg16-v0.4.0"
   redis: "8-alpine"

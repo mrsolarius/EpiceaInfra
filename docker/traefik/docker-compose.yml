@@ -7,6 +7,7 @@ services:
       - no-new-privileges:true
     networks:
       - traefik-proxy
+      - docker-socket
     deploy:
       resources:
         limits:
@@ -22,8 +23,6 @@ services:
       # Let's Encrypt (production seulement)
       - TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL=${ACME_EMAIL}
     volumes:
-      # Socket Docker pour auto-discovery
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       # Configuration file-based
       - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./config/dynamic:/etc/traefik/dynamic:ro
@@ -41,7 +40,37 @@ services:
       retries: 3
       start_period: 10s
 
+    depends_on:
+      docker-socket-proxy:
+        condition: service_healthy
+
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:{{ docker_versions.docker_socket_proxy }}
+    container_name: docker-socket-proxy
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - docker-socket
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CONTAINERS=1
+      - SERVICES=1
+      - NETWORKS=1
+      - NODES=1
+      - TASKS=1
+      - EVENTS=1
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2375"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 networks:
   traefik-proxy:
     external: true
     name: traefik-proxy
+  docker-socket:
+    internal: true

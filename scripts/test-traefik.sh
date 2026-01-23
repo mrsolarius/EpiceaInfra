@@ -118,8 +118,11 @@ echo -e "\n${BLUE}## Tests Sécurité${NC}\n"
 test_check "Dashboard protégé par auth" \
     "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080 | grep -q 401"
 
-test_check "Socket Docker monté en read-only" \
-    "docker inspect $TRAEFIK_CONTAINER | jq -r '.[0].HostConfig.Binds[]' | grep docker.sock | grep -q ':ro'"
+test_check "Socket Proxy est utilisé (pas de socket direct)" \
+    "! docker inspect $TRAEFIK_CONTAINER | jq -r '.[0].HostConfig.Binds[]' | grep -q 'docker.sock'"
+
+test_check "Socket Proxy est running" \
+    "docker ps | grep -q docker-socket-proxy"
 
 # ========================================
 # Tests Let's Encrypt (si activé)
