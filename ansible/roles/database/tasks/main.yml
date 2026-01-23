@@ -13,12 +13,6 @@
     - "{{ data_path }}/postgres"
     - "{{ docker_compose_path }}/postgres"
 
-- name: Copier le script d'initialisation SQL
-  ansible.builtin.template:
-    src: init.sql.j2
-    dest: "{{ docker_compose_path }}/postgres/init.sql"
-    mode: '0644'
-
 - name: Générer le fichier .env pour PostgreSQL
   ansible.builtin.template:
     src: postgres.env.j2

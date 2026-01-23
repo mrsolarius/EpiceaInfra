@@ -9,7 +9,7 @@
   loop:
     - "{{ data_path }}/immich/upload"
     - "{{ data_path }}/immich/model-cache"
-    - "{{ data_path }}/immich/postgres"
+    - "{{ data_path }}/immich/db"
     - "{{ docker_compose_path }}/immich"
 
 - name: Copier le script d'initialisation PostgreSQL

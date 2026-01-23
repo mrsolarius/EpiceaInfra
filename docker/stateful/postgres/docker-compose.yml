@@ -16,7 +16,6 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - ${DATA_PATH}/postgres:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - default
       - proxy

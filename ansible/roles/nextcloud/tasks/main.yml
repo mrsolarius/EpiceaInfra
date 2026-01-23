@@ -8,7 +8,14 @@
     group: "33"
   loop:
     - "{{ data_path }}/nextcloud"
+    - "{{ data_path }}/nextcloud/db"
     - "{{ docker_compose_path }}/nextcloud"
+
+- name: Copier le script d'initialisation PostgreSQL
+  ansible.builtin.copy:
+    src: ../../../docker/app/nextcloud/init-nextcloud-db.sql
+    dest: "{{ docker_compose_path }}/nextcloud/init-nextcloud-db.sql"
+    mode: '0644'
 
 - name: Générer le fichier .env
   ansible.builtin.template:
