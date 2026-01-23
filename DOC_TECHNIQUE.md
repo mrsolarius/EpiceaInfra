@@ -107,6 +107,16 @@ EpiceaInfra/
 
 ---
 
+### 🛡️ Sécurisation du Socket Docker
+
+Pour éviter l'exposition directe de `/var/run/docker.sock` aux conteneurs exposés sur Internet (Traefik), un proxy de socket (`tecnativa/docker-socket-proxy`) est utilisé.
+
+- **Traefik** : Communique avec le proxy via le réseau interne `docker-socket`. Le proxy est configuré pour n'autoriser que les accès nécessaires à l'auto-discovery (Containers, Services, Networks, etc.).
+- **Monitoring (cAdvisor & Promtail)** : Utilisent également un proxy de socket filtré pour collecter les métriques et logs.
+- **Isolation** : Le socket Unix n'est monté que dans les conteneurs proxies, qui ne sont pas exposés sur Internet.
+
+---
+
 ## 🔧 Rôles Ansible
 
 ### 1. `common` - Configuration système de base
