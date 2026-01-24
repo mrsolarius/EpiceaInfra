@@ -69,15 +69,25 @@ scrape_configs:
           environment: '{{ deploy_environment }}'
 
   # ========================================
-  # PostgreSQL Exporter
+  # PostgreSQL Exporters
   # ========================================
-  - job_name: 'postgres'
+  - job_name: 'postgres-nextcloud'
     static_configs:
-      - targets: ['postgres-exporter:9187']
+      - targets: ['nextcloud-postgres-exporter:9187']
         labels:
           service: 'postgresql'
           environment: '{{ deploy_environment }}'
-          instance: 'postgres-main'
+          instance: 'nextcloud'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  - job_name: 'postgres-immich'
+    static_configs:
+      - targets: ['immich-postgres-exporter:9187']
+        labels:
+          service: 'postgresql'
+          environment: '{{ deploy_environment }}'
+          instance: 'immich'
     scrape_interval: 30s
     scrape_timeout: 10s
 

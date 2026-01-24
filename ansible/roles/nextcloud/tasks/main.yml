@@ -1,5 +1,4 @@
----
-- name: Créer les répertoires de données
+- name: Créer les répertoires de données Nextcloud
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -9,6 +8,21 @@
   loop:
     - "{{ data_path }}/nextcloud"
     - "{{ docker_compose_path }}/nextcloud"
+
+- name: Créer les répertoires de données PostgreSQL Nextcloud
+  ansible.builtin.file:
+    path: "{{ data_path }}/nextcloud/postgres"
+    state: directory
+    mode: '0700'
+    owner: "999" # postgres
+    group: "999"
+    recurse: yes
+
+- name: Générer le script d'initialisation PostgreSQL
+  ansible.builtin.template:
+    src: init-db.sql.j2
+    dest: "{{ docker_compose_path }}/nextcloud/init-db.sql"
+    mode: '0644'
 
 - name: Générer le fichier .env
   ansible.builtin.template:
@@ -29,3 +43,34 @@
     project_src: "{{ docker_compose_path }}/nextcloud"
     state: present
     pull: always
+
+- name: Attendre que Nextcloud soit prêt
+  ansible.builtin.pause:
+    seconds: 10
+
+- name: Appliquer la configuration de la base de données via occ
+  community.docker.docker_container_exec:
+    container: nextcloud
+    command: >
+      php occ config:system:set dbuser --value="{{ postgres_databases.nextcloud.user }}"
+  register: occ_dbuser
+  failed_when: false
+  changed_when: "'system configuration value dbuser set' in occ_dbuser.stdout"
+
+- name: Appliquer le mot de passe de la base de données via occ
+  community.docker.docker_container_exec:
+    container: nextcloud
+    command: >
+      php occ config:system:set dbpassword --value="{{ postgres_databases.nextcloud.password }}"
+  register: occ_dbpass
+  failed_when: false
+  changed_when: "'system configuration value dbpassword set' in occ_dbpass.stdout"
+
+- name: S'assurer que le host de la base de données est correct via occ
+  community.docker.docker_container_exec:
+    container: nextcloud
+    command: >
+      php occ config:system:set dbhost --value="nextcloud-db:5432"
+  register: occ_dbhost
+  failed_when: false
+  changed_when: "'system configuration value dbhost set' in occ_dbhost.stdout"

@@ -22,6 +22,11 @@ services:
       - ${DATA_PATH}/immich/postgres:/var/lib/postgresql/data
       - ./init-immich-db.sql:/docker-entrypoint-initdb.d/init.sql
     shm_size: 128mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - default
       - proxy
@@ -35,8 +40,10 @@ services:
       - /etc/localtime:/etc/localtime:ro
     env_file: .env
     depends_on:
-      - immich-postgres
-      - immich-machine-learning
+      immich-postgres:
+        condition: service_healthy
+      immich-machine-learning:
+        condition: service_started
     restart: always
     deploy:
       resources:

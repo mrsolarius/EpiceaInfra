@@ -46,8 +46,8 @@ nfs_backup_mount:
 
 # Services activés
 enabled_services:
-  - shared-services  # Postgres + Redis mutualisés
   - traefik
+  - redis
   - immich
   - jellyfin
   - nextcloud

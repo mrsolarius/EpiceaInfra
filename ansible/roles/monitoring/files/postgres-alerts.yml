@@ -4,7 +4,7 @@ groups:
     rules:
       # PostgreSQL Instance Down
       - alert: PostgreSQLDown
-        expr: pg_up{job="postgres"} == 0
+        expr: pg_up{service="postgresql"} == 0
         for: 1m
         labels:
           severity: critical

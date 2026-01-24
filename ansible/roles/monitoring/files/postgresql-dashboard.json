@@ -88,7 +88,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "time() - pg_postmaster_start_time_seconds",
+          "expr": "time() - pg_postmaster_start_time_seconds{instance=~\"$instance\"}",
           "refId": "A"
         }
       ],
@@ -2093,7 +2093,31 @@
     "performance"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(pg_up, instance)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Instance",
+        "multi": true,
+        "name": "instance",
+        "options": [],
+        "query": {
+          "query": "label_values(pg_up, instance)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
   },
   "time": {
     "from": "now-1h",

@@ -1,41 +1,6 @@
 ---
-# ==============================================================================
-# PostgreSQL Stack
-# ==============================================================================
-- name: Créer le répertoire pour PostgreSQL
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0755'
-    owner: "1000"
-    group: "1000"
-  loop:
-    - "{{ data_path }}/postgres"
-    - "{{ docker_compose_path }}/postgres"
-
-- name: Copier le script d'initialisation SQL
-  ansible.builtin.template:
-    src: init.sql.j2
-    dest: "{{ docker_compose_path }}/postgres/init.sql"
-    mode: '0644'
-
-- name: Générer le fichier .env pour PostgreSQL
-  ansible.builtin.template:
-    src: postgres.env.j2
-    dest: "{{ docker_compose_path }}/postgres/.env"
-    mode: '0600'
-
-- name: Copier le docker-compose pour PostgreSQL
-  ansible.builtin.template:
-    src: ../../../docker/stateful/postgres/docker-compose.yml
-    dest: "{{ docker_compose_path }}/postgres/docker-compose.yml"
-    mode: '0644'
-
-- name: Démarrer la stack PostgreSQL
-  community.docker.docker_compose_v2:
-    project_src: "{{ docker_compose_path }}/postgres"
-    state: present
-    pull: always
+# Les instances PostgreSQL sont maintenant gérées directement par les applications (Nextcloud, Immich).
+# Seul Redis reste mutualisé ici.
 
 # ==============================================================================
 # Redis Stack
