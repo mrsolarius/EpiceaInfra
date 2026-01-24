@@ -111,6 +111,10 @@ services:
     environment:
       DATA_SOURCE_NAME: "postgresql://${NEXTCLOUD_DB_USER}:${NEXTCLOUD_DB_PASSWORD}@nextcloud-db:5432/${NEXTCLOUD_DB_NAME}?sslmode=disable"
       PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      PG_EXPORTER_CONSTANT_LABELS: "instance=nextcloud"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
+    volumes:
+      - ./postgres-exporter/queries.yaml:/etc/postgres-exporter/queries.yaml:ro
     networks:
       - monitoring
       - traefik-proxy
@@ -132,6 +136,10 @@ services:
     environment:
       DATA_SOURCE_NAME: "postgresql://${IMMICH_DB_USER}:${IMMICH_DB_PASSWORD}@immich-postgres:5432/${IMMICH_DB_NAME}?sslmode=disable"
       PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      PG_EXPORTER_CONSTANT_LABELS: "instance=immich"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
+    volumes:
+      - ./postgres-exporter/queries.yaml:/etc/postgres-exporter/queries.yaml:ro
     networks:
       - monitoring
       - traefik-proxy

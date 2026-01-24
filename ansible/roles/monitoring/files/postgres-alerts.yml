@@ -5,38 +5,38 @@ groups:
       # PostgreSQL Instance Down
       - alert: PostgreSQLDown
         expr: pg_up{service="postgresql"} == 0
-        for: 1m
+        for: 5m
         labels:
           severity: critical
           component: postgresql
         annotations:
-          summary: "Instance PostgreSQL indisponible 🔴"
-          description: "L'instance PostgreSQL {{ $labels.instance }} est indisponible depuis plus d'une minute."
+          summary: "Instance PostgreSQL {{ $labels.instance }} indisponible 🔴"
+          description: "L'instance PostgreSQL {{ $labels.instance }} est indisponible depuis plus de 5 minutes."
 
       # High number of connections
       - alert: PostgreSQLTooManyConnections
-        expr: sum(pg_stat_database_numbackends{datname!~"template.*"}) / pg_settings_max_connections * 100 > 80
+        expr: pg_stat_database_numbackends{datname!~"template.*"} / on(instance) pg_settings_max_connections * 100 > 80
         for: 5m
         labels:
           severity: warning
           component: postgresql
         annotations:
-          summary: "Trop de connexions PostgreSQL 🔌"
-          description: "L'instance PostgreSQL {{ $labels.instance }} utilise {{ $value }}% des connexions maximales."
+          summary: "Trop de connexions PostgreSQL sur {{ $labels.instance }} ({{ $labels.datname }}) 🔌"
+          description: "L'instance PostgreSQL {{ $labels.instance }} utilise {{ $value }}% des connexions maximales sur la base {{ $labels.datname }}."
 
       # Low cache hit ratio
       - alert: PostgreSQLLowCacheHitRatio
         expr: |
-          100 * (sum(rate(pg_stat_database_blks_hit{datname!~"template.*"}[5m])) /
-          (sum(rate(pg_stat_database_blks_hit{datname!~"template.*"}[5m])) +
-          sum(rate(pg_stat_database_blks_read{datname!~"template.*"}[5m])))) < 90
+          100 * (rate(pg_stat_database_blks_hit{datname!~"template.*"}[5m]) /
+          (rate(pg_stat_database_blks_hit{datname!~"template.*"}[5m]) +
+          rate(pg_stat_database_blks_read{datname!~"template.*"}[5m]))) < 90
         for: 10m
         labels:
           severity: warning
           component: postgresql
         annotations:
-          summary: "Faible taux de cache PostgreSQL 📉"
-          description: "Le taux de cache PostgreSQL est de {{ $value }}% (devrait être > 90%). Envisagez d'augmenter shared_buffers."
+          summary: "Faible taux de cache PostgreSQL sur {{ $labels.instance }} 📉"
+          description: "Le taux de cache PostgreSQL pour {{ $labels.instance }} (base {{ $labels.datname }}) est de {{ $value }}% (devrait être > 90%). Envisagez d'augmenter shared_buffers."
 
       # Deadlocks detected
       - alert: PostgreSQLDeadlocks
@@ -46,8 +46,8 @@ groups:
           severity: warning
           component: postgresql
         annotations:
-          summary: "Deadlocks PostgreSQL détectés 🔒"
-          description: "La base de données PostgreSQL {{ $labels.datname }} a {{ $value }} deadlocks par seconde."
+          summary: "Deadlocks PostgreSQL détectés sur {{ $labels.instance }} 🔒"
+          description: "La base de données PostgreSQL {{ $labels.datname }} sur {{ $labels.instance }} a {{ $value }} deadlocks par seconde."
 
       # Long-running transactions
       - alert: PostgreSQLLongRunningTransactions
@@ -73,14 +73,14 @@ groups:
 
       # High I/O wait time
       - alert: PostgreSQLHighIOWait
-        expr: rate(pg_stat_database_blk_read_time{datname!~"template.*"}[5m]) + rate(pg_stat_database_blk_write_time{datname!~"template.*"}[5m]) > 1000
+        expr: (rate(pg_stat_database_blk_read_time{datname!~"template.*"}[5m]) + rate(pg_stat_database_blk_write_time{datname!~"template.*"}[5m])) > 1000
         for: 10m
         labels:
           severity: warning
           component: postgresql
         annotations:
-          summary: "Temps d'attente E/S PostgreSQL élevé 💾"
-          description: "La base de données PostgreSQL {{ $labels.datname }} subit un temps d'attente E/S élevé : {{ $value }}ms. Vérifiez les requêtes lentes ou la performance disque."
+          summary: "Temps d'attente E/S PostgreSQL élevé sur {{ $labels.instance }} 💾"
+          description: "La base de données PostgreSQL {{ $labels.datname }} sur {{ $labels.instance }} subit un temps d'attente E/S élevé : {{ $value }}ms. Vérifiez les requêtes lentes ou la performance disque."
 
       # Excessive temp file usage (disk spillage)
       - alert: PostgreSQLExcessiveTempFiles
@@ -90,8 +90,8 @@ groups:
           severity: warning
           component: postgresql
         annotations:
-          summary: "Usage excessif de fichiers temporaires PostgreSQL 📁"
-          description: "La base de données PostgreSQL {{ $labels.datname }} écrit {{ $value }} octets/s dans des fichiers temporaires. Les requêtes nécessitent peut-être une optimisation ou une augmentation de work_mem."
+          summary: "Usage excessif de fichiers temporaires PostgreSQL sur {{ $labels.instance }} 📁"
+          description: "La base de données PostgreSQL {{ $labels.datname }} sur {{ $labels.instance }} écrit {{ $value }} octets/s dans des fichiers temporaires. Les requêtes nécessitent peut-être une optimisation ou une augmentation de work_mem."
 
       # Table bloat
       - alert: PostgreSQLTableBloat
@@ -101,8 +101,8 @@ groups:
           severity: warning
           component: postgresql
         annotations:
-          summary: "Table PostgreSQL gonflée (bloat) 🎈"
-          description: "La table {{ $labels.schemaname }}.{{ $labels.tablename }} contient {{ $value }}% de tuples morts. Envisagez de lancer un VACUUM."
+          summary: "Table PostgreSQL gonflée (bloat) sur {{ $labels.instance }} 🎈"
+          description: "La table {{ $labels.schemaname }}.{{ $labels.tablename }} sur {{ $labels.instance }} contient {{ $value }}% de tuples morts. Envisagez de lancer un VACUUM."
 
       # Replication lag (if using replication)
       - alert: PostgreSQLReplicationLag
@@ -136,8 +136,8 @@ groups:
           component: postgresql
           subsystem: pgvector
         annotations:
-          summary: "Grand index vectoriel inutilisé 🗑️"
-          description: "L'index vectoriel {{ $labels.index_name }} sur {{ $labels.table_name }} ({{ $labels.index_type }}) est volumineux (>10Mo) mais n'a eu que {{ $value }} scans durant la dernière heure."
+          summary: "Grand index vectoriel inutilisé sur {{ $labels.instance }} 🗑️"
+          description: "L'index vectoriel {{ $labels.index_name }} sur {{ $labels.table_name }} ({{ $labels.index_type }}) sur l'instance {{ $labels.instance }} est volumineux (>10Mo) mais n'a eu que {{ $value }} scans durant la dernière heure."
 
       # High lock wait count
       - alert: PostgreSQLHighLockWaitCount
@@ -147,5 +147,5 @@ groups:
           severity: warning
           component: postgresql
         annotations:
-          summary: "Nombre élevé d'attentes de verrouillage PostgreSQL 🔐"
-          description: "La base de données {{ $labels.datname }} a {{ $value }} verrous en attente ({{ $labels.mode }} {{ $labels.locktype }})."
+          summary: "Nombre élevé d'attentes de verrouillage PostgreSQL sur {{ $labels.instance }} 🔐"
+          description: "La base de données {{ $labels.datname }} sur {{ $labels.instance }} a {{ $value }} verrous en attente ({{ $labels.mode }} {{ $labels.locktype }})."

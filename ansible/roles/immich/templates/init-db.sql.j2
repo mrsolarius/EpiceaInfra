@@ -1,9 +1,13 @@
 -- PostgreSQL initialization script for Immich
 -- Using ghcr.io/immich-app/postgres image with VectorChord support
 
--- Enable required extensions for Immich
+-- Enable required extensions for Immich and monitoring
 CREATE EXTENSION IF NOT EXISTS cube;
 CREATE EXTENSION IF NOT EXISTS earthdistance;
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
 -- Ensure the schema public is owned by the user
 ALTER SCHEMA public OWNER TO {{ postgres_databases.immich.user }};
+
+-- Grant necessary permissions for monitoring
+GRANT pg_monitor TO {{ postgres_databases.immich.user }};

@@ -2,6 +2,9 @@
 -- Standard initialization is handled by environment variables, 
 -- but we can add specific setup here if needed.
 
+-- Enable required extensions for monitoring
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
 -- Create user if not exists (redundant with POSTGRES_USER but safer)
 DO $$
 BEGIN
@@ -14,3 +17,7 @@ $$;
 -- Ensure the schema public is owned by the user
 -- This is often useful for Nextcloud migrations or setup
 ALTER SCHEMA public OWNER TO {{ postgres_databases.nextcloud.user }};
+
+-- Grant necessary permissions for monitoring
+-- The exporter connects as the nextcloud user
+GRANT pg_monitor TO {{ postgres_databases.nextcloud.user }};
