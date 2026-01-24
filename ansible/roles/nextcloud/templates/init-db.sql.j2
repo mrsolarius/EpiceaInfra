@@ -1,0 +1,16 @@
+-- PostgreSQL initialization script for Nextcloud
+-- Standard initialization is handled by environment variables, 
+-- but we can add specific setup here if needed.
+
+-- Create user if not exists (redundant with POSTGRES_USER but safer)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '{{ postgres_databases.nextcloud.user }}') THEN
+        CREATE USER {{ postgres_databases.nextcloud.user }} WITH PASSWORD '{{ postgres_databases.nextcloud.password }}';
+    END IF;
+END
+$$;
+
+-- Ensure the schema public is owned by the user
+-- This is often useful for Nextcloud migrations or setup
+ALTER SCHEMA public OWNER TO {{ postgres_databases.nextcloud.user }};
