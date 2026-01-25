@@ -68,8 +68,8 @@ services:
       - CONTAINERS=1
       - SERVICES=1
       - NETWORKS=1
-      - NODES=1
-      - TASKS=1
+      - NODES=0
+      - TASKS=0
       - EVENTS=1
       - LOG_LEVEL=info
     healthcheck:

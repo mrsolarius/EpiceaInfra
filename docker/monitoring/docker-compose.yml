@@ -76,7 +76,6 @@ services:
       - /dev/kmsg
     volumes:
       - /:/rootfs:ro
-      - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
@@ -142,6 +141,7 @@ services:
     networks:
       - monitoring
       - traefik-proxy
+      - nextcloud-net
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
       interval: 30s
@@ -275,7 +275,7 @@ services:
     command: -config.file=/etc/promtail/promtail-config.yml
     volumes:
       - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log:/var/log:ro
     networks:
       - monitoring
       - docker-socket
@@ -336,3 +336,6 @@ networks:
     driver: bridge
   docker-socket:
     internal: true
+  nextcloud-net:
+    external: true
+    name: nextcloud_default

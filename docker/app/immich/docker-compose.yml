@@ -18,7 +18,7 @@ services:
       POSTGRES_INITDB_ARGS: '--data-checksums'
     command: ["postgres", "-c", "shared_preload_libraries=vchord,pg_stat_statements"]
     volumes:
-      - ${DATA_PATH}/immich/postgres:/var/lib/postgresql/data
+      - ${DATA_PATH}/immich/db:/var/lib/postgresql/data
       - ./init-immich-db.sql:/docker-entrypoint-initdb.d/init.sql
     shm_size: 128mb
     healthcheck:
@@ -29,11 +29,17 @@ services:
     networks:
       - default
       - proxy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${DB_DATABASE_NAME} -U $${DB_USERNAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   immich-server:
     container_name: immich_server
     image: ghcr.io/immich-app/immich-server:{{ docker_versions.immich }}
-    command: [ "start.sh", "immich" ]
+    # command: [ "start.sh", "immich" ] # Optionnel, start.sh est l'entrypoint par défaut
     volumes:
       - /mnt/photos:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
@@ -64,10 +70,10 @@ services:
       - "traefik.http.routers.immich-https.entrypoints=websecure"
       - "traefik.http.routers.immich-https.service=immich"
       - "traefik.http.routers.immich-https.tls=true"
+      - "traefik.http.services.immich.loadbalancer.server.port=2283"
 {% if enable_letsencrypt %}
       - "traefik.http.routers.immich-https.tls.certresolver=letsencrypt"
 {% endif %}
-      - "traefik.http.services.immich.loadbalancer.server.port=2283"
 
   immich-machine-learning:
     container_name: immich_machine_learning

@@ -7,6 +7,7 @@
     group: "33"
   loop:
     - "{{ data_path }}/nextcloud"
+    - "{{ data_path }}/nextcloud/db"
     - "{{ docker_compose_path }}/nextcloud"
 
 - name: Créer les répertoires de données PostgreSQL Nextcloud
