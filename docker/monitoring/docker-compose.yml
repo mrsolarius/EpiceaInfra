@@ -84,7 +84,6 @@ services:
       - docker-socket
     command:
       - '--housekeeping_interval=10s'
-      - '--docker_only=true'
       - '--store_container_labels=true'
       - '--whitelisted_container_labels=com.docker.compose.service,com.docker.compose.project'
       - '--docker=http://docker-socket-proxy:2375'
@@ -98,25 +97,47 @@ services:
       docker-socket-proxy:
         condition: service_healthy
 
-  postgres-exporter:
+  nextcloud-postgres-exporter:
     image: prometheuscommunity/postgres-exporter:{{ docker_versions.postgres_exporter }}
-    container_name: postgres-exporter
+    container_name: nextcloud_postgres_exporter
     restart: unless-stopped
     deploy:
       resources:
         limits:
           cpus: '0.1'
-          memory: 256M
-        reservations:
-          cpus: '0.05'
           memory: 128M
     environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@nextcloud-db:5432/${POSTGRES_DB:-postgres}?sslmode=disable"
-      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres_exporter/queries.yaml"
+      DATA_SOURCE_NAME: "postgresql://${NEXTCLOUD_DB_USER}:${NEXTCLOUD_DB_PASSWORD}@nextcloud-db:5432/${NEXTCLOUD_DB_NAME}?sslmode=disable"
       PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
-      PG_EXPORTER_DISABLE_SETTINGS_METRICS: "false"
+      PG_EXPORTER_CONSTANT_LABELS: "instance=nextcloud"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
     volumes:
-      - ./postgres-exporter/queries.yaml:/etc/postgres_exporter/queries.yaml:ro
+      - ./postgres-exporter/queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    networks:
+      - monitoring
+      - traefik-proxy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  immich-postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:{{ docker_versions.postgres_exporter }}
+    container_name: immich_postgres_exporter
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${IMMICH_DB_USER}:${IMMICH_DB_PASSWORD}@immich-postgres:5432/${IMMICH_DB_NAME}?sslmode=disable"
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      PG_EXPORTER_CONSTANT_LABELS: "instance=immich"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
+    volumes:
+      - ./postgres-exporter/queries.yaml:/etc/postgres-exporter/queries.yaml:ro
     networks:
       - monitoring
       - traefik-proxy
@@ -126,7 +147,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
 
   redis-exporter:
     image: oliver006/redis_exporter:{{ docker_versions.redis_exporter }}

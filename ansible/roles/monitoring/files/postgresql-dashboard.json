@@ -88,7 +88,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "time() - pg_postmaster_start_time_seconds",
+          "expr": "time() - pg_postmaster_start_time_seconds{instance=~\"$instance\"}",
           "refId": "A"
         }
       ],
@@ -155,7 +155,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pg_stat_database_numbackends{datname!~\"template.*\"}",
+          "expr": "pg_stat_database_numbackends{instance=~\"$instance\", datname!~\"template.*\"}",
           "legendFormat": "{{datname}}",
           "refId": "A"
         }
@@ -311,7 +311,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "100 * (sum(rate(pg_stat_database_blks_hit{datname!~\"template.*\"}[5m])) / (sum(rate(pg_stat_database_blks_hit{datname!~\"template.*\"}[5m])) + sum(rate(pg_stat_database_blks_read{datname!~\"template.*\"}[5m]))))",
+          "expr": "100 * (sum(rate(pg_stat_database_blks_hit{instance=~\"$instance\", datname!~\"template.*\"}[5m])) / (sum(rate(pg_stat_database_blks_hit{instance=~\"$instance\", datname!~\"template.*\"}[5m])) + sum(rate(pg_stat_database_blks_read{instance=~\"$instance\", datname!~\"template.*\"}[5m]))))",
           "refId": "A"
         }
       ],
@@ -513,7 +513,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "rate(pg_stat_database_blk_read_time{datname!~\"template.*\"}[5m])",
+          "expr": "rate(pg_stat_database_blk_read_time{instance=~\"$instance\", datname!~\"template.*\"}[5m])",
           "legendFormat": "{{datname}} - I/O Read Time",
           "refId": "A"
         },
@@ -522,7 +522,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "rate(pg_stat_database_blk_write_time{datname!~\"template.*\"}[5m])",
+          "expr": "rate(pg_stat_database_blk_write_time{instance=~\"$instance\", datname!~\"template.*\"}[5m])",
           "legendFormat": "{{datname}} - I/O Write Time",
           "refId": "B"
         }
@@ -613,7 +613,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "100 * (rate(pg_stat_database_blk_read_time{datname!~\"template.*\"}[5m]) + rate(pg_stat_database_blk_write_time{datname!~\"template.*\"}[5m])) / (rate(pg_stat_database_blk_read_time{datname!~\"template.*\"}[5m]) + rate(pg_stat_database_blk_write_time{datname!~\"template.*\"}[5m]) + 1000)",
+          "expr": "100 * (rate(pg_stat_database_blk_read_time{instance=~\"$instance\", datname!~\"template.*\"}[5m]) + rate(pg_stat_database_blk_write_time{instance=~\"$instance\", datname!~\"template.*\"}[5m])) / (rate(pg_stat_database_blk_read_time{instance=~\"$instance\", datname!~\"template.*\"}[5m]) + rate(pg_stat_database_blk_write_time{instance=~\"$instance\", datname!~\"template.*\"}[5m]) + 1000)",
           "legendFormat": "{{datname}} - I/O Wait %",
           "refId": "A"
         }
@@ -759,7 +759,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "topk(10, rate(pg_stat_database_blk_read_time{datname!~\"template.*\"}[5m]) + rate(pg_stat_database_blk_write_time{datname!~\"template.*\"}[5m]))",
+          "expr": "topk(10, rate(pg_stat_database_blk_read_time{instance=~\"$instance\", datname!~\"template.*\"}[5m]) + rate(pg_stat_database_blk_write_time{instance=~\"$instance\", datname!~\"template.*\"}[5m]))",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -1229,7 +1229,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pg_stat_activity_sessions_session_count{wait_event_type=\"Lock\"}",
+          "expr": "pg_stat_activity_sessions_session_count{instance=~\"$instance\", wait_event_type=\"Lock\"}",
           "legendFormat": "{{datname}} - {{wait_event}}",
           "refId": "A"
         },
@@ -1238,7 +1238,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pg_stat_activity_sessions_session_count{wait_event_type=\"LWLock\"}",
+          "expr": "pg_stat_activity_sessions_session_count{instance=~\"$instance\", wait_event_type=\"LWLock\"}",
           "legendFormat": "{{datname}} - {{wait_event}}",
           "refId": "B"
         },
@@ -1247,7 +1247,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pg_stat_activity_sessions_session_count{wait_event_type=\"IO\"}",
+          "expr": "pg_stat_activity_sessions_session_count{instance=~\"$instance\", wait_event_type=\"IO\"}",
           "legendFormat": "{{datname}} - {{wait_event}}",
           "refId": "C"
         }
@@ -1530,7 +1530,200 @@
         "y": 48
       },
       "id": 40,
-      "panels": [],
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Index Size"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "bytes"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 48
+          },
+          "id": 42,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": true,
+                "displayName": "Index Size"
+              }
+            ]
+          },
+          "pluginVersion": "10.2.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "expr": "pgvector_index_stats_index_size_bytes{instance=~\"$instance\"}",
+              "format": "table",
+              "instant": true,
+              "refId": "A"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "instance": true,
+                  "job": true,
+                  "service": true,
+                  "index_size_pretty": true
+                },
+                "indexByName": {},
+                "renameByName": {
+                  "index_name": "Index",
+                  "table_name": "Table",
+                  "index_type": "Type",
+                  "Value #A": "Index Size"
+                }
+              }
+            }
+          ],
+          "title": "pgvector Index Sizes",
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 48
+          },
+          "id": 43,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "expr": "rate(pgvector_index_stats_idx_scan{instance=~\"$instance\"}[5m])",
+              "legendFormat": "{{index_name}}",
+              "refId": "A"
+            }
+          ],
+          "title": "pgvector Index Scans/s",
+          "type": "timeseries"
+        }
+      ],
       "title": "pgvector Monitoring",
       "type": "row"
     },
@@ -1642,7 +1835,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pg_database_size_bytes{datname=\"immich\"}",
+          "expr": "pg_database_size_bytes{instance=~\"$instance\", datname!~\"template.*\"}",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -1652,7 +1845,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "rate(pg_stat_database_tup_inserted{datname=\"immich\"}[5m])",
+          "expr": "rate(pg_stat_database_tup_inserted{instance=~\"$instance\", datname!~\"template.*\"}[5m])",
           "format": "table",
           "instant": true,
           "refId": "B"
@@ -1798,7 +1991,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "rate(pg_stat_database_tup_fetched{datname=\"immich\"}[5m])",
+          "expr": "rate(pg_stat_database_tup_fetched{instance=~\"$instance\", datname!~\"template.*\"}[5m])",
           "legendFormat": "{{datname}} - Tuples Fetched",
           "refId": "A"
         },
@@ -1807,7 +2000,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "rate(pg_stat_database_tup_returned{datname=\"immich\"}[5m])",
+          "expr": "rate(pg_stat_database_tup_returned{instance=~\"$instance\", datname!~\"template.*\"}[5m])",
           "legendFormat": "{{datname}} - Tuples Returned",
           "refId": "B"
         }
@@ -1898,7 +2091,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pg_database_size_bytes{datname!~\"template.*|postgres\"}",
+          "expr": "pg_database_size_bytes{instance=~\"$instance\", datname!~\"template.*|postgres\"}",
           "legendFormat": "{{datname}}",
           "refId": "A"
         }
@@ -2029,7 +2222,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "rate(pg_stat_database_tup_deleted{datname!~\"template.*\"}[5m])",
+          "expr": "rate(pg_stat_database_tup_deleted{instance=~\"$instance\", datname!~\"template.*\"}[5m])",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -2039,7 +2232,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "pg_database_size_bytes{datname!~\"template.*\"}",
+          "expr": "pg_database_size_bytes{instance=~\"$instance\", datname!~\"template.*\"}",
           "format": "table",
           "instant": true,
           "refId": "B"
@@ -2049,7 +2242,7 @@
             "type": "prometheus",
             "uid": "Prometheus"
           },
-          "expr": "rate(pg_stat_database_tup_updated{datname!~\"template.*\"}[5m])",
+          "expr": "rate(pg_stat_database_tup_updated{instance=~\"$instance\", datname!~\"template.*\"}[5m])",
           "format": "table",
           "instant": true,
           "refId": "C"
@@ -2093,7 +2286,31 @@
     "performance"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(pg_up{service=\"postgresql\"}, instance)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Instance",
+        "multi": false,
+        "name": "instance",
+        "options": [],
+        "query": {
+          "query": "label_values(pg_up{service=\"postgresql\"}, instance)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
   },
   "time": {
     "from": "now-1h",

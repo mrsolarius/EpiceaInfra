@@ -1,6 +1,6 @@
 services:
   nextcloud-db:
-    image: postgres:{{ docker_versions.postgres_nextcloud | default('16-alpine') }}
+    image: postgres:16-alpine
     container_name: nextcloud_db
     restart: always
     deploy:
@@ -15,22 +15,26 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
     volumes:
-      - ${DATA_PATH}/nextcloud/db:/var/lib/postgresql/data
-      - ./init-nextcloud-db.sql:/docker-entrypoint-initdb.d/init.sql
+      - ${DATA_PATH}/nextcloud-db:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - default
+      - proxy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 10s
 
   nextcloud:
-    image: nextcloud:{{ docker_versions.nextcloud }}
+    image: nextcloud:{{ docker_versions.nextcloud | default('32.0.5') }}
     container_name: nextcloud
     restart: always
+    depends_on:
+      nextcloud-db:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -40,9 +44,19 @@ services:
           cpus: '0.2'
           memory: 512M
     env_file: .env
-    depends_on:
-      nextcloud-db:
-        condition: service_healthy
+    environment:
+      - POSTGRES_HOST=nextcloud-db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_HOST_PASSWORD=${REDIS_HOST_PASSWORD}
+      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
+      - NEXTCLOUD_DATA_DIR=${NEXTCLOUD_DATA_DIR}
+      - OVERWRITECLIURL=https://${NEXTCLOUD_TRUSTED_DOMAINS}
+      - OVERWRITEPROTOCOL=https
     volumes:
       - ${DATA_PATH}/nextcloud:/var/www/html
       - /mnt/cloud:/var/www/html/data

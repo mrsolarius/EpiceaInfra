@@ -1,0 +1,33 @@
+-- PostgreSQL initialization script for Nextcloud
+-- Standard initialization is handled by environment variables, 
+-- but we can add specific setup here if needed.
+
+-- Enable required extensions for monitoring
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+-- Create user if not exists (redundant with POSTGRES_USER but safer)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '{{ nextcloud_db_user }}') THEN
+        CREATE USER {{ nextcloud_db_user }} WITH PASSWORD '{{ nextcloud_db_password }}';
+    END IF;
+END
+$$;
+
+-- Ensure the user has the correct password
+ALTER USER {{ nextcloud_db_user }} WITH PASSWORD '{{ nextcloud_db_password }}';
+
+-- Ensure the database exists (it should be created by POSTGRES_DB env var, but for safety)
+-- We can't use CREATE DATABASE inside a transaction block/DO block easily, 
+-- but Nextcloud container usually handles this if POSTGRES_DB is set.
+
+-- Ensure the schema public is owned by the user
+-- This is often useful for Nextcloud migrations or setup
+ALTER SCHEMA public OWNER TO {{ nextcloud_db_user }};
+
+-- Grant all privileges on database to the user
+GRANT ALL PRIVILEGES ON DATABASE {{ nextcloud_db_database }} TO {{ nextcloud_db_user }};
+
+-- Grant necessary permissions for monitoring
+-- The exporter connects as the nextcloud user
+GRANT pg_monitor TO {{ nextcloud_db_user }};

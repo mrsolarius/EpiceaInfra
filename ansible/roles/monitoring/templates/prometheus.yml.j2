@@ -46,12 +46,12 @@ scrape_configs:
           role: 'reverse-proxy'
 
   # ========================================
-  # Node Exporter (optionnel, si installé)
+  # Node Exporter (Hôte Bare-metal)
   # ========================================
 {% if prometheus_node_exporter_enabled | default(false) %}
   - job_name: 'node-exporter'
     static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ['172.17.0.1:9100'] # IP Gateway Docker pour atteindre l'hôte
         labels:
           service: 'node-exporter'
           environment: '{{ deploy_environment }}'
@@ -67,17 +67,36 @@ scrape_configs:
         labels:
           service: 'cadvisor'
           environment: '{{ deploy_environment }}'
+    metric_relabel_configs:
+      - source_labels: [container_label_com_docker_compose_service]
+        target_label: name
+        regex: (.+)
+        replacement: $1
+      - source_labels: [container_label_com_docker_compose_project]
+        target_label: project
+        regex: (.+)
+        replacement: $1
 
   # ========================================
-  # PostgreSQL Exporter
+  # PostgreSQL Exporters
   # ========================================
-  - job_name: 'postgres'
+  - job_name: 'postgres-nextcloud'
     static_configs:
-      - targets: ['postgres-exporter:9187']
+      - targets: ['nextcloud-postgres-exporter:9187']
         labels:
           service: 'postgresql'
           environment: '{{ deploy_environment }}'
-          instance: 'postgres-main'
+          instance: 'nextcloud'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  - job_name: 'postgres-immich'
+    static_configs:
+      - targets: ['immich-postgres-exporter:9187']
+        labels:
+          service: 'postgresql'
+          environment: '{{ deploy_environment }}'
+          instance: 'immich'
     scrape_interval: 30s
     scrape_timeout: 10s
 

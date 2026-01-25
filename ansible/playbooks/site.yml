@@ -42,10 +42,10 @@
       tags: [monitoring, services]
       when: "'monitoring' in enabled_services"
 
-    # Services partagés (BDD, Cache)
+    # Services partagés (Redis)
     - role: database
       tags: [database, services]
-      when: "'shared-services' in enabled_services"
+      when: "'redis' in enabled_services or 'shared-services' in enabled_services"
 
     # Applications
     - role: nextcloud
@@ -68,7 +68,8 @@
         - traefik
         - prometheus
         - grafana
-        - postgres
+        - nextcloud_db
+        - immich_postgres
         - redis
         - nextcloud
         - immich_server

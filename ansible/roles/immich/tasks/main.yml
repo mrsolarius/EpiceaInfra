@@ -1,5 +1,5 @@
 ---
-- name: Créer les répertoires de données
+- name: Créer les répertoires de données Immich
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -9,12 +9,20 @@
   loop:
     - "{{ data_path }}/immich/upload"
     - "{{ data_path }}/immich/model-cache"
-    - "{{ data_path }}/immich/db"
     - "{{ docker_compose_path }}/immich"
 
-- name: Copier le script d'initialisation PostgreSQL
-  ansible.builtin.copy:
-    src: ../../../docker/app/immich/init-immich-db.sql
+- name: Créer le répertoire de données PostgreSQL Immich
+  ansible.builtin.file:
+    path: "{{ data_path }}/immich/postgres"
+    state: directory
+    mode: '0700'
+    owner: "999" # postgres
+    group: "999"
+    recurse: yes
+
+- name: Générer le script d'initialisation PostgreSQL
+  ansible.builtin.template:
+    src: init-db.sql.j2
     dest: "{{ docker_compose_path }}/immich/init-immich-db.sql"
     mode: '0644'
 
