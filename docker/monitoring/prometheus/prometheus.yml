@@ -33,6 +33,14 @@ scrape_configs:
         labels:
           service: 'cadvisor'
     metric_relabel_configs:
+      - source_labels: [container_label_com_docker_compose_service]
+        target_label: name
+        regex: (.+)
+        replacement: $1
+      - source_labels: [container_label_com_docker_compose_project]
+        target_label: project
+        regex: (.+)
+        replacement: $1
       # Keep only useful cAdvisor metrics to reduce storage
       - source_labels: [__name__]
         regex: 'container_(cpu|memory|network|fs).*'

@@ -24,7 +24,7 @@ service_domains:
   pgadmin: "db.{{ base_domain }}"
 
 # Configuration NFS (Storage VM)
-nfs_server: "172.30.54.51" # IP_STORAGE_TEST
+nfs_server: "172.21.244.120" # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "/mnt/media"
@@ -77,6 +77,7 @@ grafana_admin_password: "admin"  # À changer en production !
 grafana_root_url: "https://monitoring.epicea-test.local"
 grafana_plugins: ""  # Plugins Grafana à installer (séparés par ,)
 grafana_middlewares: ""  # Middlewares Traefik optionnels
+prometheus_node_exporter_enabled: true
 
 # Backup
 backup_enabled: false  # Pas de backups automatiques en test

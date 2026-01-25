@@ -28,15 +28,26 @@
       - ufw
       - fail2ban
       - nfs-common
+      - prometheus-node-exporter
+      - smartmontools
     state: present
+
+- name: Configuration du service Node Exporter
+  ansible.builtin.systemd:
+    name: prometheus-node-exporter
+    state: started
+    enabled: true
 
 - name: Configuration du timezone
   community.general.timezone:
     name: "{{ timezone }}"
 
+# Les collections sont normalement gérées via ansible/requirements.yml
+# On peut laisser cette tâche avec ignore_errors si on veut être sûr sur l'hôte de contrôle
+# mais l'erreur 500 de Galaxy bloque le déploiement.
 - name: Installation des collections Ansible
   ansible.builtin.command:
-    cmd: ansible-galaxy collection install {{ item }} --force
+    cmd: ansible-galaxy collection install {{ item }}
   loop:
     - community.general
     - community.docker
@@ -45,6 +56,7 @@
   become: false
   delegate_to: localhost
   run_once: true
+  ignore_errors: true
 
 - name: Configuration UFW - règles de base
   community.general.ufw:
@@ -57,7 +69,18 @@
     - { rule: 'allow', port: '80', comment: 'HTTP' }
     - { rule: 'allow', port: '443', comment: 'HTTPS' }
 
-- name: Configuration UFW - bloquer accès externe PostgreSQL et Redis
+- name: Configuration UFW - autoriser Node Exporter depuis le réseau local et Docker
+  community.general.ufw:
+    rule: allow
+    port: '9100'
+    proto: tcp
+    from_ip: "{{ item }}"
+    comment: 'Allow Node Exporter'
+  loop:
+    - '192.168.1.0/24'
+    - '172.16.0.0/12'
+
+- name: Configuration UFW - bloquer accès externe PostgreSQL, Redis et Node Exporter
   community.general.ufw:
     rule: deny
     port: "{{ item.port }}"
@@ -66,6 +89,7 @@
   loop:
     - { port: '5432', comment: 'Block external PostgreSQL' }
     - { port: '6379', comment: 'Block external Redis' }
+    - { port: '9100', comment: 'Block external Node Exporter' }
 
 - name: Configuration UFW - règles additionnelles (production)
   community.general.ufw:

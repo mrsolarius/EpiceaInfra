@@ -15,7 +15,7 @@ groups:
 
       # High number of connections
       - alert: PostgreSQLTooManyConnections
-        expr: pg_stat_database_numbackends{datname!~"template.*"} / on(instance) pg_settings_max_connections * 100 > 80
+        expr: pg_stat_database_numbackends{datname!~"template.*"} / on(instance) group_left() pg_settings_max_connections * 100 > 80
         for: 5m
         labels:
           severity: warning

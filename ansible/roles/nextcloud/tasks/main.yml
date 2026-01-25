@@ -11,7 +11,7 @@
 
 - name: Créer les répertoires de données PostgreSQL Nextcloud
   ansible.builtin.file:
-    path: "{{ data_path }}/nextcloud/postgres"
+    path: "{{ data_path }}/nextcloud-db"
     state: directory
     mode: '0700'
     owner: "999" # postgres
@@ -48,23 +48,16 @@
   ansible.builtin.pause:
     seconds: 10
 
-- name: Appliquer la configuration de la base de données via occ
+- name: Vérifier si Nextcloud est déjà configuré
   community.docker.docker_container_exec:
     container: nextcloud
-    command: >
-      php occ config:system:set dbuser --value="{{ postgres_databases.nextcloud.user }}"
-  register: occ_dbuser
+    command: php occ status
+  register: occ_status
+  until: occ_status is not failed
+  retries: 5
+  delay: 5
   failed_when: false
-  changed_when: "'system configuration value dbuser set' in occ_dbuser.stdout"
-
-- name: Appliquer le mot de passe de la base de données via occ
-  community.docker.docker_container_exec:
-    container: nextcloud
-    command: >
-      php occ config:system:set dbpassword --value="{{ postgres_databases.nextcloud.password }}"
-  register: occ_dbpass
-  failed_when: false
-  changed_when: "'system configuration value dbpassword set' in occ_dbpass.stdout"
+  changed_when: false
 
 - name: S'assurer que le host de la base de données est correct via occ
   community.docker.docker_container_exec:
@@ -72,5 +65,109 @@
     command: >
       php occ config:system:set dbhost --value="nextcloud-db:5432"
   register: occ_dbhost
+  until: occ_dbhost is not failed
+  retries: 5
+  delay: 5
   failed_when: false
-  changed_when: "'system configuration value dbhost set' in occ_dbhost.stdout"
+  changed_when: "occ_dbhost.stdout is defined and 'system configuration value dbhost set' in occ_dbhost.stdout"
+  when: occ_status is defined and occ_status.rc is defined and occ_status.rc == 0
+
+- name: S'assurer que le type de la base de données est pgsql via occ
+  community.docker.docker_container_exec:
+    container: nextcloud
+    command: >
+      php occ config:system:set dbtype --value="pgsql"
+  register: occ_dbtype
+  until: occ_dbtype is not failed
+  retries: 5
+  delay: 5
+  failed_when: false
+  changed_when: "occ_dbtype.stdout is defined and 'system configuration value dbtype set' in occ_dbtype.stdout"
+  when: occ_status is defined and occ_status.rc is defined and occ_status.rc == 0
+
+- name: Configurer l'URL de base et le protocole via occ
+  community.docker.docker_container_exec:
+    container: nextcloud
+    command: >
+      php occ config:system:set {{ item.key }} --value="{{ item.value }}"
+  loop:
+    - { key: "overwrite.cli.url", value: "https://{{ service_domains.nextcloud }}" }
+    - { key: "overwriteprotocol", value: "https" }
+  register: occ_overwrite
+  until: occ_overwrite is not failed
+  retries: 5
+  delay: 5
+  failed_when: false
+  changed_when: "occ_overwrite.stdout is defined and 'system configuration value' in occ_overwrite.stdout"
+  when: occ_status is defined and occ_status.rc is defined and occ_status.rc == 0
+
+- name: Appliquer la configuration Redis via occ
+  community.docker.docker_container_exec:
+    container: nextcloud
+    command: >
+      php occ config:system:set redis host --value="redis"
+  register: occ_redis_host
+  until: occ_redis_host is not failed
+  retries: 5
+  delay: 5
+  failed_when: false
+  changed_when: "occ_redis_host.stdout is defined and 'system configuration value redis host set' in occ_redis_host.stdout"
+  when: occ_status is defined and occ_status.rc is defined and occ_status.rc == 0
+
+- name: Activer le verrouillage de fichiers via Redis
+  community.docker.docker_container_exec:
+    container: nextcloud
+    command: >
+      php occ config:system:set filelocking.enabled --value=true --type=boolean
+  register: occ_filelocking
+  until: occ_filelocking is not failed
+  retries: 5
+  delay: 5
+  failed_when: false
+  changed_when: "occ_filelocking.stdout is defined and 'system configuration value filelocking.enabled set' in occ_filelocking.stdout"
+  when: occ_status is defined and occ_status.rc is defined and occ_status.rc == 0
+
+- name: Activer le cache distribué via Redis
+  community.docker.docker_container_exec:
+    container: nextcloud
+    command: >
+      php occ config:system:set memcache.distributed --value="\OC\Memcache\Redis"
+  register: occ_memcache_dist
+  until: occ_memcache_dist is not failed
+  retries: 5
+  delay: 5
+  failed_when: false
+  changed_when: "occ_memcache_dist.stdout is defined and 'system configuration value memcache.distributed set' in occ_memcache_dist.stdout"
+  when: occ_status is defined and occ_status.rc is defined and occ_status.rc == 0
+
+- name: Activer le cache local via Redis
+  community.docker.docker_container_exec:
+    container: nextcloud
+    command: >
+      php occ config:system:set memcache.locking --value="\OC\Memcache\Redis"
+  register: occ_memcache_lock
+  until: occ_memcache_lock is not failed
+  retries: 5
+  delay: 5
+  failed_when: false
+  changed_when: "occ_memcache_lock.stdout is defined and 'system configuration value memcache.locking set' in occ_memcache_lock.stdout"
+  when: occ_status is defined and occ_status.rc is defined and occ_status.rc == 0
+
+- name: Désactiver l'envoi de l'en-tête X-Frame-Options par Nextcloud (Traefik s'en charge)
+  community.docker.docker_container_exec:
+    container: nextcloud
+    command: php occ config:system:set xframe_options_action --value="SAMEORIGIN"
+  failed_when: false
+  when: occ_status is defined and occ_status.rc is defined and occ_status.rc == 0
+
+- name: Mettre à jour la base de données (upgrade)
+  community.docker.docker_container_exec:
+    container: nextcloud
+    command: php occ upgrade
+  register: occ_upgrade
+  until: occ_upgrade is not failed
+  retries: 5
+  delay: 5
+  failed_when: false
+  changed_when: "occ_upgrade.stdout is defined and 'Nextcloud is already latest version' not in occ_upgrade.stdout"
+  when: occ_status is defined and occ_status.rc is defined and occ_status.rc == 0

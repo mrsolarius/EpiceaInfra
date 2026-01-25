@@ -1,4 +1,4 @@
-.PHONY: help test-init test-deploy test-status multipass-setup multipass-destroy
+.PHONY: help test-init test-deploy test-status vm-up vm-down
 
 # ========================================
 # Makefile Epicea Infrastructure
@@ -19,8 +19,8 @@ help:
 	@echo "========================================"
 	@echo ""
 	@echo "Tests Multipass :"
-	@echo "  make multipass-setup    # Créer les VMs de test"
-	@echo "  make multipass-destroy  # Détruire les VMs"
+	@echo "  make vm-up              # Créer les VMs de test"
+	@echo "  make vm-down            # Détruire les VMs"
 	@echo "  make test-init          # Initialiser secrets test"
 	@echo "  make test-deploy        # Déployer sur VM test"
 	@echo "  make test-status        # Status services test"
@@ -32,13 +32,13 @@ help:
 	@echo ""
 
 # ========================================
-# MULTIPASS (tests)
+# VMS (tests)
 # ========================================
-multipass-setup:
+vm-up:
 	@echo "🚀 Création des VMs Multipass..."
 	bash ./scripts/multipass/setup-vms.sh
 
-multipass-destroy:
+vm-down:
 	@echo "🗑️  Destruction des VMs Multipass..."
 	bash ./scripts/multipass/destroy-vms.sh
 

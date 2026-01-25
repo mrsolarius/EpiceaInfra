@@ -641,8 +641,8 @@ ansible-playbook --ask-vault-pass playbooks/site.yml
 make help
 
 # === TESTS MULTIPASS ===
-make multipass-setup     # Créer les VMs de test
-make multipass-destroy   # Détruire les VMs
+make vm-up              # Créer les VMs de test
+make vm-down            # Détruire les VMs
 make test-init           # Initialiser secrets test (copie vault.yml.example)
 make test-deploy         # Déployer sur VM test
 make test-status         # Afficher status des containers
@@ -789,7 +789,7 @@ git clone https://github.com/user/EpiceaInfra.git
 4. **Déployer**
 ```shell script
 # Test
-   make multipass-setup
+   make vm-up
    make test-deploy
    
    # Production

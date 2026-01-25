@@ -128,7 +128,7 @@ Voici les étapes pour développer et tester des changements sur l'infrastructur
 
 1.  **Initialiser l'environnement de test** : Une seule fois, lancez la commande suivante pour créer les machines virtuelles locales.
     ```bash
-    make multipass-setup
+    make vm-up
     ```
 
 2.  **Développer et Tester** : Après avoir modifié le code Ansible, appliquez vos changements sur l'environnement de test avec :
@@ -151,8 +151,8 @@ Le `Makefile` est le point d'entrée unique pour toutes les opérations.
 | Commande                | Description                                                                                             |
 | ----------------------- | ------------------------------------------------------------------------------------------------------- |
 | **Tests (Multipass)**   |                                                                                                         |
-| `make multipass-setup`  | Crée les machines virtuelles de test via le script `scripts/multipass/setup-vms.sh`.                    |
-| `make multipass-destroy`| Détruit les machines virtuelles de test.                                                                |
+| `make vm-up`      | Crée les machines virtuelles de test via le script `scripts/multipass/setup-vms.sh`.                    |
+| `make vm-down`    | Détruit les machines virtuelles de test.                                                                |
 | `make test-init`        | Crée un fichier `vault.yml` non chiffré pour les tests, s'il n'existe pas.                              |
 | `make test-deploy`      | Déploie la configuration Ansible sur l'environnement de test.                                           |
 | `make test-status`      | Affiche le statut des conteneurs Docker sur l'environnement de test.                                    |

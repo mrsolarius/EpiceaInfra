@@ -139,6 +139,15 @@
     group: root
   notify: restart monitoring
 
+- name: Déployer dashboard Bare Metal & NFS pour Grafana
+  ansible.builtin.copy:
+    src: node-exporter-dashboard.json
+    dest: "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards/node-exporter.json"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart monitoring
+
 - name: Générer fichier .env Monitoring
   ansible.builtin.template:
     src: env.j2
