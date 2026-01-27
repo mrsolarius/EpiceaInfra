@@ -40,9 +40,15 @@ EpiceaInfra/
 │   ├── bootstrap.sh            # Bootstrap initial
 │   ├── test-traefik.sh         # Tests Traefik
 │   └── multipass/              # Environnement de test local
-├── docs/                       # Documentation (vide - ce fichier)
+│       ├── setup-vms.sh        # Création des VMs
+│       ├── destroy-vms.sh      # Destruction des VMs
+│       ├── init-epicea-vm.sh   # Init VM applicative
+│       └── init-storage-vm.sh  # Init VM stockage
+├── .gitignore                  # Fichiers ignorés par Git
+├── LICENSE                     # Licence AGPL-3.0
 ├── Makefile                    # Point d'entrée principal
-└── Infra.md                    # Description infrastructure
+└── README.md                   # Présentation du projet
+
 ```
 
 
@@ -54,14 +60,14 @@ EpiceaInfra/
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              INTERNET                                        │
+│                              INTERNET                                       │
 └────────────────────────────────┬────────────────────────────────────────────┘
                                  │ :80/:443
                                  ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         TRAEFIK v3.6.6                                       │
-│              (Reverse Proxy + Let's Encrypt + Middlewares)                   │
-│                                                                              │
+│                         TRAEFIK v3.6.6                                      │
+│              (Reverse Proxy + Let's Encrypt + Middlewares)                  │
+│                                                                             │
 │   ┌──────────────┬──────────────┬──────────────┬──────────────┐             │
 │   │ HTTP (:80)   │ HTTPS (:443) │ API (:8080)  │ Metrics      │             │
 │   │ → redirect   │ → services   │ → dashboard  │ → Prometheus │             │
@@ -90,17 +96,17 @@ EpiceaInfra/
 └───────────────┘       └───────────────┘       └───────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         MONITORING STACK                                     │
-│                                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
-│  │ PROMETHEUS   │  │ ALERTMANAGER │  │   GRAFANA    │  │    LOKI      │    │
-│  │ :9090        │  │ :9093        │  │   :3000      │  │    :3100     │    │
-│  └──────┬───────┘  └──────────────┘  └──────────────┘  └──────┬───────┘    │
-│         │                                                      │            │
-│  ┌──────┴───────┐  ┌──────────────┐  ┌──────────────┐  ┌──────┴───────┐    │
-│  │   cADVISOR   │  │POSTGRES-EXP. │  │ REDIS-EXP.   │  │  PROMTAIL    │    │
-│  │   :8080      │  │   :9187      │  │   :9121      │  │              │    │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘    │
+│                         MONITORING STACK                                    │
+│                                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │ PROMETHEUS   │  │ ALERTMANAGER │  │   GRAFANA    │  │    LOKI      │     │
+│  │ :9090        │  │ :9093        │  │   :3000      │  │    :3100     │     │
+│  └──────┬───────┘  └──────────────┘  └──────────────┘  └──────┬───────┘     │
+│         │                                                     │             │
+│  ┌──────┴───────┐  ┌──────────────┐  ┌──────────────┐  ┌──────┴───────┐     │
+│  │   cADVISOR   │  │POSTGRES-EXP. │  │ REDIS-EXP.   │  │  PROMTAIL    │     │
+│  │   :8080      │  │   :9187      │  │   :9121      │  │              │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘     │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -124,18 +130,21 @@ Pour éviter l'exposition directe de `/var/run/docker.sock` aux conteneurs expos
 **Fichiers :**
 - `tasks/main.yml` - Tâches principales
 - `handlers/main.yml` - Handler reboot système
+- `requirements.yml` - Collections Ansible requises
 
 **Fonctionnalités :**
 
 | Fonction | Description |
 |----------|-------------|
 | Mise à jour système | `apt upgrade dist` avec cache |
-| Paquets de base | curl, wget, git, vim, htop, ncdu, tree, jq, unzip, ufw, fail2ban, nfs-common |
+| Paquets de base | curl, wget, git, vim, htop, ncdu, tree, jq, unzip, ca-certificates, gnupg, lsb-release, ufw, fail2ban, nfs-common, prometheus-node-exporter, smartmontools |
 | Timezone | Configurable via `timezone` (défaut: Europe/Paris) |
-| UFW Firewall | SSH (22), HTTP (80), HTTPS (443) autorisés ; PostgreSQL (5432) et Redis (6379) bloqués en externe |
+| Node Exporter | Activé et exposé sur le port 9100 (accès LAN uniquement) |
+| UFW Firewall | SSH (22), HTTP (80), HTTPS (443) autorisés ; PostgreSQL (5432), Redis (6379) et Node Exporter (9100) bloqués en externe |
 | Fail2ban | Protection brute-force activée |
 | DNS local | Entrées `/etc/hosts` pour domaines `.local` (test uniquement) |
 | NVIDIA Drivers | Installation conditionnelle (production + GPU) |
+| Collections Ansible | Installation de `community.general`, `community.docker`, `ansible.posix` |
 
 **Variables :**
 ```yaml
@@ -265,23 +274,13 @@ traefik_network_name: "traefik-proxy"
 
 ---
 
-### 5. `database` - PostgreSQL + Redis
+### 5. `database` - Redis Mutualisé
 
 **Fichiers :**
-- `tasks/main.yml` - Déploiement des BDD
-- `templates/init.sql.j2` - Script d'initialisation PostgreSQL
-- `templates/postgres.env.j2` - Variables PostgreSQL
+- `tasks/main.yml` - Déploiement de Redis Stack
 - `templates/redis.env.j2` - Variables Redis
 
-**PostgreSQL :**
-
-| Caractéristique | Valeur |
-|-----------------|--------|
-| Image | `tensorchord/pgvecto-rs:pg16-v0.4.0` |
-| Extensions | pg_stat_statements, cube, earthdistance, vectors (pgvector) |
-| Port | 5432 (localhost uniquement) |
-| Bases créées | nextcloud, immich |
-| Monitoring | track_io_timing, track_activities, log_autovacuum |
+**Note importante :** Les instances PostgreSQL sont désormais gérées directement par les rôles applicatifs (`immich`, `nextcloud`) pour une meilleure isolation et compatibilité (ex: extensions spécifiques comme VectorChord).
 
 **Redis :**
 
@@ -291,20 +290,7 @@ traefik_network_name: "traefik-proxy"
 | Port | 6379 (localhost uniquement) |
 | Persistence | RDB + AOF |
 | Config | slowlog, latency-monitor, maxmemory-policy allkeys-lru |
-
-**Script init.sql :**
-```sql
--- Création utilisateurs et bases
-CREATE USER nextcloud WITH PASSWORD '...';
-CREATE DATABASE nextcloud OWNER nextcloud;
-
-CREATE USER immich WITH PASSWORD '...';
-CREATE DATABASE immich OWNER immich;
-
--- Extensions Immich
-\c immich
-ALTER SCHEMA public OWNER TO immich;
-```
+| Rôle | Cache et Sessions mutualisés |
 
 
 ---
@@ -327,8 +313,10 @@ ALTER SCHEMA public OWNER TO immich;
 | Grafana | `grafana/grafana:12.3.1` | 3000 | Visualisation |
 | Loki | `grafana/loki:3.3.2` | 3100 | Logs |
 | Promtail | `grafana/promtail:3.3.2` | - | Collecte logs |
+| Node Exporter | `apt:prometheus-node-exporter` | 9100 | Métriques Host |
 | cAdvisor | `gcr.io/cadvisor/cadvisor:v0.55.1` | 8080 | Métriques Docker |
-| postgres-exporter | `prometheuscommunity/postgres-exporter:v0.15.0` | 9187 | Métriques PostgreSQL |
+| postgres-nextcloud-exporter | `prometheuscommunity/postgres-exporter:v0.15.0` | 9187 | Métriques PostgreSQL (Nextcloud) |
+| postgres-immich-exporter | `prometheuscommunity/postgres-exporter:v0.15.0` | 9187 | Métriques PostgreSQL (Immich) |
 | redis-exporter | `oliver006/redis_exporter:v1.55.0` | 9121 | Métriques Redis |
 
 **Dashboards Grafana pré-configurés :**
@@ -336,6 +324,7 @@ ALTER SCHEMA public OWNER TO immich;
 2. **Docker Dashboard** - Containers (CPU, RAM, réseau)
 3. **PostgreSQL Performance** - Queries, locks, cache, I/O, pgvector
 4. **Redis Performance** - Cache hit rate, mémoire, latence
+5. **Node Exporter Full** - Monitoring hardware, CPU, RAM, Disk, Network, NFS
 
 ## 📊 Règles d'Alerting Complètes
 
@@ -343,7 +332,7 @@ ALTER SCHEMA public OWNER TO immich;
 
 | Alerte | Sévérité | Expression | Durée | Description |
 |--------|----------|------------|-------|-------------|
-| **PostgreSQLDown** | 🔴 critical | `pg_up == 0` | 1m | Instance PostgreSQL indisponible depuis plus d'une minute |
+| **PostgreSQLDown** | 🔴 critical | `pg_up{service="postgresql"} == 0` | 5m | Instance PostgreSQL indisponible depuis plus de 5 minutes |
 | **PostgreSQLTooManyConnections** | 🟡 warning | Connexions > 80% max | 5m | Utilisation excessive des connexions disponibles |
 | **PostgreSQLLowCacheHitRatio** | 🟡 warning | Cache hit < 90% | 10m | Taux de cache insuffisant - envisager augmenter `shared_buffers` |
 | **PostgreSQLDeadlocks** | 🟡 warning | `rate(deadlocks) > 0` | 5m | Deadlocks détectés dans la base de données |
@@ -353,7 +342,7 @@ ALTER SCHEMA public OWNER TO immich;
 | **PostgreSQLExcessiveTempFiles** | 🟡 warning | Temp files > 100MB/s | 10m | Écriture excessive dans fichiers temporaires - optimiser `work_mem` |
 | **PostgreSQLTableBloat** | 🟡 warning | Dead tuples > 20% | 1h | Table gonflée avec trop de tuples morts - lancer VACUUM |
 | **PostgreSQLReplicationLag** | 🟡 warning | Lag > 30s | 5m | Retard de réplication détecté |
-| **PostgreSQLVectorTableSeqScans** | 🔵 info | Seq scans > Index scans | 15m | Tables vectorielles avec trop de scans séquentiels - créer index HNSW/IVFFlat |
+| **PostgreSQLVectorTableSeqScans** | 🔵 info | Seq scans > Index scans | 15m | Tables vectorielles avec trop de scans séquentiels (HNSW/IVFFlat) |
 | **PostgreSQLVectorIndexUnused** | 🔵 info | Index > 10MB, scans < 10 | 1h | Grand index vectoriel inutilisé |
 | **PostgreSQLHighLockWaitCount** | 🟡 warning | Locks waiting > 10 | 5m | Nombre élevé de verrous en attente |
 
@@ -363,10 +352,10 @@ ALTER SCHEMA public OWNER TO immich;
 
 | Alerte | Sévérité | Expression | Durée | Description |
 |--------|----------|------------|-------|-------------|
-| **RedisDown** | 🔴 critical | `redis_up == 0` | 1m | Instance Redis indisponible depuis plus d'une minute |
+| **RedisDown** | 🔴 critical | `redis_up{job="redis"} == 0` | 1m | Instance Redis indisponible depuis plus d'une minute |
 | **RedisLowCacheHitRate** | 🟡 warning | Hit rate < 80% | 10m | Taux de cache insuffisant - vérifier patterns d'utilisation |
 | **RedisHighMemoryUsage** | 🟡 warning | Mémoire > 90% max | 5m | Mémoire presque pleine - risque d'éviction de clés |
-| **RedisHighMemoryFragmentation** | 🟡 warning | Fragmentation > 2 | 10m | Fragmentation mémoire élevée - envisager restart ou défragmentation |
+| **RedisHighMemoryFragmentation** | 🟡 warning | Fragmentation > 2 | 10m | Fragmentation mémoire élevée (ratio > 2) |
 | **RedisLowMemoryFragmentation** | 🔵 info | Fragmentation < 0.7 | 10m | Fragmentation faible - possible swap sur disque |
 | **RedisKeysEvicted** | 🟡 warning | Éviction > 100/s | 5m | Clés évincées - augmenter `maxmemory` ou revoir TTL |
 | **RedisTooManyConnectedClients** | 🟡 warning | Clients > 100 | 5m | Trop de clients connectés - vérifier fuites de connexion |
@@ -445,19 +434,25 @@ route:
 **Fichiers :**
 - `tasks/main.yml` - Déploiement Immich
 - `templates/.env.j2` - Variables d'environnement
+- `templates/init-db.sql.j2` - Initialisation BDD dédiée
 
 **Composants :**
 
 | Service | Image | Description |
 |---------|-------|-------------|
-| immich-server | `ghcr.io/immich-app/immich-server:v2.4.1` | API + Web |
+| immich-server | `ghcr.io/immich-app/immich-server:v2.4.1-ig441` | API + Web |
 | immich-machine-learning | `ghcr.io/immich-app/immich-machine-learning:v1.130.2` | ML/IA |
-| immich-postgres | `ghcr.io/immich-app/postgres:16-vectorchord0.3.0-pgvectors0.3.0` | BDD dédiée avec VectorChord |
+| immich-postgres | `ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0` | BDD dédiée avec VectorChord |
 
 **Volumes :**
 - `/mnt/photos` → `/usr/src/app/upload` (photos)
 - `${DATA_PATH}/immich/model-cache` → `/cache` (modèles ML)
 - `${DATA_PATH}/immich/postgres` → données PostgreSQL
+
+**Particularités :**
+- **BDD Dédiée** : Utilise une image PostgreSQL optimisée par Immich avec support VectorChord et pgvector.
+- **Monitoring** : Un exporteur PostgreSQL dédié (`immich-postgres-exporter`) est déployé par le rôle monitoring pour surveiller cette instance.
+- **Réseau** : Connecté au réseau `proxy` pour Traefik et `default` pour la communication interne.
 
 **Labels Traefik :**
 - Routes HTTP/HTTPS sur `photos.${base_domain}`
@@ -489,6 +484,7 @@ route:
 **Fichiers :**
 - `tasks/main.yml` - Déploiement Nextcloud
 - `templates/.env.j2` - Variables d'environnement
+- `templates/init-db.sql.j2` - Initialisation BDD dédiée
 
 **Configuration :**
 
@@ -498,8 +494,13 @@ route:
 | Port | 80 (interne) |
 | Stockage app | `${DATA_PATH}/nextcloud` |
 | Stockage data | `/mnt/cloud` |
-| BDD | PostgreSQL mutualisé |
+| BDD | PostgreSQL dédiée (`nextcloud-db`) |
 | Cache | Redis mutualisé |
+
+**Particularités :**
+- **BDD Dédiée** : Bien que mutualisée au début, Nextcloud utilise maintenant sa propre instance PostgreSQL (`nextcloud-db`) définie dans son `docker-compose.yml`.
+- **Auto-configuration** : Le rôle Ansible utilise l'utilitaire `occ` pour configurer automatiquement les domaines de confiance, Redis, et les paramètres de sécurité après le premier démarrage.
+- **Monitoring** : Un exporteur PostgreSQL dédié (`nextcloud-postgres-exporter`) surveille l'instance.
 
 **Middlewares Traefik spécifiques :**
 - Redirect CalDAV/CardDAV vers `/remote.php/dav/`
@@ -615,7 +616,7 @@ ansible-playbook --ask-vault-pass playbooks/site.yml
 | Service | Image | Version | Limite CPU | Limite RAM |
 |---------|-------|---------|------------|------------|
 | Traefik | `traefik` | v3.6.6 | 0.5 | 512M |
-| PostgreSQL | `tensorchord/pgvecto-rs` | pg16-v0.4.0 | 1.0 | 2G |
+| PostgreSQL (Apps) | `postgres` | 16-alpine | 0.5 | 512M |
 | Redis | `redis` | 8-alpine | 0.5 | 512M |
 | Prometheus | `prom/prometheus` | v3.9.1 | 1.0 | 2G |
 | Alertmanager | `prom/alertmanager` | v0.26.0 | 0.2 | 256M |
@@ -630,7 +631,7 @@ ansible-playbook --ask-vault-pass playbooks/site.yml
 | Immich PostgreSQL | `ghcr.io/immich-app/postgres` | 14-vectorchord0.4.3-pgvectors0.2.0 | 0.5 | 1G |
 | Jellyfin | `jellyfin/jellyfin` | 10.11.6 | 2.0 | 4G |
 | Nextcloud | `nextcloud` | 32.0.5 | 1.0 | 1G |
-| Socket Proxy | `docker-socket-proxy` | - | 0.1 | 64M |
+| Socket Proxy | `docker-socket-proxy` | latest | 0.1 | 64M |
 
 ---
 
@@ -641,22 +642,22 @@ ansible-playbook --ask-vault-pass playbooks/site.yml
 make help
 
 # === TESTS MULTIPASS ===
-make vm-up              # Créer les VMs de test
-make vm-down            # Détruire les VMs
-make test-init           # Initialiser secrets test (copie vault.yml.example)
-make test-deploy         # Déployer sur VM test
-make test-status         # Afficher status des containers
-make test-logs           # Suivre les logs
+make vm-up              # Créer les VMs de test (setup-vms.sh)
+make vm-down            # Détruire les VMs (destroy-vms.sh)
+make test-init          # Initialiser secrets test (copie vault.yml.example)
+make test-deploy        # Déployer sur VM test (via multipass exec)
+make test-status         # Afficher status des containers sur VM test
+make test-logs           # Suivre les logs Traefik sur VM test
 
 # === PRODUCTION ===
 make init                # Initialiser + chiffrer vault.yml
 make secrets             # Éditer le vault chiffré
 make deploy              # Déployer en production (demande vault password)
-make status              # Status des services
-make validate            # Valider syntaxe Ansible
+make status              # Status des services (docker ps local)
+make validate            # Valider syntaxe Ansible (syntax-check)
 
 # === MAINTENANCE ===
-make clean               # Purger Docker (containers, images, volumes)
+make clean               # Purger Docker (docker system prune -af)
 ```
 
 
@@ -671,8 +672,9 @@ make clean               # Purger Docker (containers, images, volumes)
 | prometheus | localhost:9090 | 15s | Self-monitoring |
 | traefik | traefik:8080 | 15s | Requêtes, latence, status |
 | cadvisor | cadvisor:8080 | 15s | CPU, RAM, réseau, I/O containers |
-| postgres | postgres-exporter:9187 | 30s | Connexions, queries, cache, locks |
-| redis | redis-exporter:9121 | 15s | Hit rate, mémoire, commandes |
+| postgres-nextcloud | nextcloud-postgres-exporter:9187 | 30s | Connexions, queries, cache, locks |
+| postgres-immich | immich-postgres-exporter:9187 | 30s | Connexions, queries, cache, locks |
+| redis | redis-exporter:9121 | 30s | Hit rate, mémoire, commandes |
 
 ### Flux d'alerting
 
@@ -818,10 +820,22 @@ docker logs <container_name>
 # Logs Traefik
 docker logs traefik -f --tail=100
 
+# Logs Applicatifs (ex: Nextcloud)
+docker logs nextcloud -f
+
 # Logs Ansible (verbose)
 ansible-playbook -vvv playbooks/site.yml
 ```
 
+### Commandes Utiles
+
+```shell script
+# Forcer la réinitialisation de Nextcloud (via occ)
+docker exec -u 33 nextcloud php occ status
+
+# Vérifier la base de données Immich
+docker exec -it immich_postgres psql -U immich
+```
 
 ### Problèmes courants
 
@@ -851,5 +865,3 @@ bash scripts/test-traefik.sh
 - [Grafana Documentation](https://grafana.com/docs/)
 
 ---
-
-*Documentation générée le 2026-01-23 pour EpiceaInfra*
