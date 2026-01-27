@@ -40,9 +40,15 @@ EpiceaInfra/
 │   ├── bootstrap.sh            # Bootstrap initial
 │   ├── test-traefik.sh         # Tests Traefik
 │   └── multipass/              # Environnement de test local
-├── docs/                       # Documentation (vide - ce fichier)
+│       ├── setup-vms.sh        # Création des VMs
+│       ├── destroy-vms.sh      # Destruction des VMs
+│       ├── init-epicea-vm.sh   # Init VM applicative
+│       └── init-storage-vm.sh  # Init VM stockage
+├── .gitignore                  # Fichiers ignorés par Git
+├── LICENSE                     # Licence AGPL-3.0
 ├── Makefile                    # Point d'entrée principal
-└── Infra.md                    # Description infrastructure
+└── README.md                   # Présentation du projet
+
 ```
 
 
@@ -130,9 +136,10 @@ Pour éviter l'exposition directe de `/var/run/docker.sock` aux conteneurs expos
 | Fonction | Description |
 |----------|-------------|
 | Mise à jour système | `apt upgrade dist` avec cache |
-| Paquets de base | curl, wget, git, vim, htop, ncdu, tree, jq, unzip, ufw, fail2ban, nfs-common |
+| Paquets de base | curl, wget, git, vim, htop, ncdu, tree, jq, unzip, ca-certificates, gnupg, lsb-release, ufw, fail2ban, nfs-common, prometheus-node-exporter, smartmontools |
 | Timezone | Configurable via `timezone` (défaut: Europe/Paris) |
-| UFW Firewall | SSH (22), HTTP (80), HTTPS (443) autorisés ; PostgreSQL (5432) et Redis (6379) bloqués en externe |
+| Node Exporter | Activé et exposé sur le port 9100 (accès LAN uniquement) |
+| UFW Firewall | SSH (22), HTTP (80), HTTPS (443) autorisés ; PostgreSQL (5432), Redis (6379) et Node Exporter (9100) bloqués en externe |
 | Fail2ban | Protection brute-force activée |
 | DNS local | Entrées `/etc/hosts` pour domaines `.local` (test uniquement) |
 | NVIDIA Drivers | Installation conditionnelle (production + GPU) |
@@ -327,6 +334,7 @@ ALTER SCHEMA public OWNER TO immich;
 | Grafana | `grafana/grafana:12.3.1` | 3000 | Visualisation |
 | Loki | `grafana/loki:3.3.2` | 3100 | Logs |
 | Promtail | `grafana/promtail:3.3.2` | - | Collecte logs |
+| Node Exporter | `apt:prometheus-node-exporter` | 9100 | Métriques Host |
 | cAdvisor | `gcr.io/cadvisor/cadvisor:v0.55.1` | 8080 | Métriques Docker |
 | postgres-exporter | `prometheuscommunity/postgres-exporter:v0.15.0` | 9187 | Métriques PostgreSQL |
 | redis-exporter | `oliver006/redis_exporter:v1.55.0` | 9121 | Métriques Redis |
@@ -336,6 +344,7 @@ ALTER SCHEMA public OWNER TO immich;
 2. **Docker Dashboard** - Containers (CPU, RAM, réseau)
 3. **PostgreSQL Performance** - Queries, locks, cache, I/O, pgvector
 4. **Redis Performance** - Cache hit rate, mémoire, latence
+5. **Node Exporter Full** - Monitoring hardware, CPU, RAM, Disk, Network, NFS
 
 ## 📊 Règles d'Alerting Complètes
 
@@ -343,7 +352,7 @@ ALTER SCHEMA public OWNER TO immich;
 
 | Alerte | Sévérité | Expression | Durée | Description |
 |--------|----------|------------|-------|-------------|
-| **PostgreSQLDown** | 🔴 critical | `pg_up == 0` | 1m | Instance PostgreSQL indisponible depuis plus d'une minute |
+| **PostgreSQLDown** | 🔴 critical | `pg_up == 0` | 5m | Instance PostgreSQL indisponible depuis plus de 5 minutes |
 | **PostgreSQLTooManyConnections** | 🟡 warning | Connexions > 80% max | 5m | Utilisation excessive des connexions disponibles |
 | **PostgreSQLLowCacheHitRatio** | 🟡 warning | Cache hit < 90% | 10m | Taux de cache insuffisant - envisager augmenter `shared_buffers` |
 | **PostgreSQLDeadlocks** | 🟡 warning | `rate(deadlocks) > 0` | 5m | Deadlocks détectés dans la base de données |
@@ -366,7 +375,7 @@ ALTER SCHEMA public OWNER TO immich;
 | **RedisDown** | 🔴 critical | `redis_up == 0` | 1m | Instance Redis indisponible depuis plus d'une minute |
 | **RedisLowCacheHitRate** | 🟡 warning | Hit rate < 80% | 10m | Taux de cache insuffisant - vérifier patterns d'utilisation |
 | **RedisHighMemoryUsage** | 🟡 warning | Mémoire > 90% max | 5m | Mémoire presque pleine - risque d'éviction de clés |
-| **RedisHighMemoryFragmentation** | 🟡 warning | Fragmentation > 2 | 10m | Fragmentation mémoire élevée - envisager restart ou défragmentation |
+| **RedisHighMemoryFragmentation** | 🟡 warning | Fragmentation > 2 | 10m | Fragmentation mémoire élevée (ratio > 2) |
 | **RedisLowMemoryFragmentation** | 🔵 info | Fragmentation < 0.7 | 10m | Fragmentation faible - possible swap sur disque |
 | **RedisKeysEvicted** | 🟡 warning | Éviction > 100/s | 5m | Clés évincées - augmenter `maxmemory` ou revoir TTL |
 | **RedisTooManyConnectedClients** | 🟡 warning | Clients > 100 | 5m | Trop de clients connectés - vérifier fuites de connexion |
@@ -630,7 +639,7 @@ ansible-playbook --ask-vault-pass playbooks/site.yml
 | Immich PostgreSQL | `ghcr.io/immich-app/postgres` | 14-vectorchord0.4.3-pgvectors0.2.0 | 0.5 | 1G |
 | Jellyfin | `jellyfin/jellyfin` | 10.11.6 | 2.0 | 4G |
 | Nextcloud | `nextcloud` | 32.0.5 | 1.0 | 1G |
-| Socket Proxy | `docker-socket-proxy` | - | 0.1 | 64M |
+| Socket Proxy | `docker-socket-proxy` | latest | 0.1 | 64M |
 
 ---
 
@@ -641,22 +650,22 @@ ansible-playbook --ask-vault-pass playbooks/site.yml
 make help
 
 # === TESTS MULTIPASS ===
-make vm-up              # Créer les VMs de test
-make vm-down            # Détruire les VMs
-make test-init           # Initialiser secrets test (copie vault.yml.example)
-make test-deploy         # Déployer sur VM test
-make test-status         # Afficher status des containers
-make test-logs           # Suivre les logs
+make vm-up              # Créer les VMs de test (setup-vms.sh)
+make vm-down            # Détruire les VMs (destroy-vms.sh)
+make test-init          # Initialiser secrets test (copie vault.yml.example)
+make test-deploy        # Déployer sur VM test (via multipass exec)
+make test-status         # Afficher status des containers sur VM test
+make test-logs           # Suivre les logs Traefik sur VM test
 
 # === PRODUCTION ===
 make init                # Initialiser + chiffrer vault.yml
 make secrets             # Éditer le vault chiffré
 make deploy              # Déployer en production (demande vault password)
-make status              # Status des services
-make validate            # Valider syntaxe Ansible
+make status              # Status des services (docker ps local)
+make validate            # Valider syntaxe Ansible (syntax-check)
 
 # === MAINTENANCE ===
-make clean               # Purger Docker (containers, images, volumes)
+make clean               # Purger Docker (docker system prune -af)
 ```
 
 
@@ -851,5 +860,3 @@ bash scripts/test-traefik.sh
 - [Grafana Documentation](https://grafana.com/docs/)
 
 ---
-
-*Documentation générée le 2026-01-23 pour EpiceaInfra*
