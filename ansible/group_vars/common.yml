@@ -48,5 +48,5 @@ storage:
 # ====================================================
 # 3. PERMISSIONS (PUID/PGID)
 # ====================================================
-system_user: 1000
-system_group: 1000
+common_system_user: 1000
+common_system_group: 1000

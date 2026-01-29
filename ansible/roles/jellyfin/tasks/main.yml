@@ -4,8 +4,8 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   loop:
     - "{{ storage.ansible.compose }}/jellyfin"
 

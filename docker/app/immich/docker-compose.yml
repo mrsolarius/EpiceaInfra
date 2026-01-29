@@ -1,6 +1,6 @@
 services:
-  immich-postgres:
-    container_name: immich_postgres
+  immich-db:
+    container_name: immich-db
     image: ghcr.io/immich-app/postgres:{{ docker_versions.immich.postgres }}
     restart: {{ docker_restart_policy }}
     deploy:
@@ -26,7 +26,7 @@ services:
       - default
 
   immich-server:
-    container_name: immich_server
+    container_name: immich-server
     image: ghcr.io/immich-app/immich-server:{{ docker_versions.immich.server }}
     command: [ "start.sh", "immich" ]
     volumes:
@@ -34,7 +34,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     env_file: .env
     depends_on:
-      immich-postgres:
+      immich-db:
         condition: service_healthy
       immich-machine-learning:
         condition: service_started
@@ -64,7 +64,7 @@ services:
       - "traefik.http.services.immich.loadbalancer.server.port=2283"
 
   immich-machine-learning:
-    container_name: immich_machine_learning
+    container_name: immich-machine-learning
     image: ghcr.io/immich-app/immich-machine-learning:{{ docker_versions.immich.machine_learning }}
     volumes:
       - ${IMMICH_MODEL_CACHE_PATH}:/cache
@@ -83,7 +83,7 @@ services:
 
   immich-postgres-exporter:
     image: prometheuscommunity/postgres-exporter:{{ docker_versions.common.postgres_exporter }}
-    container_name: immich_postgres_exporter
+    container_name: immich-postgres-exporter
     restart: {{ docker_restart_policy }}
     deploy:
       resources:
@@ -91,7 +91,7 @@ services:
           cpus: '0.1'
           memory: 128M
     environment:
-      DATA_SOURCE_NAME: "postgresql://${DB_USERNAME}:${DB_PASSWORD}@immich-postgres:5432/${DB_DATABASE_NAME}?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${DB_USERNAME}:${DB_PASSWORD}@immich-db:5432/${DB_DATABASE_NAME}?sslmode=disable"
       PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
       PG_EXPORTER_CONSTANT_LABELS: "instance=immich"
       PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"

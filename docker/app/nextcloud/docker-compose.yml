@@ -1,7 +1,7 @@
 services:
   nextcloud-db:
     image: postgres:{{ docker_versions.common.postgres }}
-    container_name: nextcloud_db
+    container_name: nextcloud-db
     restart: {{ docker_restart_policy }}
     deploy:
       resources:
@@ -65,7 +65,7 @@ services:
 
   nextcloud-postgres-exporter:
     image: prometheuscommunity/postgres-exporter:{{ docker_versions.common.postgres_exporter }}
-    container_name: nextcloud_postgres_exporter
+    container_name: nextcloud-postgres-exporter
     restart: {{ docker_restart_policy }}
     deploy:
       resources:

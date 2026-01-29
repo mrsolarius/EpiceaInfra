@@ -9,8 +9,8 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   loop:
     - "{{ storage.ansible.compose }}/monitoring"
     - "{{ storage.ansible.compose }}/monitoring/prometheus"
@@ -29,8 +29,8 @@
     src: prometheus.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/prometheus/prometheus.yml"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Déployer configuration Alertmanager
@@ -38,8 +38,8 @@
     src: alertmanager.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/alertmanager/alertmanager.yml"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Déployer règles d'alerting PostgreSQL
@@ -47,8 +47,8 @@
     src: postgres-alerts.yml
     dest: "{{ storage.ansible.compose }}/monitoring/prometheus/rules/postgres-alerts.yml"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Déployer règles d'alerting Redis
@@ -56,8 +56,8 @@
     src: redis-alerts.yml
     dest: "{{ storage.ansible.compose }}/monitoring/prometheus/rules/redis-alerts.yml"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Déployer configuration Loki
@@ -65,8 +65,8 @@
     src: loki-config.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/loki/loki-config.yml"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Déployer configuration Promtail
@@ -74,8 +74,8 @@
     src: promtail-config.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/promtail/promtail-config.yml"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Déployer datasource Grafana (Prometheus)
@@ -83,8 +83,8 @@
     src: grafana-datasource.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/datasources/prometheus.yml"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Déployer provisioning dashboards Grafana
@@ -92,8 +92,8 @@
     src: grafana-dashboards.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/dashboards.yml"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Déployer dashboard Traefik pour Grafana
@@ -101,8 +101,8 @@
     src: traefik-dashboard.json
     dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/traefik.json"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Déployer dashboard Docker pour Grafana
@@ -110,8 +110,8 @@
     src: docker-dashboard.json
     dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/docker.json"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Déployer dashboard PostgreSQL pour Grafana
@@ -119,8 +119,8 @@
     src: postgresql-dashboard.json
     dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/postgresql.json"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Déployer dashboard Redis pour Grafana
@@ -128,8 +128,8 @@
     src: redis-dashboard.json
     dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/redis.json"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Déployer dashboard Bare Metal & NFS pour Grafana
@@ -137,8 +137,8 @@
     src: node-exporter-dashboard.json
     dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/node-exporter.json"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Générer fichier .env Monitoring
@@ -146,8 +146,8 @@
     src: monitoring.env.j2
     dest: "{{ storage.ansible.compose }}/monitoring/.env"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart monitoring
 
 - name: Générer docker-compose.yml Monitoring
@@ -155,8 +155,8 @@
     src: "{{ playbook_dir }}/../../docker/monitoring/docker-compose.yml"
     dest: "{{ storage.ansible.compose }}/monitoring/docker-compose.yml"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
     trim_blocks: true
     lstrip_blocks: true
   notify: restart monitoring

@@ -147,7 +147,7 @@ storage:
 
 Tous les services sont standardisés sur un utilisateur système unique (PUID/PGID) pour éviter les problèmes de droits sur les volumes partagés.
 
-- **Utilisateur global** : `1000:1000` (défini par `system_user` et `system_group`).
+- **Utilisateur global** : `1000:1000` (défini par `common_system_user` et `common_system_group`).
 - **Standardisation** : Les variables `PUID` et `PGID` sont injectées dans les fichiers `.env` et utilisées par les conteneurs.
 - **Provisioning** : Ansible gère les `chown` lors de la création des répertoires sur l'hôte.
 
@@ -875,7 +875,7 @@ ansible-playbook -vvv playbooks/site.yml
 docker exec -u 33 nextcloud php occ status
 
 # Vérifier la base de données Immich
-docker exec -it immich_postgres psql -U immich
+docker exec -it immich-db psql -U immich
 ```
 
 ### Problèmes courants

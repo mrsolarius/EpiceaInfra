@@ -10,8 +10,8 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   loop:
     - "{{ storage.databases.redis }}"
     - "{{ storage.ansible.compose }}/redis"
@@ -22,7 +22,7 @@
     state: directory
     mode: '0755'
     owner: "999"
-    group: "{{ system_group }}"
+    group: "{{ common_system_group }}"
 
 - name: Générer le fichier .env pour Redis
   ansible.builtin.template:

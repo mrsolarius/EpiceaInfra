@@ -9,8 +9,8 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   loop:
     - "{{ storage.ansible.compose }}/traefik"
     - "{{ traefik_config_path }}"
@@ -23,8 +23,8 @@
     path: "{{ storage.ansible.compose }}/traefik/letsencrypt/acme.json"
     state: touch
     mode: '0600'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   when: proxy_enable_letsencrypt | bool
 
 - name: Déployer configuration statique Traefik
@@ -32,8 +32,8 @@
     src: traefik.yml.j2
     dest: "{{ traefik_config_path }}/traefik.yml"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart traefik
 
 - name: Déployer middlewares dynamiques
@@ -41,8 +41,8 @@
     src: dynamic-middlewares.yml.j2
     dest: "{{ traefik_config_path }}/dynamic/middlewares.yml"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart traefik
 
 - name: Générer fichier .env Traefik
@@ -50,8 +50,8 @@
     src: proxy.env.j2
     dest: "{{ storage.ansible.compose }}/traefik/.env"
     mode: '0600'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart traefik
 
 - name: Générer docker-compose.yml Traefik
@@ -59,8 +59,8 @@
     src: "{{ playbook_dir }}/../../docker/traefik/docker-compose.yml"
     dest: "{{ storage.ansible.compose }}/traefik/docker-compose.yml"
     mode: '0644'
-    owner: "{{ system_user }}"
-    group: "{{ system_group }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
     trim_blocks: true
     lstrip_blocks: true
   notify: restart traefik

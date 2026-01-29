@@ -70,11 +70,11 @@
         - traefik
         - prometheus
         - grafana
-        - nextcloud_db
-        - immich_postgres
+        - nextcloud-db
+        - immich-db
         - redis
         - nextcloud
-        - immich_server
+        - immich-server
         - jellyfin
       register: services_check
       changed_when: false
