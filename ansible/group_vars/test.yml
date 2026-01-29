@@ -20,25 +20,28 @@ service_domains:
   jellyfin: "jellyfin.{{ base_domain }}"
   nextcloud: "cloud.{{ base_domain }}"
   grafana: "monitoring.{{ base_domain }}"
-  dozzle: "logs.{{ base_domain }}"
-  pgadmin: "db.{{ base_domain }}"
+
+# Racines physiques (Multipass)
+drive_nvme_path: "/opt/epicea"
+drive_ssd_path: "/opt/epicea/ssd" # En test, on simule le SSD sur le NVMe
+drive_nfs_root: "/mnt/nas"
 
 # Configuration NFS (Storage VM)
 nfs_server: "192.168.100.196" # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
-    path: "/mnt/media"
+    path: "{{ drive_nfs_root }}/media"
     opts: "rw,hard,intr,nfsvers=4"
   - src: "{{ nfs_server }}:/exports/photos"
-    path: "/mnt/photos"
+    path: "{{ drive_nfs_root }}/photos"
     opts: "rw,hard,intr,nfsvers=4"
   - src: "{{ nfs_server }}:/exports/cloud"
-    path: "/mnt/cloud"
+    path: "{{ drive_nfs_root }}/cloud"
     opts: "rw,hard,intr,nfsvers=4"
     owner: "33" # www-data
     group: "33"
   - src: "{{ nfs_server }}:/exports/backups"
-    path: "/mnt/backups"
+    path: "{{ drive_nfs_root }}/backups"
     opts: "rw,hard,intr,nfsvers=4"
 
 # Services activés
@@ -50,11 +53,8 @@ enabled_services:
   - nextcloud
   - monitoring
 
-# Chemins de base
-base_path: "/opt/epicea"
-docker_compose_path: "{{ base_path }}/docker"
-config_path: "{{ base_path }}/config"
-data_path: "{{ base_path }}/data"
+# Les chemins sont maintenant définis dans common.yml via l'objet storage
+# base_path, docker_compose_path, config_path, data_path sont dépréciés
 
 # Configuration Traefik (test)
 traefik_acme_enabled: false  # Pas de Let's Encrypt en test

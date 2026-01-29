@@ -9,58 +9,58 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   loop:
-    - "{{ docker_compose_path }}/traefik"
-    - "{{ docker_compose_path }}/traefik/config"
-    - "{{ docker_compose_path }}/traefik/config/dynamic"
-    - "{{ docker_compose_path }}/traefik/letsencrypt"
-    - "{{ docker_compose_path }}/traefik/logs"
+    - "{{ storage.ansible.compose }}/traefik"
+    - "{{ storage.ansible.compose }}/traefik/config"
+    - "{{ storage.ansible.compose }}/traefik/config/dynamic"
+    - "{{ storage.ansible.compose }}/traefik/letsencrypt"
+    - "{{ storage.ansible.compose }}/traefik/logs"
 
 - name: Configurer permissions acme.json (Let's Encrypt)
   ansible.builtin.file:
-    path: "{{ docker_compose_path }}/traefik/letsencrypt/acme.json"
+    path: "{{ storage.ansible.compose }}/traefik/letsencrypt/acme.json"
     state: touch
     mode: '0600'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   when: proxy_enable_letsencrypt | bool
 
 - name: Déployer configuration statique Traefik
   ansible.builtin.template:
     src: traefik.yml.j2
-    dest: "{{ docker_compose_path }}/traefik/config/traefik.yml"
+    dest: "{{ storage.ansible.compose }}/traefik/config/traefik.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart traefik
 
 - name: Déployer middlewares dynamiques
   ansible.builtin.template:
     src: dynamic-middlewares.yml.j2
-    dest: "{{ docker_compose_path }}/traefik/config/dynamic/middlewares.yml"
+    dest: "{{ storage.ansible.compose }}/traefik/config/dynamic/middlewares.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart traefik
 
 - name: Générer fichier .env Traefik
   ansible.builtin.template:
     src: proxy.env.j2
-    dest: "{{ docker_compose_path }}/traefik/.env"
+    dest: "{{ storage.ansible.compose }}/traefik/.env"
     mode: '0600'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart traefik
 
 - name: Générer docker-compose.yml Traefik
   ansible.builtin.template:
     src: "{{ playbook_dir }}/../../docker/traefik/docker-compose.yml"
-    dest: "{{ docker_compose_path }}/traefik/docker-compose.yml"
+    dest: "{{ storage.ansible.compose }}/traefik/docker-compose.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart traefik
 
 - name: Créer réseau Docker traefik-proxy
@@ -72,14 +72,14 @@
 - name: Vérifier configuration Traefik (dry-run)
   ansible.builtin.command:
     cmd: docker compose config
-    chdir: "{{ docker_compose_path }}/traefik"
+    chdir: "{{ storage.ansible.compose }}/traefik"
   changed_when: false
   register: traefik_config_check
   failed_when: traefik_config_check.rc != 0
 
 - name: Démarrer Traefik
   community.docker.docker_compose_v2:
-    project_src: "{{ docker_compose_path }}/traefik"
+    project_src: "{{ storage.ansible.compose }}/traefik"
     state: present
     remove_orphans: true
   register: traefik_deploy

@@ -22,7 +22,7 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus/rules:/etc/prometheus/rules:ro
-      - prometheus-data:/prometheus
+      - ${MONITORING_PATH}/prometheus:/prometheus
     networks:
       - traefik-proxy
       - monitoring
@@ -148,7 +148,7 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=false
       - GF_SECURITY_DISABLE_GRAVATAR=true
     volumes:
-      - grafana-data:/var/lib/grafana
+      - ${MONITORING_PATH}/grafana:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     networks:
@@ -200,7 +200,7 @@ services:
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
       - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
-      - loki-data:/loki
+      - ${MONITORING_PATH}/loki:/loki
     networks:
       - monitoring
     healthcheck:
@@ -269,14 +269,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-
-volumes:
-  prometheus-data:
-    driver: local
-  grafana-data:
-    driver: local
-  loki-data:
-    driver: local
 
 networks:
   traefik-proxy:

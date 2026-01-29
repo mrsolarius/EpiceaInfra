@@ -4,16 +4,14 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
-    owner: "1000"
-    group: "1000"
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   loop:
-    - "{{ data_path }}/immich/upload"
-    - "{{ data_path }}/immich/model-cache"
-    - "{{ docker_compose_path }}/immich"
+    - "{{ storage.ansible.compose }}/immich"
 
 - name: Créer le répertoire de données PostgreSQL Immich
   ansible.builtin.file:
-    path: "{{ data_path }}/immich/postgres"
+    path: "{{ storage.databases.immich }}"
     state: directory
     mode: '0700'
     owner: "999" # postgres
@@ -23,31 +21,31 @@
 - name: Générer le script d'initialisation PostgreSQL
   ansible.builtin.template:
     src: init-db.sql.j2
-    dest: "{{ docker_compose_path }}/immich/init-immich-db.sql"
+    dest: "{{ storage.ansible.compose }}/immich/init-immich-db.sql"
     mode: '0644'
 
 - name: Générer le fichier .env
   ansible.builtin.template:
     src: immich.env.j2
-    dest: "{{ docker_compose_path }}/immich/.env"
+    dest: "{{ storage.ansible.compose }}/immich/.env"
     mode: '0600'
 
 - name: Copier les requêtes personnalisées postgres-exporter
   ansible.builtin.copy:
     src: ../../../ansible/roles/monitoring/files/postgres-exporter-queries.yaml
-    dest: "{{ docker_compose_path }}/immich/postgres-exporter-queries.yaml"
+    dest: "{{ storage.ansible.compose }}/immich/postgres-exporter-queries.yaml"
     mode: '0644'
 
 - name: Générer le fichier docker-compose
   ansible.builtin.template:
     src: ../../../docker/app/immich/docker-compose.yml
-    dest: "{{ docker_compose_path }}/immich/docker-compose.yml"
+    dest: "{{ storage.ansible.compose }}/immich/docker-compose.yml"
     mode: '0644'
     trim_blocks: true
     lstrip_blocks: true
 
 - name: Démarrer Immich
   community.docker.docker_compose_v2:
-    project_src: "{{ docker_compose_path }}/immich"
+    project_src: "{{ storage.ansible.compose }}/immich"
     state: present
     pull: always

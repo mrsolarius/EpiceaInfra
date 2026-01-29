@@ -17,7 +17,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
     volumes:
-      - ${DATA_PATH}/nextcloud-db:/var/lib/postgresql/data
+      - ${DB_PATH}:/var/lib/postgresql/data
       - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - default
@@ -57,8 +57,8 @@ services:
       - OVERWRITECLIURL=https://${NEXTCLOUD_TRUSTED_DOMAINS}
       - OVERWRITEPROTOCOL=https
     volumes:
-      - ${DATA_PATH}/nextcloud:/var/www/html
-      - /mnt/cloud:/var/www/html/data
+      - ${HTML_PATH}:/var/www/html
+      - ${DATA_PATH}:/var/www/html/data
     networks:
       - default
       - proxy

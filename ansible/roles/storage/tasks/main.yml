@@ -4,7 +4,29 @@
 # Description: Montages NFS + configuration stockage
 # ========================================
 
-- name: Créer les points de montage
+- name: Créer les racines de stockage
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
+  loop:
+    - "{{ drive_nvme_path }}"
+    - "{{ drive_ssd_path }}"
+    - "{{ drive_nfs_root }}"
+    - "{{ storage.ansible.compose }}"
+    - "{{ storage.ansible.configs }}"
+    - "{{ storage.monitoring }}"
+
+- name: Créer les dossiers pour les bases de données (SSD)
+  ansible.builtin.file:
+    path: "{{ item.value }}"
+    state: directory
+    mode: '0700'
+  loop: "{{ storage.databases | dict2items }}"
+
+- name: Créer les points de montage NFS
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: directory

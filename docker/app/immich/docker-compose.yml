@@ -18,7 +18,7 @@ services:
       POSTGRES_INITDB_ARGS: '--data-checksums'
     command: ["postgres", "-c", "shared_preload_libraries=vchord,pg_stat_statements"]
     volumes:
-      - ${DATA_PATH}/immich/postgres:/var/lib/postgresql/data
+      - ${DB_PATH}:/var/lib/postgresql/data
       - ./init-immich-db.sql:/docker-entrypoint-initdb.d/init.sql
     shm_size: 128mb
     healthcheck:
@@ -34,7 +34,7 @@ services:
     image: ghcr.io/immich-app/immich-server:{{ docker_versions.immich.server }}
     command: [ "start.sh", "immich" ]
     volumes:
-      - /mnt/photos:/usr/src/app/upload
+      - ${UPLOAD_PATH}:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
     env_file: .env
     depends_on:
@@ -72,7 +72,7 @@ services:
     container_name: immich_machine_learning
     image: ghcr.io/immich-app/immich-machine-learning:{{ docker_versions.immich.machine_learning }}
     volumes:
-      - ${DATA_PATH}/immich/model-cache:/cache
+      - ${MODEL_CACHE_PATH}:/cache
     env_file: .env
     restart: {{ docker_restart_policy }}
     deploy:

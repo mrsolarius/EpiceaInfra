@@ -10,34 +10,34 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
-    owner: "1000"
-    group: "1000"
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   loop:
-    - "{{ data_path }}/redis"
-    - "{{ docker_compose_path }}/redis"
+    - "{{ storage.databases.redis }}"
+    - "{{ storage.ansible.compose }}/redis"
 
 - name: Créer le répertoire de données pour Redis (propriétaire redis)
   ansible.builtin.file:
-    path: "{{ data_path }}/redis/data"
+    path: "{{ storage.databases.redis }}/data"
     state: directory
     mode: '0755'
     owner: "999"
-    group: "1000"
+    group: "{{ system_group }}"
 
 - name: Générer le fichier .env pour Redis
   ansible.builtin.template:
     src: redis.env.j2
-    dest: "{{ docker_compose_path }}/redis/.env"
+    dest: "{{ storage.ansible.compose }}/redis/.env"
     mode: '0600'
 
 - name: Copier le docker-compose pour Redis
   ansible.builtin.template:
     src: ../../../docker/stateful/redis/docker-compose.yml
-    dest: "{{ docker_compose_path }}/redis/docker-compose.yml"
+    dest: "{{ storage.ansible.compose }}/redis/docker-compose.yml"
     mode: '0644'
 
 - name: Démarrer la stack Redis
   community.docker.docker_compose_v2:
-    project_src: "{{ docker_compose_path }}/redis"
+    project_src: "{{ storage.ansible.compose }}/redis"
     state: present
     pull: always

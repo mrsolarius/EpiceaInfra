@@ -9,151 +9,154 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   loop:
-    - "{{ docker_compose_path }}/monitoring"
-    - "{{ docker_compose_path }}/monitoring/prometheus"
-    - "{{ docker_compose_path }}/monitoring/prometheus/rules"
-    - "{{ docker_compose_path }}/monitoring/alertmanager"
-    - "{{ docker_compose_path }}/monitoring/loki"
-    - "{{ docker_compose_path }}/monitoring/promtail"
-    - "{{ docker_compose_path }}/monitoring/grafana/provisioning/datasources"
-    - "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards"
+    - "{{ storage.ansible.compose }}/monitoring"
+    - "{{ storage.ansible.compose }}/monitoring/prometheus"
+    - "{{ storage.ansible.compose }}/monitoring/prometheus/rules"
+    - "{{ storage.ansible.compose }}/monitoring/alertmanager"
+    - "{{ storage.ansible.compose }}/monitoring/loki"
+    - "{{ storage.ansible.compose }}/monitoring/promtail"
+    - "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/datasources"
+    - "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards"
+    - "{{ storage.monitoring }}/prometheus"
+    - "{{ storage.monitoring }}/grafana"
+    - "{{ storage.monitoring }}/loki"
 
 - name: Déployer configuration Prometheus
   ansible.builtin.template:
     src: prometheus.yml.j2
-    dest: "{{ docker_compose_path }}/monitoring/prometheus/prometheus.yml"
+    dest: "{{ storage.ansible.compose }}/monitoring/prometheus/prometheus.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Déployer configuration Alertmanager
   ansible.builtin.template:
     src: alertmanager.yml.j2
-    dest: "{{ docker_compose_path }}/monitoring/alertmanager/alertmanager.yml"
+    dest: "{{ storage.ansible.compose }}/monitoring/alertmanager/alertmanager.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Déployer règles d'alerting PostgreSQL
   ansible.builtin.copy:
     src: postgres-alerts.yml
-    dest: "{{ docker_compose_path }}/monitoring/prometheus/rules/postgres-alerts.yml"
+    dest: "{{ storage.ansible.compose }}/monitoring/prometheus/rules/postgres-alerts.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Déployer règles d'alerting Redis
   ansible.builtin.copy:
     src: redis-alerts.yml
-    dest: "{{ docker_compose_path }}/monitoring/prometheus/rules/redis-alerts.yml"
+    dest: "{{ storage.ansible.compose }}/monitoring/prometheus/rules/redis-alerts.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Déployer configuration Loki
   ansible.builtin.template:
     src: loki-config.yml.j2
-    dest: "{{ docker_compose_path }}/monitoring/loki/loki-config.yml"
+    dest: "{{ storage.ansible.compose }}/monitoring/loki/loki-config.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Déployer configuration Promtail
   ansible.builtin.template:
     src: promtail-config.yml.j2
-    dest: "{{ docker_compose_path }}/monitoring/promtail/promtail-config.yml"
+    dest: "{{ storage.ansible.compose }}/monitoring/promtail/promtail-config.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Déployer datasource Grafana (Prometheus)
   ansible.builtin.template:
     src: grafana-datasource.yml.j2
-    dest: "{{ docker_compose_path }}/monitoring/grafana/provisioning/datasources/prometheus.yml"
+    dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/datasources/prometheus.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Déployer provisioning dashboards Grafana
   ansible.builtin.template:
     src: grafana-dashboards.yml.j2
-    dest: "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards/dashboards.yml"
+    dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/dashboards.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Déployer dashboard Traefik pour Grafana
   ansible.builtin.copy:
     src: traefik-dashboard.json
-    dest: "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards/traefik.json"
+    dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/traefik.json"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Déployer dashboard Docker pour Grafana
   ansible.builtin.copy:
     src: docker-dashboard.json
-    dest: "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards/docker.json"
+    dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/docker.json"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Déployer dashboard PostgreSQL pour Grafana
   ansible.builtin.copy:
     src: postgresql-dashboard.json
-    dest: "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards/postgresql.json"
+    dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/postgresql.json"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Déployer dashboard Redis pour Grafana
   ansible.builtin.copy:
     src: redis-dashboard.json
-    dest: "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards/redis.json"
+    dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/redis.json"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Déployer dashboard Bare Metal & NFS pour Grafana
   ansible.builtin.copy:
     src: node-exporter-dashboard.json
-    dest: "{{ docker_compose_path }}/monitoring/grafana/provisioning/dashboards/node-exporter.json"
+    dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/node-exporter.json"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Générer fichier .env Monitoring
   ansible.builtin.template:
     src: monitoring.env.j2
-    dest: "{{ docker_compose_path }}/monitoring/.env"
+    dest: "{{ storage.ansible.compose }}/monitoring/.env"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
   notify: restart monitoring
 
 - name: Générer docker-compose.yml Monitoring
   ansible.builtin.template:
     src: "{{ playbook_dir }}/../../docker/monitoring/docker-compose.yml"
-    dest: "{{ docker_compose_path }}/monitoring/docker-compose.yml"
+    dest: "{{ storage.ansible.compose }}/monitoring/docker-compose.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ system_user }}"
+    group: "{{ system_group }}"
     trim_blocks: true
     lstrip_blocks: true
   notify: restart monitoring
@@ -161,14 +164,14 @@
 - name: Vérifier configuration Monitoring (dry-run)
   ansible.builtin.command:
     cmd: docker compose config
-    chdir: "{{ docker_compose_path }}/monitoring"
+    chdir: "{{ storage.ansible.compose }}/monitoring"
   changed_when: false
   register: monitoring_config_check
   failed_when: monitoring_config_check.rc != 0
 
 - name: Démarrer stack Monitoring
   community.docker.docker_compose_v2:
-    project_src: "{{ docker_compose_path }}/monitoring"
+    project_src: "{{ storage.ansible.compose }}/monitoring"
     state: present
     remove_orphans: true
     recreate: always
@@ -195,7 +198,7 @@
 - name: Vérifier que les conteneurs sont running
   ansible.builtin.shell:
     cmd: docker compose ps --format json | jq -r '.State' | grep -c running || true
-    chdir: "{{ docker_compose_path }}/monitoring"
+    chdir: "{{ storage.ansible.compose }}/monitoring"
   register: monitoring_status
   until: monitoring_status.stdout | int > 0
   retries: 12

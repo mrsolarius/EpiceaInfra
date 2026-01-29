@@ -113,6 +113,46 @@ EpiceaInfra/
 
 ---
 
+### 📂 Organisation du Stockage
+
+L'infrastructure utilise une distinction claire entre les types de stockage physique pour optimiser les performances et la durabilité.
+
+#### 1. Racines Physiques (Hôte)
+
+| Variable | Chemin par défaut | Usage |
+|----------|-------------------|-------|
+| `drive_nvme_path` | `/opt/epicea` | OS, Fichiers de configuration, Logs, Monitoring (Vitesse) |
+| `drive_ssd_path` | `/mnt/ssd_tank` | Bases de données PostgreSQL, Redis (IOPS, Endurance) |
+| `drive_nfs_root` | `/mnt/nas` | Stockage de masse (Photos, Vidéos, Données Cloud) |
+
+#### 2. Chemins Logiques (Objets Ansible)
+
+Les chemins sont centralisés dans l'objet `storage` dans `group_vars/common.yml` :
+
+```yaml
+storage:
+  configs: "{{ drive_nvme_path }}/config"
+  monitoring: "{{ drive_nvme_path }}/monitoring"
+  databases:
+    immich: "{{ drive_ssd_path }}/immich-db"
+    nextcloud: "{{ drive_ssd_path }}/nextcloud-db"
+    redis: "{{ drive_ssd_path }}/redis"
+  media:
+    immich_photos: "{{ drive_nfs_root }}/photos/immich"
+    nextcloud_data: "{{ drive_nfs_root }}/cloud/data"
+    jellyfin_movies: "{{ drive_nfs_root }}/media/movies"
+```
+
+### 👤 Gestion des Permissions
+
+Tous les services sont standardisés sur un utilisateur système unique (PUID/PGID) pour éviter les problèmes de droits sur les volumes partagés.
+
+- **Utilisateur global** : `1000:1000` (défini par `system_user` et `system_group`).
+- **Standardisation** : Les variables `PUID` et `PGID` sont injectées dans les fichiers `.env` et utilisées par les conteneurs.
+- **Provisioning** : Ansible gère les `chown` lors de la création des répertoires sur l'hôte.
+
+---
+
 ### 🛡️ Sécurisation du Socket Docker
 
 Pour éviter l'exposition directe de `/var/run/docker.sock` aux conteneurs exposés sur Internet (Traefik), un proxy de socket (`tecnativa/docker-socket-proxy`) est utilisé.

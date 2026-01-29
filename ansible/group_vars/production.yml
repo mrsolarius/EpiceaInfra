@@ -21,27 +21,30 @@ service_domains:
   jellyfin: "jellyfin.{{ base_domain }}"
   nextcloud: "cloud.{{ base_domain }}"
   grafana: "monitoring.{{ base_domain }}"
-  dozzle: "logs.{{ base_domain }}"
-  amp: "dashboard.{{ litopia }}"
+
+# Racines physiques (Production)
+drive_nvme_path: "/opt/epicea"
+drive_ssd_path: "/mnt/ssd_tank"
+drive_nfs_root: "/mnt/nas"
 
 # Configuration NFS (Ubiquiti NAS Pro)
-nfs_server: "192.168.1.50"  # À MODIFIER : IP de ton NAS Pro
+nfs_server: "192.168.1.50"
 nfs_mounts:
   - src: "{{ nfs_server }}:/volume1/media"
-    path: "/mnt/media"
+    path: "{{ drive_nfs_root }}/media"
     opts: "rw,hard,intr,nfsvers=4.1"
   - src: "{{ nfs_server }}:/volume1/photos"
-    path: "/mnt/photos"
+    path: "{{ drive_nfs_root }}/photos"
     opts: "rw,hard,intr,nfsvers=4.1"
   - src: "{{ nfs_server }}:/volume1/cloud"
-    path: "/mnt/cloud"
+    path: "{{ drive_nfs_root }}/cloud"
     opts: "rw,hard,intr,nfsvers=4.1"
 
 # NFS Backup (Ubiquiti NAS Quad)
-nfs_backup_server: "192.168.1.51"  # À MODIFIER : IP de ton NAS Quad
+nfs_backup_server: "192.168.1.51"
 nfs_backup_mount:
   src: "{{ nfs_backup_server }}:/volume1/backups"
-  path: "/mnt/backups"
+  path: "{{ drive_nfs_root }}/backups"
   opts: "rw,hard,intr,nfsvers=4.1"
 
 # Services activés
@@ -54,11 +57,7 @@ enabled_services:
   - monitoring
   - games  # AMP
 
-# Chemins de base
-base_path: "/opt/epicea"
-docker_compose_path: "{{ base_path }}/docker"
-config_path: "{{ base_path }}/config"
-data_path: "{{ base_path }}/data"
+# Les chemins sont maintenant définis dans common.yml via l'objet storage
 
 # Configuration ZFS (SSD local 1To)
 zfs_pool_name: "tank"
@@ -66,9 +65,9 @@ zfs_datasets:
   - name: "{{ zfs_pool_name }}/docker"
     mountpoint: "/var/lib/docker"
   - name: "{{ zfs_pool_name }}/postgres"
-    mountpoint: "{{ data_path }}/postgres"
+    mountpoint: "{{ storage.databases.immich }}"
   - name: "{{ zfs_pool_name }}/redis"
-    mountpoint: "{{ data_path }}/redis"
+    mountpoint: "{{ storage.databases.redis }}"
 
 # Configuration GPU (RTX 5060 LP)
 gpu_driver_version: "550"  # Version driver NVIDIA (à adapter)

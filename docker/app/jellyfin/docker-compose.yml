@@ -14,9 +14,9 @@ services:
           memory: 1G
     env_file: .env
     volumes:
-      - ${DATA_PATH}/jellyfin/config:/config
-      - ${DATA_PATH}/jellyfin/cache:/cache
-      - /mnt/media:/media:ro
+      - ${CONFIG_PATH}:/config
+      - ${CACHE_PATH}:/cache
+      - ${MEDIA_PATH}:/media:ro
     ports:
       - 7359:7359/udp  # Auto-discovery
     networks:

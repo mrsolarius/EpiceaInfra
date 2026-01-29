@@ -22,6 +22,6 @@ traefik_auth: "admin:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/"
 traefik_network_name: "traefik-proxy"
 
 # Chemins
-traefik_config_path: "{{ docker_compose_path }}/traefik/config"
-traefik_data_path: "{{ docker_compose_path }}/traefik/letsencrypt"
-traefik_logs_path: "{{ docker_compose_path }}/traefik/logs"
+traefik_config_path: "{{ storage.ansible.compose }}/traefik/config"
+traefik_data_path: "{{ storage.ansible.compose }}/traefik/letsencrypt"
+traefik_logs_path: "{{ storage.ansible.compose }}/traefik/logs"
