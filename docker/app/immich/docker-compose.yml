@@ -2,7 +2,7 @@ services:
   immich-postgres:
     container_name: immich_postgres
     image: ghcr.io/immich-app/postgres:{{ docker_versions.immich_postgres }}
-    restart: always
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -42,7 +42,7 @@ services:
         condition: service_healthy
       immich-machine-learning:
         condition: service_started
-    restart: always
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -74,7 +74,7 @@ services:
     volumes:
       - ${DATA_PATH}/immich/model-cache:/cache
     env_file: .env
-    restart: always
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:

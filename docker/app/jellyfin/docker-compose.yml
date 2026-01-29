@@ -3,7 +3,7 @@ services:
     image: docker.io/jellyfin/jellyfin:{{ docker_versions.jellyfin }}
     container_name: jellyfin
     hostname: jellyfin-server
-    restart: always
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:

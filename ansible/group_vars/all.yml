@@ -1,0 +1,31 @@
+---
+# ========================================
+# Variables communes à tous les environnements
+# ========================================
+
+timezone: "Europe/Paris"
+
+# Versions des images Docker (Valeurs par défaut)
+docker_versions:
+  docker_socket_proxy: "latest"
+  traefik: "v3.6.6"
+  postgres: "16-alpine"
+  redis: "8-alpine"
+  prometheus: "v3.9.1"
+  alertmanager: "v0.26.0"
+  cadvisor: "v0.55.1"
+  postgres_exporter: "v0.15.0"
+  redis_exporter: "v1.55.0"
+  grafana: "12.3.1"
+  loki: "3.3.2"
+  promtail: "3.3.2"
+  immich_postgres: "16-vectorchord0.3.0-pgvectors0.3.0"
+  immich_ml: "v1.130.2"
+  immich: "v2.4.1"
+  jellyfin: "10.11.6"
+  nextcloud: "32.0.5"
+
+# Propriétés Docker communes
+docker_restart_policy: "always"
+docker_monitoring_network_name: "monitoring"
+docker_proxy_network_name: "traefik-proxy"

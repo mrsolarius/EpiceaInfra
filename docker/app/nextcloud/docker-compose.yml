@@ -1,8 +1,8 @@
 services:
   nextcloud-db:
-    image: postgres:16-alpine
+    image: postgres:{{ docker_versions.postgres }}
     container_name: nextcloud_db
-    restart: always
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -28,9 +28,9 @@ services:
       retries: 5
 
   nextcloud:
-    image: nextcloud:{{ docker_versions.nextcloud | default('32.0.5') }}
+    image: nextcloud:{{ docker_versions.nextcloud }}
     container_name: nextcloud
-    restart: always
+    restart: {{ docker_restart_policy }}
     depends_on:
       nextcloud-db:
         condition: service_healthy

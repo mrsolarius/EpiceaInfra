@@ -2,7 +2,7 @@ services:
   prometheus:
     image: prom/prometheus:{{ docker_versions.prometheus }}
     container_name: prometheus
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     user: root
     deploy:
       resources:
@@ -36,7 +36,7 @@ services:
   alertmanager:
     image: prom/alertmanager:{{ docker_versions.alertmanager }}
     container_name: alertmanager
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -62,7 +62,7 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:{{ docker_versions.cadvisor }}
     container_name: cadvisor
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     privileged: true
     deploy:
       resources:
@@ -101,7 +101,7 @@ services:
   redis-exporter:
     image: oliver006/redis_exporter:{{ docker_versions.redis_exporter }}
     container_name: redis-exporter
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -129,7 +129,7 @@ services:
   grafana:
     image: grafana/grafana:{{ docker_versions.grafana }}
     container_name: grafana
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     user: root
     deploy:
       resources:
@@ -187,7 +187,7 @@ services:
   loki:
     image: grafana/loki:{{ docker_versions.loki }}
     container_name: loki
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     user: root
     deploy:
       resources:
@@ -213,7 +213,7 @@ services:
   promtail:
     image: grafana/promtail:{{ docker_versions.promtail }}
     container_name: promtail
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:

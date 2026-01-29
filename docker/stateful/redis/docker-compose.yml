@@ -3,7 +3,7 @@ services:
     image: redis:{{ docker_versions.redis }}
     container_name: redis
     command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
-    restart: always
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:

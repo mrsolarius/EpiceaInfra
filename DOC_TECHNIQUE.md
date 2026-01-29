@@ -785,7 +785,8 @@ git clone https://github.com/user/EpiceaInfra.git
 
 
 3. **Adapter les variables d'environnement**
-    - `ansible/group_vars/production.yml` : domaines, IPs NFS, etc.
+    - `ansible/group_vars/all.yml` : variables communes et versions par défaut.
+    - `ansible/group_vars/production.yml` : domaines, IPs NFS, etc. (surcharges).
     - `ansible/inventory/hosts.yml` : IP du serveur production
 
 4. **Déployer**
