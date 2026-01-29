@@ -44,7 +44,7 @@
 
     # Services partagés (Redis)
     - role: database
-      tags: [database, services]
+      tags: [redis, database, services]
       when: "'redis' in enabled_services or 'shared-services' in enabled_services"
 
     # Applications

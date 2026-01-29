@@ -7,7 +7,7 @@ CREATE EXTENSION IF NOT EXISTS earthdistance;
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
 -- Ensure the schema public is owned by the user
-ALTER SCHEMA public OWNER TO {{ postgres_databases.immich.user }};
+ALTER SCHEMA public OWNER TO {{ immich_db_username }};
 
 -- Grant necessary permissions for monitoring
-GRANT pg_monitor TO {{ postgres_databases.immich.user }};
+GRANT pg_monitor TO {{ immich_db_username }};

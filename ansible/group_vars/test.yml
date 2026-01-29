@@ -24,7 +24,7 @@ service_domains:
   pgadmin: "db.{{ base_domain }}"
 
 # Configuration NFS (Storage VM)
-nfs_server: "172.21.244.120" # IP_STORAGE_TEST
+nfs_server: "192.168.111.199" # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "/mnt/media"
