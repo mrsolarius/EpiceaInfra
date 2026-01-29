@@ -4,6 +4,8 @@
   become: true
 
   vars_files:
+    - ../group_vars/common.yml
+    - ../group_vars/versions.yml
     - ../secrets/vault.yml
 
   pre_tasks:
@@ -18,8 +20,8 @@
       ansible.builtin.debug:
         msg:
           - "Environnement : {{ deploy_environment }}"
-          - "GPU activé : {{ enable_gpu }}"
-          - "Let's Encrypt : {{ enable_letsencrypt }}"
+          - "GPU activé : {{ system_enable_gpu }}"
+          - "Let's Encrypt : {{ proxy_enable_letsencrypt }}"
 
   roles:
     # Infrastructure de base
@@ -44,7 +46,7 @@
 
     # Services partagés (Redis)
     - role: database
-      tags: [database, services]
+      tags: [redis, database, services]
       when: "'redis' in enabled_services or 'shared-services' in enabled_services"
 
     # Applications
@@ -68,11 +70,11 @@
         - traefik
         - prometheus
         - grafana
-        - nextcloud_db
-        - immich_postgres
+        - nextcloud-db
+        - immich-db
         - redis
         - nextcloud
-        - immich_server
+        - immich-server
         - jellyfin
       register: services_check
       changed_when: false
@@ -88,14 +90,11 @@
           - "Environnement : {{ deploy_environment }}"
           - ""
           - "🔧 Accès services :"
-          - "  Traefik   : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}"
-          - "  Grafana   : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.grafana }}"
-          - "  Nextcloud : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.nextcloud }}"
-          - "  Immich    : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.immich }}"
-          - "  Jellyfin  : {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.jellyfin }}"
-          - "  PgAdmin   : {{ 'https' if enable_letsencrypt else 'http' }}://pgadmin.{{ base_domain }}"
-          - "  Redis Cmd : {{ 'https' if enable_letsencrypt else 'http' }}://redis.{{ base_domain }}"
-          - ""
+          - "  Traefik   : {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}"
+          - "  Grafana   : {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.grafana }}"
+          - "  Nextcloud : {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.nextcloud }}"
+          - "  Immich    : {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.immich }}"
+          - "  Jellyfin  : {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.jellyfin }}"
           - "🐳 Services actifs :"
           - "{% for service in services_check.results %}  - {{ service.stdout | default('NOT RUNNING') }}{% endfor %}"
           - ""

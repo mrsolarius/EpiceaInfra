@@ -6,9 +6,9 @@
 deploy_environment: production
 
 # Features conditionnelles
-enable_gpu: true
-enable_letsencrypt: true
-enable_zfs_snapshots: true
+system_enable_gpu: true
+proxy_enable_letsencrypt: true
+storage_enable_zfs_snapshots: true
 
 # Domaine de base
 base_domain: "louisvolat.fr"
@@ -21,27 +21,30 @@ service_domains:
   jellyfin: "jellyfin.{{ base_domain }}"
   nextcloud: "cloud.{{ base_domain }}"
   grafana: "monitoring.{{ base_domain }}"
-  dozzle: "logs.{{ base_domain }}"
-  amp: "dashboard.{{ litopia }}"
+
+# Racines physiques (Production)
+drive_nvme_path: "/opt/epicea"
+drive_ssd_path: "/mnt/ssd_tank"
+drive_nfs_root: "/mnt/nas"
 
 # Configuration NFS (Ubiquiti NAS Pro)
-nfs_server: "192.168.1.50"  # À MODIFIER : IP de ton NAS Pro
+nfs_server: "192.168.1.50"
 nfs_mounts:
   - src: "{{ nfs_server }}:/volume1/media"
-    path: "/mnt/media"
+    path: "{{ drive_nfs_root }}/media"
     opts: "rw,hard,intr,nfsvers=4.1"
   - src: "{{ nfs_server }}:/volume1/photos"
-    path: "/mnt/photos"
+    path: "{{ drive_nfs_root }}/photos"
     opts: "rw,hard,intr,nfsvers=4.1"
   - src: "{{ nfs_server }}:/volume1/cloud"
-    path: "/mnt/cloud"
+    path: "{{ drive_nfs_root }}/cloud"
     opts: "rw,hard,intr,nfsvers=4.1"
 
 # NFS Backup (Ubiquiti NAS Quad)
-nfs_backup_server: "192.168.1.51"  # À MODIFIER : IP de ton NAS Quad
+nfs_backup_server: "192.168.1.51"
 nfs_backup_mount:
   src: "{{ nfs_backup_server }}:/volume1/backups"
-  path: "/mnt/backups"
+  path: "{{ drive_nfs_root }}/backups"
   opts: "rw,hard,intr,nfsvers=4.1"
 
 # Services activés
@@ -54,11 +57,7 @@ enabled_services:
   - monitoring
   - games  # AMP
 
-# Chemins de base
-base_path: "/opt/epicea"
-docker_compose_path: "{{ base_path }}/docker"
-config_path: "{{ base_path }}/config"
-data_path: "{{ base_path }}/data"
+# Les chemins sont maintenant définis dans common.yml via l'objet storage
 
 # Configuration ZFS (SSD local 1To)
 zfs_pool_name: "tank"
@@ -66,9 +65,9 @@ zfs_datasets:
   - name: "{{ zfs_pool_name }}/docker"
     mountpoint: "/var/lib/docker"
   - name: "{{ zfs_pool_name }}/postgres"
-    mountpoint: "{{ data_path }}/postgres"
+    mountpoint: "{{ storage.databases.immich }}"
   - name: "{{ zfs_pool_name }}/redis"
-    mountpoint: "{{ data_path }}/redis"
+    mountpoint: "{{ storage.databases.redis }}"
 
 # Configuration GPU (RTX 5060 LP)
 gpu_driver_version: "550"  # Version driver NVIDIA (à adapter)
@@ -78,26 +77,26 @@ gpu_monitoring: true
 # Configuration Traefik (production)
 traefik_acme_enabled: true
 traefik_acme_email: "admin@{{ base_domain }}"  # À MODIFIER
-traefik_acme_storage: "{{ config_path }}/traefik/acme.json"
+traefik_acme_storage: "{{ storage.ansible.configs }}/traefik/acme.json"
 traefik_dashboard_enabled: true
 traefik_log_level: "INFO"
 
 # Configuration Docker
-docker_log_max_size: "50m"
-docker_log_max_file: "5"
+docker_daemon_log_max_size: "50m"
+docker_daemon_log_max_file: "5"
 
 # Monitoring
-prometheus_retention: "90d"
-loki_retention: "30d"
-grafana_root_url: "https://monitoring.louisvolat.fr"
-grafana_install_plugins: true
-prometheus_cadvisor_enabled: true
-prometheus_node_exporter_enabled: true
+monitoring_prometheus_retention: "90d"
+monitoring_loki_retention: "30d"
+monitoring_grafana_root_url: "https://monitoring.louisvolat.fr"
+monitoring_grafana_install_plugins: true
+monitoring_prometheus_cadvisor_enabled: true
+monitoring_prometheus_node_exporter_enabled: true
 
 # Backup
-backup_enabled: true
-backup_retention_days: 30
-backup_schedule: "0 3 * * *"  # Tous les jours à 3h du matin
+backup_system_enabled: true
+backup_system_retention_days: 30
+backup_system_schedule: "0 3 * * *"  # Tous les jours à 3h du matin
 
 # Notifications (Discord/Telegram)
 # discord_webhook_url: "{{ vault_discord_webhook }}"  # Dans vault.yml
@@ -108,25 +107,6 @@ backup_schedule: "0 3 * * *"  # Tous les jours à 3h du matin
 fail2ban_enabled: true
 fail2ban_bantime: "1h"
 fail2ban_maxretry: 5
-
-# Versions des images Docker
-docker_versions:
-  docker_socket_proxy: "latest"
-  traefik: "v3.6.6"
-  postgres: "pg16-v0.4.0"
-  redis: "8-alpine"
-  prometheus: "v3.9.1"
-  alertmanager: "v0.26.0"
-  cadvisor: "v0.55.1"
-  postgres_exporter: "v0.15.0"
-  redis_exporter: "v1.55.0"
-  grafana: "12.3.1"
-  loki: "3.3.2"
-  promtail: "3.3.2"
-  immich_postgres: "14-vectorchord0.4.3-pgvectors0.2.0"
-  immich: "v2.4.1-ig441"
-  jellyfin: "10.11.6"
-  nextcloud: "32.0.5"
 
 # UFW Rules additionnelles (production)
 ufw_additional_rules:

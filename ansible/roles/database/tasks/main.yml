@@ -1,6 +1,6 @@
 ---
-# Les instances PostgreSQL sont maintenant gérées directement par les applications (Nextcloud, Immich).
-# Seul Redis reste mutualisé ici.
+# Le rôle database gère maintenant exclusivement Redis Stack.
+# Les instances PostgreSQL sont gérées directement par les applications (Nextcloud, Immich).
 
 # ==============================================================================
 # Redis Stack
@@ -10,34 +10,36 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
-    owner: "1000"
-    group: "1000"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   loop:
-    - "{{ data_path }}/redis"
-    - "{{ docker_compose_path }}/redis"
+    - "{{ storage.databases.redis }}"
+    - "{{ storage.ansible.compose }}/redis"
 
 - name: Créer le répertoire de données pour Redis (propriétaire redis)
   ansible.builtin.file:
-    path: "{{ data_path }}/redis/data"
+    path: "{{ storage.databases.redis }}/data"
     state: directory
     mode: '0755'
     owner: "999"
-    group: "1000"
+    group: "{{ common_system_group }}"
 
 - name: Générer le fichier .env pour Redis
   ansible.builtin.template:
     src: redis.env.j2
-    dest: "{{ docker_compose_path }}/redis/.env"
+    dest: "{{ storage.ansible.compose }}/redis/.env"
     mode: '0600'
 
 - name: Copier le docker-compose pour Redis
   ansible.builtin.template:
-    src: ../../../docker/stateful/redis/docker-compose.yml
-    dest: "{{ docker_compose_path }}/redis/docker-compose.yml"
+    src: docker-compose.yml.j2
+    dest: "{{ storage.ansible.compose }}/redis/docker-compose.yml"
     mode: '0644'
+    trim_blocks: true
+    lstrip_blocks: true
 
 - name: Démarrer la stack Redis
   community.docker.docker_compose_v2:
-    project_src: "{{ docker_compose_path }}/redis"
+    project_src: "{{ storage.ansible.compose }}/redis"
     state: present
     pull: always

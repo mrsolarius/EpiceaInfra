@@ -45,14 +45,14 @@ proxy/
 
 ```yaml
 # Test
-enable_letsencrypt: false
+proxy_enable_letsencrypt: false
 base_domain: "epicea-test.local"
 service_domains:
   traefik: "traefik.epicea-test.local"
 
 # Production
-enable_letsencrypt: true
-base_domain: "votre-domaine.fr"
+# proxy_enable_letsencrypt: true (déjà défini)
+# base_domain: "votre-domaine.fr" (déjà défini)
 traefik_acme_email: "admin@votre-domaine.fr"
 ```
 

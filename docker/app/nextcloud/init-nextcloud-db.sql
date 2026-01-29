@@ -1,4 +1,0 @@
--- Nextcloud database initialization
--- Database name and user are provided via environment variables in docker-compose
--- This script can be used for any additional initialization if needed
--- The actual creation of the DB is handled by the POSTGRES_DB env var.

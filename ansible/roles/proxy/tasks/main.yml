@@ -9,77 +9,79 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
-    owner: root
-    group: root
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   loop:
-    - "{{ docker_compose_path }}/traefik"
-    - "{{ docker_compose_path }}/traefik/config"
-    - "{{ docker_compose_path }}/traefik/config/dynamic"
-    - "{{ docker_compose_path }}/traefik/letsencrypt"
-    - "{{ docker_compose_path }}/traefik/logs"
+    - "{{ storage.ansible.compose }}/traefik"
+    - "{{ traefik_config_path }}"
+    - "{{ traefik_config_path }}/dynamic"
+    - "{{ storage.ansible.compose }}/traefik/letsencrypt"
+    - "{{ storage.ansible.compose }}/traefik/logs"
 
 - name: Configurer permissions acme.json (Let's Encrypt)
   ansible.builtin.file:
-    path: "{{ docker_compose_path }}/traefik/letsencrypt/acme.json"
+    path: "{{ storage.ansible.compose }}/traefik/letsencrypt/acme.json"
     state: touch
     mode: '0600'
-    owner: root
-    group: root
-  when: enable_letsencrypt | bool
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
+  when: proxy_enable_letsencrypt | bool
 
 - name: Déployer configuration statique Traefik
   ansible.builtin.template:
     src: traefik.yml.j2
-    dest: "{{ docker_compose_path }}/traefik/config/traefik.yml"
+    dest: "{{ traefik_config_path }}/traefik.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart traefik
 
 - name: Déployer middlewares dynamiques
   ansible.builtin.template:
     src: dynamic-middlewares.yml.j2
-    dest: "{{ docker_compose_path }}/traefik/config/dynamic/middlewares.yml"
+    dest: "{{ traefik_config_path }}/dynamic/middlewares.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart traefik
 
 - name: Générer fichier .env Traefik
   ansible.builtin.template:
-    src: env.j2
-    dest: "{{ docker_compose_path }}/traefik/.env"
+    src: proxy.env.j2
+    dest: "{{ storage.ansible.compose }}/traefik/.env"
     mode: '0600'
-    owner: root
-    group: root
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   notify: restart traefik
 
 - name: Générer docker-compose.yml Traefik
   ansible.builtin.template:
-    src: "{{ playbook_dir }}/../../docker/traefik/docker-compose.yml"
-    dest: "{{ docker_compose_path }}/traefik/docker-compose.yml"
+    src: docker-compose.yml.j2
+    dest: "{{ storage.ansible.compose }}/traefik/docker-compose.yml"
     mode: '0644'
-    owner: root
-    group: root
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
+    trim_blocks: true
+    lstrip_blocks: true
   notify: restart traefik
 
-- name: Créer réseau Docker traefik-proxy
+- name: Créer réseau Docker {{ proxy_network_name }}
   community.docker.docker_network:
-    name: traefik-proxy
+    name: "{{ proxy_network_name }}"
     driver: bridge
     state: present
 
 - name: Vérifier configuration Traefik (dry-run)
   ansible.builtin.command:
     cmd: docker compose config
-    chdir: "{{ docker_compose_path }}/traefik"
+    chdir: "{{ storage.ansible.compose }}/traefik"
   changed_when: false
   register: traefik_config_check
   failed_when: traefik_config_check.rc != 0
 
 - name: Démarrer Traefik
   community.docker.docker_compose_v2:
-    project_src: "{{ docker_compose_path }}/traefik"
+    project_src: "{{ storage.ansible.compose }}/traefik"
     state: present
     remove_orphans: true
   register: traefik_deploy
@@ -116,7 +118,7 @@
   ansible.builtin.debug:
     msg:
       - "✅ Traefik déployé avec succès"
-      - "Dashboard: {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}"
-      - "Metrics: {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}/metrics"
-      - "Ping: {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}/ping"
+      - "Dashboard: {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}"
+      - "Metrics: {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}/metrics"
+      - "Ping: {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}/ping"
       - "Auth: {{ 'Configuré dans vault.yml' if deploy_environment == 'production' else 'admin / admin' }}"

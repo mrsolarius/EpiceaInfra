@@ -6,9 +6,9 @@
 deploy_environment: test
 
 # Features conditionnelles
-enable_gpu: false
-enable_letsencrypt: false
-enable_zfs_snapshots: false
+system_enable_gpu: false
+proxy_enable_letsencrypt: false
+storage_enable_zfs_snapshots: false
 
 # Domaine de base
 base_domain: "epicea-test.local"
@@ -20,25 +20,28 @@ service_domains:
   jellyfin: "jellyfin.{{ base_domain }}"
   nextcloud: "cloud.{{ base_domain }}"
   grafana: "monitoring.{{ base_domain }}"
-  dozzle: "logs.{{ base_domain }}"
-  pgadmin: "db.{{ base_domain }}"
+
+# Racines physiques (Multipass)
+drive_nvme_path: "/opt/epicea"
+drive_ssd_path: "/opt/epicea/ssd" # En test, on simule le SSD sur le NVMe
+drive_nfs_root: "/mnt/nas"
 
 # Configuration NFS (Storage VM)
-nfs_server: "172.21.244.120" # IP_STORAGE_TEST
+nfs_server: "192.168.100.196" # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
-    path: "/mnt/media"
+    path: "{{ drive_nfs_root }}/media"
     opts: "rw,hard,intr,nfsvers=4"
   - src: "{{ nfs_server }}:/exports/photos"
-    path: "/mnt/photos"
+    path: "{{ drive_nfs_root }}/photos"
     opts: "rw,hard,intr,nfsvers=4"
   - src: "{{ nfs_server }}:/exports/cloud"
-    path: "/mnt/cloud"
+    path: "{{ drive_nfs_root }}/cloud"
     opts: "rw,hard,intr,nfsvers=4"
     owner: "33" # www-data
     group: "33"
   - src: "{{ nfs_server }}:/exports/backups"
-    path: "/mnt/backups"
+    path: "{{ drive_nfs_root }}/backups"
     opts: "rw,hard,intr,nfsvers=4"
 
 # Services activés
@@ -50,11 +53,7 @@ enabled_services:
   - nextcloud
   - monitoring
 
-# Chemins de base
-base_path: "/opt/epicea"
-docker_compose_path: "{{ base_path }}/docker"
-config_path: "{{ base_path }}/config"
-data_path: "{{ base_path }}/data"
+# Les chemins sont maintenant définis dans common.yml via l'objet storage
 
 # Configuration Traefik (test)
 traefik_acme_enabled: false  # Pas de Let's Encrypt en test
@@ -63,45 +62,25 @@ traefik_log_level: "DEBUG"
 traefik_auth: "admin:$apr1$1aZVZLrd$t8WqKSkO2NX/JYudCgp06."  # admin/admin en test (htpasswd)
 
 # Configuration Docker
-docker_log_max_size: "10m"
-docker_log_max_file: "3"
+docker_daemon_log_max_size: "10m"
+docker_daemon_log_max_file: "3"
 
 # Monitoring
-prometheus_retention: "15d"  # Moins long en test
-loki_retention: "7d"
-prometheus_scrape_interval: "15s"
-prometheus_evaluation_interval: "15s"
-prometheus_cadvisor_enabled: true  # Monitoring Docker
-grafana_admin_user: "admin"
-grafana_admin_password: "admin"  # À changer en production !
-grafana_root_url: "https://monitoring.epicea-test.local"
-grafana_plugins: ""  # Plugins Grafana à installer (séparés par ,)
-grafana_middlewares: ""  # Middlewares Traefik optionnels
-prometheus_node_exporter_enabled: true
+monitoring_prometheus_retention: "15d"  # Moins long en test
+monitoring_loki_retention: "7d"
+monitoring_prometheus_scrape_interval: "15s"
+monitoring_prometheus_evaluation_interval: "15s"
+monitoring_prometheus_cadvisor_enabled: true  # Monitoring Docker
+monitoring_grafana_admin_user: "admin"
+monitoring_grafana_admin_password: "admin"  # À changer en production !
+monitoring_grafana_root_url: "https://monitoring.epicea-test.local"
+monitoring_grafana_plugins: ""  # Plugins Grafana à installer (séparés par ,)
+monitoring_grafana_middlewares: ""  # Middlewares Traefik optionnels
+monitoring_prometheus_node_exporter_enabled: true
 
 # Backup
-backup_enabled: false  # Pas de backups automatiques en test
-backup_retention_days: 7
-
-# Versions des images Docker
-docker_versions:
-  docker_socket_proxy: "latest"
-  traefik: "v3.6.6"
-  postgres: "pg16-v0.4.0"
-  redis: "8-alpine"
-  prometheus: "v3.9.1"
-  alertmanager: "v0.26.0"
-  cadvisor: "v0.55.1"
-  postgres_exporter: "v0.15.0"
-  redis_exporter: "v1.55.0"
-  grafana: "12.3.1"
-  loki: "3.3.2"
-  promtail: "3.3.2"
-  immich_postgres: "16-vectorchord0.3.0-pgvectors0.3.0"
-  immich_ml: "v1.130.2"
-  immich: "v2.4.1"
-  jellyfin: "10.11.6"
-  nextcloud: "32.0.5"
+backup_system_enabled: false  # Pas de backups automatiques en test
+backup_system_retention_days: 7
 
 # Notifications
 # Pas de notifications Discord/Telegram par défaut si discord_webhook_url n'est pas défini dans le vault

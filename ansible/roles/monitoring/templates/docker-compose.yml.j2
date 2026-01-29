@@ -1,8 +1,8 @@
 services:
   prometheus:
-    image: prom/prometheus:{{ docker_versions.prometheus }}
+    image: prom/prometheus:{{ docker_versions.monitoring.prometheus }}
     container_name: prometheus
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     user: root
     deploy:
       resources:
@@ -22,9 +22,9 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus/rules:/etc/prometheus/rules:ro
-      - prometheus-data:/prometheus
+      - ${MONITORING_PATH}/prometheus:/prometheus
     networks:
-      - traefik-proxy
+      - proxy
       - monitoring
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
@@ -34,9 +34,9 @@ services:
       start_period: 10s
 
   alertmanager:
-    image: prom/alertmanager:{{ docker_versions.alertmanager }}
+    image: prom/alertmanager:{{ docker_versions.monitoring.alertmanager }}
     container_name: alertmanager
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -60,9 +60,9 @@ services:
       start_period: 10s
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:{{ docker_versions.cadvisor }}
+    image: gcr.io/cadvisor/cadvisor:{{ docker_versions.monitoring.cadvisor }}
     container_name: cadvisor
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     privileged: true
     deploy:
       resources:
@@ -76,6 +76,7 @@ services:
       - /dev/kmsg
     volumes:
       - /:/rootfs:ro
+      - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
@@ -97,61 +98,10 @@ services:
       docker-socket-proxy:
         condition: service_healthy
 
-  nextcloud-postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:{{ docker_versions.postgres_exporter }}
-    container_name: nextcloud_postgres_exporter
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: 128M
-    environment:
-      DATA_SOURCE_NAME: "postgresql://${NEXTCLOUD_DB_USER}:${NEXTCLOUD_DB_PASSWORD}@nextcloud-db:5432/${NEXTCLOUD_DB_NAME}?sslmode=disable"
-      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
-      PG_EXPORTER_CONSTANT_LABELS: "instance=nextcloud"
-      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
-    volumes:
-      - ./postgres-exporter/queries.yaml:/etc/postgres-exporter/queries.yaml:ro
-    networks:
-      - monitoring
-      - traefik-proxy
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  immich-postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:{{ docker_versions.postgres_exporter }}
-    container_name: immich_postgres_exporter
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: 128M
-    environment:
-      DATA_SOURCE_NAME: "postgresql://${IMMICH_DB_USER}:${IMMICH_DB_PASSWORD}@immich-postgres:5432/${IMMICH_DB_NAME}?sslmode=disable"
-      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
-      PG_EXPORTER_CONSTANT_LABELS: "instance=immich"
-      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
-    volumes:
-      - ./postgres-exporter/queries.yaml:/etc/postgres-exporter/queries.yaml:ro
-    networks:
-      - monitoring
-      - traefik-proxy
-      - nextcloud-net
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   redis-exporter:
-    image: oliver006/redis_exporter:{{ docker_versions.redis_exporter }}
+    image: oliver006/redis_exporter:{{ docker_versions.common.redis_exporter }}
     container_name: redis-exporter
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -160,15 +110,15 @@ services:
         reservations:
           cpus: '0.05'
           memory: 64M
+    env_file: .env
     environment:
       REDIS_ADDR: "redis:6379"
-      REDIS_PASSWORD: "${REDIS_PASSWORD}"
       REDIS_EXPORTER_CHECK_KEYS: "*"
       REDIS_EXPORTER_CHECK_SINGLE_KEYS: ""
       REDIS_EXPORTER_INCL_SYSTEM_METRICS: "true"
     networks:
       - monitoring
-      - traefik-proxy
+      - proxy
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9121/"]
       interval: 30s
@@ -177,9 +127,9 @@ services:
       start_period: 10s
 
   grafana:
-    image: grafana/grafana:{{ docker_versions.grafana }}
+    image: grafana/grafana:{{ docker_versions.monitoring.grafana }}
     container_name: grafana
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     user: root
     deploy:
       resources:
@@ -189,23 +139,17 @@ services:
         reservations:
           cpus: '0.1'
           memory: 512M
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
-      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://monitoring.epicea-test.local}
-      - GF_INSTALL_PLUGINS=${GRAFANA_PLUGINS:-}
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_AUTH_ANONYMOUS_ENABLED=false
-      - GF_SECURITY_DISABLE_GRAVATAR=true
+    env_file: .env
     volumes:
-      - grafana-data:/var/lib/grafana
+      - ${MONITORING_PATH}/grafana:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     networks:
-      - traefik-proxy
+      - proxy
       - monitoring
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network={{ proxy_network_name }}"
       - "traefik.http.routers.grafana-http.entrypoints=web"
       - "traefik.http.routers.grafana-http.rule=Host(`${GRAFANA_DOMAIN}`)"
       - "traefik.http.routers.grafana-http.service=grafana"
@@ -214,9 +158,7 @@ services:
       - "traefik.http.routers.grafana-https.rule=Host(`${GRAFANA_DOMAIN}`)"
       - "traefik.http.routers.grafana-https.service=grafana"
       - "traefik.http.routers.grafana-https.tls=true"
-{% if enable_letsencrypt %}
-      - "traefik.http.routers.grafana-https.tls.certresolver=letsencrypt"
-{% endif %}
+      - "traefik.http.routers.grafana-https.tls.certresolver={{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
       - "traefik.http.routers.grafana-https.middlewares=compression@file"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
@@ -235,9 +177,9 @@ services:
         condition: service_healthy
 
   loki:
-    image: grafana/loki:{{ docker_versions.loki }}
+    image: grafana/loki:{{ docker_versions.monitoring.loki }}
     container_name: loki
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     user: root
     deploy:
       resources:
@@ -250,7 +192,7 @@ services:
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
       - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
-      - loki-data:/loki
+      - ${MONITORING_PATH}/loki:/loki
     networks:
       - monitoring
     healthcheck:
@@ -261,9 +203,9 @@ services:
       start_period: 30s
 
   promtail:
-    image: grafana/promtail:{{ docker_versions.promtail }}
+    image: grafana/promtail:{{ docker_versions.monitoring.promtail }}
     container_name: promtail
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -275,7 +217,7 @@ services:
     command: -config.file=/etc/promtail/promtail-config.yml
     volumes:
       - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
-      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
     networks:
       - monitoring
       - docker-socket
@@ -286,9 +228,9 @@ services:
         condition: service_healthy
 
   docker-socket-proxy:
-    image: tecnativa/docker-socket-proxy:{{ docker_versions.docker_socket_proxy }}
+    image: tecnativa/docker-socket-proxy:{{ docker_versions.common.docker_socket_proxy }}
     container_name: docker-socket-proxy-monitoring
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -320,22 +262,12 @@ services:
       timeout: 5s
       retries: 3
 
-volumes:
-  prometheus-data:
-    driver: local
-  grafana-data:
-    driver: local
-  loki-data:
-    driver: local
-
 networks:
-  traefik-proxy:
+  proxy:
     external: true
-    name: traefik-proxy
+    name: {{ proxy_network_name }}
   monitoring:
-    driver: bridge
+    external: true
+    name: {{ monitoring_network_name }}
   docker-socket:
     internal: true
-  nextcloud-net:
-    external: true
-    name: nextcloud_default

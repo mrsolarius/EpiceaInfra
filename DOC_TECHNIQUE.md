@@ -113,13 +113,53 @@ EpiceaInfra/
 
 ---
 
+### 📂 Organisation du Stockage
+
+L'infrastructure utilise une distinction claire entre les types de stockage physique pour optimiser les performances et la durabilité.
+
+#### 1. Racines Physiques (Hôte)
+
+| Variable | Chemin par défaut | Usage |
+|----------|-------------------|-------|
+| `drive_nvme_path` | `/opt/epicea` | OS, Fichiers de configuration, Logs, Monitoring (Vitesse) |
+| `drive_ssd_path` | `/mnt/ssd_tank` | Bases de données PostgreSQL, Redis (IOPS, Endurance) |
+| `drive_nfs_root` | `/mnt/nas` | Stockage de masse (Photos, Vidéos, Données Cloud) |
+
+#### 2. Chemins Logiques (Objets Ansible)
+
+Les chemins sont centralisés dans l'objet `storage` dans `group_vars/common.yml` :
+
+```yaml
+storage:
+  configs: "{{ drive_nvme_path }}/config"
+  monitoring: "{{ drive_nvme_path }}/monitoring"
+  databases:
+    immich: "{{ drive_ssd_path }}/immich-db"
+    nextcloud: "{{ drive_ssd_path }}/nextcloud-db"
+    redis: "{{ drive_ssd_path }}/redis"
+  media:
+    immich_photos: "{{ drive_nfs_root }}/photos/immich"
+    nextcloud_data: "{{ drive_nfs_root }}/cloud/data"
+    jellyfin_movies: "{{ drive_nfs_root }}/media/movies"
+```
+
+### 👤 Gestion des Permissions
+
+Tous les services sont standardisés sur un utilisateur système unique (PUID/PGID) pour éviter les problèmes de droits sur les volumes partagés.
+
+- **Utilisateur global** : `1000:1000` (défini par `common_system_user` et `common_system_group`).
+- **Standardisation** : Les variables `PUID` et `PGID` sont injectées dans les fichiers `.env` et utilisées par les conteneurs.
+- **Provisioning** : Ansible gère les `chown` lors de la création des répertoires sur l'hôte.
+
+---
+
 ### 🛡️ Sécurisation du Socket Docker
 
 Pour éviter l'exposition directe de `/var/run/docker.sock` aux conteneurs exposés sur Internet (Traefik), un proxy de socket (`tecnativa/docker-socket-proxy`) est utilisé.
 
 - **Traefik** : Communique avec le proxy via le réseau interne `docker-socket`. Le proxy est configuré pour n'autoriser que les accès nécessaires à l'auto-discovery (Containers, Services, Networks, etc.).
-- **Monitoring (cAdvisor & Promtail)** : Utilisent également un proxy de socket filtré pour collecter les métriques et logs.
-- **Isolation** : Le socket Unix n'est monté que dans les conteneurs proxies, qui ne sont pas exposés sur Internet.
+- **Monitoring** : Chaque application inclut ses propres exportateurs de métriques (ex: `postgres-exporter`) en tant que sidecar, connectés à la fois au réseau interne de l'application et au réseau global `monitoring`.
+- **Isolation** : Les bases de données ne sont jamais exposées sur le réseau `proxy`. Seuls les services "Front" y ont accès. Le socket Unix n'est monté que dans les conteneurs proxies, qui ne sont pas exposés sur Internet.
 
 ---
 
@@ -176,10 +216,10 @@ gpu_driver_version: "550"
 
 **Variables par défaut :**
 ```yaml
-docker_log_max_size: "50m"
-docker_log_max_file: "5"
+docker_daemon_log_max_size: "50m"
+docker_daemon_log_max_file: "5"
 proxy_network_name: "traefik-proxy"
-enable_gpu: false
+system_enable_gpu: false
 docker_min_api_version: "1.44"  # Requis pour Traefik v3.3+
 ```
 
@@ -575,8 +615,8 @@ ansible-playbook --ask-vault-pass playbooks/site.yml
 | Variable | Valeur |
 |----------|--------|
 | `deploy_environment` | `test` |
-| `enable_gpu` | `false` |
-| `enable_letsencrypt` | `false` |
+| `system_enable_gpu` | `false` |
+| `proxy_enable_letsencrypt` | `false` |
 | `base_domain` | `epicea-test.local` |
 | `nfs_server` | IP de la VM storage-test |
 | `prometheus_retention` | `15d` |
@@ -591,11 +631,11 @@ ansible-playbook --ask-vault-pass playbooks/site.yml
 | Variable | Valeur |
 |----------|--------|
 | `deploy_environment` | `production` |
-| `enable_gpu` | `true` |
-| `enable_letsencrypt` | `true` |
-| `enable_zfs_snapshots` | `true` |
+| `system_enable_gpu` | `true` |
+| `proxy_enable_letsencrypt` | `true` |
+| `storage_enable_zfs_snapshots` | `true` |
 | `base_domain` | `louisvolat.fr` |
-| `prometheus_retention` | `90d` |
+| `monitoring_prometheus_retention` | `90d` |
 | `traefik_log_level` | `INFO` |
 
 **Services activés :**
@@ -785,7 +825,8 @@ git clone https://github.com/user/EpiceaInfra.git
 
 
 3. **Adapter les variables d'environnement**
-    - `ansible/group_vars/production.yml` : domaines, IPs NFS, etc.
+    - `ansible/group_vars/all.yml` : variables communes et versions par défaut.
+    - `ansible/group_vars/production.yml` : domaines, IPs NFS, etc. (surcharges).
     - `ansible/inventory/hosts.yml` : IP du serveur production
 
 4. **Déployer**
@@ -834,7 +875,7 @@ ansible-playbook -vvv playbooks/site.yml
 docker exec -u 33 nextcloud php occ status
 
 # Vérifier la base de données Immich
-docker exec -it immich_postgres psql -U immich
+docker exec -it immich-db psql -U immich
 ```
 
 ### Problèmes courants

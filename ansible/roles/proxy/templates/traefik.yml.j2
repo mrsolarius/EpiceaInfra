@@ -48,15 +48,13 @@ entryPoints:
 
   websecure:
     address: ":443"
-{% if enable_letsencrypt %}
     http:
       tls:
-        certResolver: letsencrypt
+        certResolver: "{{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
         domains:
           - main: "{{ base_domain }}"
             sans:
               - "*.{{ base_domain }}"
-{% endif %}
 
   # EntryPoint dédié aux métriques/API (interne seulement)
   traefik:
@@ -70,7 +68,7 @@ providers:
   docker:
     endpoint: "http://docker-socket-proxy:2375"
     exposedByDefault: false
-    network: traefik-proxy
+    network: {{ proxy_network_name }}
     watch: true
 
   # File-based config (middlewares, etc.)
@@ -81,7 +79,7 @@ providers:
 # ========================================
 # Let's Encrypt (production uniquement)
 # ========================================
-{% if enable_letsencrypt %}
+{% if proxy_enable_letsencrypt %}
 certificatesResolvers:
   letsencrypt:
     acme:

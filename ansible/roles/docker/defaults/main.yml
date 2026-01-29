@@ -4,14 +4,19 @@
 # ========================================
 
 # Configuration log rotation
-docker_log_max_size: "50m"
-docker_log_max_file: "5"
+docker_daemon_log_max_size: "50m"
+docker_daemon_log_max_file: "5"
 
 # Network
 proxy_network_name: "traefik-proxy"
+monitoring_network_name: "monitoring"
+
+# Chemins de base (via storage dans common.yml)
+docker_compose_path: "{{ storage.ansible.compose }}"
+docker_config_path: "{{ storage.ansible.configs }}"
 
 # GPU (conditionnel depuis group_vars)
-enable_gpu: false
+system_enable_gpu: false
 
 # Version Docker (info)
 # Le rôle installe toujours la dernière version disponible

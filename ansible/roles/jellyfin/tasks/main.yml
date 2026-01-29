@@ -4,27 +4,27 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
   loop:
-    - "{{ data_path }}/jellyfin/config"
-    - "{{ data_path }}/jellyfin/cache"
-    - "{{ docker_compose_path }}/jellyfin"
+    - "{{ storage.ansible.compose }}/jellyfin"
 
 - name: Générer le fichier .env
   ansible.builtin.template:
-    src: .env.j2
-    dest: "{{ docker_compose_path }}/jellyfin/.env"
+    src: jellyfin.env.j2
+    dest: "{{ storage.ansible.compose }}/jellyfin/.env"
     mode: '0600'
 
 - name: Générer le fichier docker-compose
   ansible.builtin.template:
-    src: ../../../docker/app/jellyfin/docker-compose.yml
-    dest: "{{ docker_compose_path }}/jellyfin/docker-compose.yml"
+    src: docker-compose.yml.j2
+    dest: "{{ storage.ansible.compose }}/jellyfin/docker-compose.yml"
     mode: '0644'
     trim_blocks: true
     lstrip_blocks: true
 
 - name: Démarrer Jellyfin
   community.docker.docker_compose_v2:
-    project_src: "{{ docker_compose_path }}/jellyfin"
+    project_src: "{{ storage.ansible.compose }}/jellyfin"
     state: present
     pull: always

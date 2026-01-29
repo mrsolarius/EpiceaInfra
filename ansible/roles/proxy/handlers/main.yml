@@ -5,7 +5,7 @@
 
 - name: restart traefik
   community.docker.docker_compose_v2:
-    project_src: "{{ docker_compose_path }}/traefik"
+    project_src: "{{ storage.ansible.compose }}/traefik"
     state: restarted
   listen: restart traefik
 

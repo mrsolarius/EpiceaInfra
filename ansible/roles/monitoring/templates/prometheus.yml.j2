@@ -4,8 +4,8 @@
 # ========================================
 
 global:
-  scrape_interval: {{ prometheus_scrape_interval | default('15s') }}
-  evaluation_interval: {{ prometheus_evaluation_interval | default('15s') }}
+  scrape_interval: {{ monitoring_prometheus_scrape_interval | default('15s') }}
+  evaluation_interval: {{ monitoring_prometheus_evaluation_interval | default('15s') }}
   external_labels:
     environment: '{{ deploy_environment }}'
     cluster: 'epicea'
@@ -48,7 +48,7 @@ scrape_configs:
   # ========================================
   # Node Exporter (Hôte Bare-metal)
   # ========================================
-{% if prometheus_node_exporter_enabled | default(false) %}
+{% if monitoring_prometheus_node_exporter_enabled | default(false) %}
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['172.17.0.1:9100'] # IP Gateway Docker pour atteindre l'hôte

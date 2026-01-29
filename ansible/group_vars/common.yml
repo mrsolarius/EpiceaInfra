@@ -1,0 +1,52 @@
+---
+# ========================================
+# Variables communes à tous les environnements
+# ========================================
+
+timezone: "Europe/Paris"
+
+# Propriétés Docker communes
+docker_restart_policy: "always"
+monitoring_network_name: "monitoring"
+proxy_network_name: "traefik-proxy"
+
+# ====================================================
+# 1. RACINES PHYSIQUES (Où sont les disques ?)
+# ====================================================
+# Valeurs par défaut (écrasées dans test/production)
+drive_nvme_path: "/opt/epicea"
+drive_ssd_path: "/mnt/ssd_tank"
+drive_nfs_root: "/mnt/nas"
+
+# ====================================================
+# 2. CHEMINS LOGIQUES (Qui utilise quoi ?)
+# ====================================================
+storage:
+  # Chemins de base Ansible
+  ansible:
+    compose: "{{ drive_nvme_path }}/docker"
+    configs: "{{ drive_nvme_path }}/config"
+  
+  # Applications nécessitant de la vitesse (NVMe)
+  monitoring: "{{ drive_nvme_path }}/monitoring"
+
+  # Bases de données (SSD)
+  databases:
+    immich: "{{ drive_ssd_path }}/immich-db"
+    nextcloud: "{{ drive_ssd_path }}/nextcloud-db"
+    redis: "{{ drive_ssd_path }}/redis"
+
+  # Stockage de masse (NFS)
+  media:
+    jellyfin_movies: "{{ drive_nfs_root }}/media/movies"
+    jellyfin_shows: "{{ drive_nfs_root }}/media/shows"
+    jellyfin_root: "{{ drive_nfs_root }}/media"
+    immich_photos: "{{ drive_nfs_root }}/photos/immich"
+    nextcloud_data: "{{ drive_nfs_root }}/cloud/data"
+    backups: "{{ drive_nfs_root }}/backups"
+
+# ====================================================
+# 3. PERMISSIONS (PUID/PGID)
+# ====================================================
+common_system_user: 1000
+common_system_group: 1000

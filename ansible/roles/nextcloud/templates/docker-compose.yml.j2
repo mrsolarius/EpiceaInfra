@@ -1,8 +1,8 @@
 services:
   nextcloud-db:
-    image: postgres:16-alpine
-    container_name: nextcloud_db
-    restart: always
+    image: postgres:{{ docker_versions.common.postgres }}
+    container_name: nextcloud-db
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -11,17 +11,13 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    env_file: .env
     command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
     volumes:
-      - ${DATA_PATH}/nextcloud-db:/var/lib/postgresql/data
+      - ${NEXTCLOUD_DB_DATA_PATH}:/var/lib/postgresql/data
       - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - default
-      - proxy
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -29,9 +25,9 @@ services:
       retries: 5
 
   nextcloud:
-    image: nextcloud:{{ docker_versions.nextcloud | default('32.0.5') }}
+    image: nextcloud:{{ docker_versions.nextcloud }}
     container_name: nextcloud
-    restart: always
+    restart: {{ docker_restart_policy }}
     depends_on:
       nextcloud-db:
         condition: service_healthy
@@ -44,27 +40,15 @@ services:
           cpus: '0.2'
           memory: 512M
     env_file: .env
-    environment:
-      - POSTGRES_HOST=nextcloud-db
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_HOST_PASSWORD=${REDIS_HOST_PASSWORD}
-      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
-      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
-      - NEXTCLOUD_DATA_DIR=${NEXTCLOUD_DATA_DIR}
-      - OVERWRITECLIURL=https://${NEXTCLOUD_TRUSTED_DOMAINS}
-      - OVERWRITEPROTOCOL=https
     volumes:
-      - ${DATA_PATH}/nextcloud:/var/www/html
-      - /mnt/cloud:/var/www/html/data
+      - ${NEXTCLOUD_HTML_PATH}:/var/www/html
+      - ${NEXTCLOUD_DATA_PATH}:/var/www/html/data
     networks:
       - default
       - proxy
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network={{ proxy_network_name }}"
       - "traefik.http.routers.nextcloud-http.rule=Host(`${NEXTCLOUD_TRUSTED_DOMAINS}`)"
       - "traefik.http.routers.nextcloud-http.entrypoints=web"
       - "traefik.http.routers.nextcloud-http.service=nextcloud"
@@ -72,17 +56,44 @@ services:
       - "traefik.http.routers.nextcloud-https.entrypoints=websecure"
       - "traefik.http.routers.nextcloud-https.service=nextcloud"
       - "traefik.http.routers.nextcloud-https.tls=true"
-{% if enable_letsencrypt %}
-      - "traefik.http.routers.nextcloud-https.tls.certresolver=letsencrypt"
-{% endif %}
+      - "traefik.http.routers.nextcloud-https.tls.certresolver={{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
       - "traefik.http.middlewares.nextcloud-dav.redirectregex.regex=^/.well-known/(card|cal)dav"
       - "traefik.http.middlewares.nextcloud-dav.redirectregex.replacement=/remote.php/dav/"
       - "traefik.http.routers.nextcloud-http.middlewares=nextcloud-dav"
       - "traefik.http.routers.nextcloud-https.middlewares=nextcloud-dav"
       - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
 
+  nextcloud-postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:{{ docker_versions.common.postgres_exporter }}
+    container_name: nextcloud-postgres-exporter
+    restart: {{ docker_restart_policy }}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@nextcloud-db:5432/${POSTGRES_DB}?sslmode=disable"
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      PG_EXPORTER_CONSTANT_LABELS: "instance=nextcloud"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
+    volumes:
+      - ./postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    networks:
+      - default
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   default:
-  proxy:
-    name: ${PROXY_NETWORK}
+  monitoring:
+    name: {{ monitoring_network_name }}
     external: true
+  proxy:
+    name: {{ proxy_network_name }}
+    external: true
+

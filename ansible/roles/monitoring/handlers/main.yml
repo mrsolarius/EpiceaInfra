@@ -5,6 +5,6 @@
 
 - name: restart monitoring
   community.docker.docker_compose_v2:
-    project_src: "{{ docker_compose_path }}/monitoring"
+    project_src: "{{ storage.ansible.compose }}/monitoring"
     state: restarted
   listen: restart monitoring

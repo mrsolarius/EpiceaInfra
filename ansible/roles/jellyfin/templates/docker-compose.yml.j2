@@ -3,7 +3,7 @@ services:
     image: docker.io/jellyfin/jellyfin:{{ docker_versions.jellyfin }}
     container_name: jellyfin
     hostname: jellyfin-server
-    restart: always
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -14,15 +14,16 @@ services:
           memory: 1G
     env_file: .env
     volumes:
-      - ${DATA_PATH}/jellyfin/config:/config
-      - ${DATA_PATH}/jellyfin/cache:/cache
-      - /mnt/media:/media:ro
+      - ${JELLYFIN_CONFIG_PATH}:/config
+      - ${JELLYFIN_CACHE_PATH}:/cache
+      - ${JELLYFIN_MEDIA_PATH}:/media:ro
     ports:
       - 7359:7359/udp  # Auto-discovery
     networks:
       - proxy
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network={{ proxy_network_name }}"
       - "traefik.http.routers.jellyfin-http.rule=Host(`${JELLYFIN_DOMAIN}`)"
       - "traefik.http.routers.jellyfin-http.entrypoints=web"
       - "traefik.http.routers.jellyfin-http.service=jellyfin"
@@ -30,12 +31,11 @@ services:
       - "traefik.http.routers.jellyfin-https.entrypoints=websecure"
       - "traefik.http.routers.jellyfin-https.service=jellyfin"
       - "traefik.http.routers.jellyfin-https.tls=true"
-{% if enable_letsencrypt %}
-      - "traefik.http.routers.jellyfin-https.tls.certresolver=letsencrypt"
-{% endif %}
+      - "traefik.http.routers.jellyfin-https.tls.certresolver={{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
       - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
 
 networks:
   proxy:
-    name: ${PROXY_NETWORK}
+    name: {{ proxy_network_name }}
     external: true
+
