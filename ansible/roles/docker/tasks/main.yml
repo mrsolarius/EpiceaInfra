@@ -112,13 +112,13 @@
     state: started
     enabled: true
 
-- name: Créer le réseau traefik-proxy
+- name: Créer le réseau {{ proxy_network_name }}
   community.docker.docker_network:
     name: "{{ proxy_network_name }}"
     driver: bridge
     state: present
 
-- name: Créer le réseau monitoring
+- name: Créer le réseau {{ monitoring_network_name }}
   community.docker.docker_network:
     name: "{{ monitoring_network_name }}"
     driver: bridge

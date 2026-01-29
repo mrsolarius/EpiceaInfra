@@ -123,7 +123,6 @@
     - "{{ service_domains.jellyfin }}"
     - "{{ service_domains.nextcloud }}"
     - "{{ service_domains.grafana }}"
-    - "{{ service_domains.dozzle }}"
   when: deploy_environment == 'test'
 
 - name: Installer drivers NVIDIA (production avec GPU)

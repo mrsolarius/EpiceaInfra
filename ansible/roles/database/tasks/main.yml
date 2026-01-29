@@ -35,6 +35,8 @@
     src: ../../../docker/stateful/redis/docker-compose.yml
     dest: "{{ storage.ansible.compose }}/redis/docker-compose.yml"
     mode: '0644'
+    trim_blocks: true
+    lstrip_blocks: true
 
 - name: Démarrer la stack Redis
   community.docker.docker_compose_v2:

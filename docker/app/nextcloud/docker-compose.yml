@@ -11,10 +11,7 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    env_file: .env
     command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
     volumes:
       - ${DB_PATH}:/var/lib/postgresql/data
@@ -43,19 +40,6 @@ services:
           cpus: '0.2'
           memory: 512M
     env_file: .env
-    environment:
-      - POSTGRES_HOST=nextcloud-db
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_HOST_PASSWORD=${REDIS_HOST_PASSWORD}
-      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
-      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
-      - NEXTCLOUD_DATA_DIR=${NEXTCLOUD_DATA_DIR}
-      - OVERWRITECLIURL=https://${NEXTCLOUD_TRUSTED_DOMAINS}
-      - OVERWRITEPROTOCOL=https
     volumes:
       - ${HTML_PATH}:/var/www/html
       - ${DATA_PATH}:/var/www/html/data
@@ -83,7 +67,7 @@ services:
   nextcloud-postgres-exporter:
     image: prometheuscommunity/postgres-exporter:{{ docker_versions.common.postgres_exporter }}
     container_name: nextcloud_postgres_exporter
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -111,6 +95,6 @@ networks:
     name: {{ monitoring_network_name }}
     external: true
   proxy:
-    name: ${PROXY_NETWORK}
+    name: {{ proxy_network_name }}
     external: true
 

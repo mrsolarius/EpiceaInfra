@@ -24,7 +24,7 @@ services:
       - ./prometheus/rules:/etc/prometheus/rules:ro
       - ${MONITORING_PATH}/prometheus:/prometheus
     networks:
-      - traefik-proxy
+      - proxy
       - monitoring
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
@@ -110,15 +110,15 @@ services:
         reservations:
           cpus: '0.05'
           memory: 64M
+    env_file: .env
     environment:
       REDIS_ADDR: "redis:6379"
-      REDIS_PASSWORD: "${REDIS_PASSWORD}"
       REDIS_EXPORTER_CHECK_KEYS: "*"
       REDIS_EXPORTER_CHECK_SINGLE_KEYS: ""
       REDIS_EXPORTER_INCL_SYSTEM_METRICS: "true"
     networks:
       - monitoring
-      - traefik-proxy
+      - proxy
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9121/"]
       interval: 30s
@@ -139,20 +139,13 @@ services:
         reservations:
           cpus: '0.1'
           memory: 512M
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
-      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://monitoring.epicea-test.local}
-      - GF_INSTALL_PLUGINS=${GRAFANA_PLUGINS:-}
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_AUTH_ANONYMOUS_ENABLED=false
-      - GF_SECURITY_DISABLE_GRAVATAR=true
+    env_file: .env
     volumes:
       - ${MONITORING_PATH}/grafana:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     networks:
-      - traefik-proxy
+      - proxy
       - monitoring
     labels:
       - "traefik.enable=true"
@@ -164,9 +157,7 @@ services:
       - "traefik.http.routers.grafana-https.rule=Host(`${GRAFANA_DOMAIN}`)"
       - "traefik.http.routers.grafana-https.service=grafana"
       - "traefik.http.routers.grafana-https.tls=true"
-{% if proxy_enable_letsencrypt %}
-      - "traefik.http.routers.grafana-https.tls.certresolver=letsencrypt"
-{% endif %}
+      - "traefik.http.routers.grafana-https.tls.certresolver=${GRAFANA_CERT_RESOLVER}"
       - "traefik.http.routers.grafana-https.middlewares=compression@file"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
@@ -238,7 +229,7 @@ services:
   docker-socket-proxy:
     image: tecnativa/docker-socket-proxy:{{ docker_versions.common.docker_socket_proxy }}
     container_name: docker-socket-proxy-monitoring
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -271,11 +262,11 @@ services:
       retries: 3
 
 networks:
-  traefik-proxy:
+  proxy:
     external: true
-    name: traefik-proxy
+    name: {{ proxy_network_name }}
   monitoring:
     external: true
-    name: monitoring
+    name: {{ monitoring_network_name }}
   docker-socket:
     internal: true

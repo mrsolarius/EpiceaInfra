@@ -11,11 +11,7 @@ services:
         reservations:
           cpus: '0.1'
           memory: 256M
-    environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_DATABASE_NAME}
-      POSTGRES_INITDB_ARGS: '--data-checksums'
+    env_file: .env
     command: ["postgres", "-c", "shared_preload_libraries=vchord,pg_stat_statements"]
     volumes:
       - ${DB_PATH}:/var/lib/postgresql/data
@@ -89,7 +85,7 @@ services:
   immich-postgres-exporter:
     image: prometheuscommunity/postgres-exporter:{{ docker_versions.common.postgres_exporter }}
     container_name: immich_postgres_exporter
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -117,6 +113,6 @@ networks:
     name: {{ monitoring_network_name }}
     external: true
   proxy:
-    name: ${PROXY_NETWORK}
+    name: {{ proxy_network_name }}
     external: true
 

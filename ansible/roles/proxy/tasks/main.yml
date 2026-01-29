@@ -61,11 +61,13 @@
     mode: '0644'
     owner: "{{ system_user }}"
     group: "{{ system_group }}"
+    trim_blocks: true
+    lstrip_blocks: true
   notify: restart traefik
 
-- name: Créer réseau Docker traefik-proxy
+- name: Créer réseau Docker {{ proxy_network_name }}
   community.docker.docker_network:
-    name: traefik-proxy
+    name: "{{ proxy_network_name }}"
     driver: bridge
     state: present
 

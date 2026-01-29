@@ -2,11 +2,11 @@ services:
   traefik:
     image: traefik:{{ docker_versions.common.traefik }}
     container_name: traefik
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     security_opt:
       - no-new-privileges:true
     networks:
-      - traefik-proxy
+      - proxy
       - docker-socket
     deploy:
       resources:
@@ -20,10 +20,7 @@ services:
       - "80:80"      # HTTP
       - "443:443"    # HTTPS
       - "8080:8080"  # API / Dashboard / Healthcheck
-    environment:
-      - TZ=${TZ:-Europe/Paris}
-      # Let's Encrypt (production seulement)
-      - TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL=${ACME_EMAIL}
+    env_file: .env
     volumes:
       # Configuration file-based
       - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -49,7 +46,7 @@ services:
   docker-socket-proxy:
     image: tecnativa/docker-socket-proxy:{{ docker_versions.common.docker_socket_proxy }}
     container_name: docker-socket-proxy
-    restart: unless-stopped
+    restart: {{ docker_restart_policy }}
     security_opt:
       - no-new-privileges:true
     networks:
@@ -79,9 +76,9 @@ services:
       retries: 3
 
 networks:
-  traefik-proxy:
+  proxy:
     external: true
-    name: traefik-proxy
+    name: {{ proxy_network_name }}
   docker-socket:
     internal: true
 

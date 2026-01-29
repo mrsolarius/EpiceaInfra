@@ -1,8 +1,8 @@
 services:
   postgres:
-    image: tensorchord/pgvecto-rs:{{ docker_versions.postgres }}
+    image: postgres:{{ docker_versions.common.postgres }}
     container_name: postgres
-    restart: always
+    restart: {{ docker_restart_policy }}
     deploy:
       resources:
         limits:
@@ -29,5 +29,5 @@ services:
 networks:
   default:
   proxy:
-    name: ${PROXY_NETWORK}
+    name: {{ proxy_network_name }}
     external: true

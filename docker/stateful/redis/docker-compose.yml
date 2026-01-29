@@ -29,6 +29,6 @@ services:
 networks:
   default:
   proxy:
-    name: ${PROXY_NETWORK}
+    name: {{ proxy_network_name }}
     external: true
 

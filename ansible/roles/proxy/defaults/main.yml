@@ -19,7 +19,7 @@ traefik_acme_dns_provider: ""  # cloudflare, ovh, etc.
 traefik_auth: "admin:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/"
 
 # Networks
-traefik_network_name: "traefik-proxy"
+traefik_network_name: "{{ proxy_network_name }}"
 
 # Chemins
 traefik_config_path: "{{ storage.ansible.compose }}/traefik/config"
