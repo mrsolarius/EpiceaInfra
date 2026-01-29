@@ -6,9 +6,9 @@
 deploy_environment: production
 
 # Features conditionnelles
-enable_gpu: true
-enable_letsencrypt: true
-enable_zfs_snapshots: true
+system_enable_gpu: true
+proxy_enable_letsencrypt: true
+storage_enable_zfs_snapshots: true
 
 # Domaine de base
 base_domain: "louisvolat.fr"
@@ -83,21 +83,21 @@ traefik_dashboard_enabled: true
 traefik_log_level: "INFO"
 
 # Configuration Docker
-docker_log_max_size: "50m"
-docker_log_max_file: "5"
+docker_daemon_log_max_size: "50m"
+docker_daemon_log_max_file: "5"
 
 # Monitoring
-prometheus_retention: "90d"
-loki_retention: "30d"
-grafana_root_url: "https://monitoring.louisvolat.fr"
-grafana_install_plugins: true
-prometheus_cadvisor_enabled: true
-prometheus_node_exporter_enabled: true
+monitoring_prometheus_retention: "90d"
+monitoring_loki_retention: "30d"
+monitoring_grafana_root_url: "https://monitoring.louisvolat.fr"
+monitoring_grafana_install_plugins: true
+monitoring_prometheus_cadvisor_enabled: true
+monitoring_prometheus_node_exporter_enabled: true
 
 # Backup
-backup_enabled: true
-backup_retention_days: 30
-backup_schedule: "0 3 * * *"  # Tous les jours à 3h du matin
+backup_system_enabled: true
+backup_system_retention_days: 30
+backup_system_schedule: "0 3 * * *"  # Tous les jours à 3h du matin
 
 # Notifications (Discord/Telegram)
 # discord_webhook_url: "{{ vault_discord_webhook }}"  # Dans vault.yml

@@ -25,7 +25,7 @@
     mode: '0600'
     owner: root
     group: root
-  when: enable_letsencrypt | bool
+  when: proxy_enable_letsencrypt | bool
 
 - name: Déployer configuration statique Traefik
   ansible.builtin.template:
@@ -47,7 +47,7 @@
 
 - name: Générer fichier .env Traefik
   ansible.builtin.template:
-    src: env.j2
+    src: proxy.env.j2
     dest: "{{ docker_compose_path }}/traefik/.env"
     mode: '0600'
     owner: root
@@ -116,7 +116,7 @@
   ansible.builtin.debug:
     msg:
       - "✅ Traefik déployé avec succès"
-      - "Dashboard: {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}"
-      - "Metrics: {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}/metrics"
-      - "Ping: {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}/ping"
+      - "Dashboard: {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}"
+      - "Metrics: {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}/metrics"
+      - "Ping: {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}/ping"
       - "Auth: {{ 'Configuré dans vault.yml' if deploy_environment == 'production' else 'admin / admin' }}"

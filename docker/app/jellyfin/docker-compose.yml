@@ -30,7 +30,7 @@ services:
       - "traefik.http.routers.jellyfin-https.entrypoints=websecure"
       - "traefik.http.routers.jellyfin-https.service=jellyfin"
       - "traefik.http.routers.jellyfin-https.tls=true"
-{% if enable_letsencrypt %}
+{% if proxy_enable_letsencrypt %}
       - "traefik.http.routers.jellyfin-https.tls.certresolver=letsencrypt"
 {% endif %}
       - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"

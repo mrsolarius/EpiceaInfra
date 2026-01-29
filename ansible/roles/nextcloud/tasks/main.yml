@@ -26,7 +26,7 @@
 
 - name: Générer le fichier .env
   ansible.builtin.template:
-    src: .env.j2
+    src: nextcloud.env.j2
     dest: "{{ docker_compose_path }}/nextcloud/.env"
     mode: '0600'
 

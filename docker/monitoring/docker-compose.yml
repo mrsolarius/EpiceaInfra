@@ -164,7 +164,7 @@ services:
       - "traefik.http.routers.grafana-https.rule=Host(`${GRAFANA_DOMAIN}`)"
       - "traefik.http.routers.grafana-https.service=grafana"
       - "traefik.http.routers.grafana-https.tls=true"
-{% if enable_letsencrypt %}
+{% if proxy_enable_letsencrypt %}
       - "traefik.http.routers.grafana-https.tls.certresolver=letsencrypt"
 {% endif %}
       - "traefik.http.routers.grafana-https.middlewares=compression@file"

@@ -176,10 +176,10 @@ gpu_driver_version: "550"
 
 **Variables par défaut :**
 ```yaml
-docker_log_max_size: "50m"
-docker_log_max_file: "5"
+docker_daemon_log_max_size: "50m"
+docker_daemon_log_max_file: "5"
 proxy_network_name: "traefik-proxy"
-enable_gpu: false
+system_enable_gpu: false
 docker_min_api_version: "1.44"  # Requis pour Traefik v3.3+
 ```
 
@@ -575,8 +575,8 @@ ansible-playbook --ask-vault-pass playbooks/site.yml
 | Variable | Valeur |
 |----------|--------|
 | `deploy_environment` | `test` |
-| `enable_gpu` | `false` |
-| `enable_letsencrypt` | `false` |
+| `system_enable_gpu` | `false` |
+| `proxy_enable_letsencrypt` | `false` |
 | `base_domain` | `epicea-test.local` |
 | `nfs_server` | IP de la VM storage-test |
 | `prometheus_retention` | `15d` |
@@ -591,11 +591,11 @@ ansible-playbook --ask-vault-pass playbooks/site.yml
 | Variable | Valeur |
 |----------|--------|
 | `deploy_environment` | `production` |
-| `enable_gpu` | `true` |
-| `enable_letsencrypt` | `true` |
-| `enable_zfs_snapshots` | `true` |
+| `system_enable_gpu` | `true` |
+| `proxy_enable_letsencrypt` | `true` |
+| `storage_enable_zfs_snapshots` | `true` |
 | `base_domain` | `louisvolat.fr` |
-| `prometheus_retention` | `90d` |
+| `monitoring_prometheus_retention` | `90d` |
 | `traefik_log_level` | `INFO` |
 
 **Services activés :**

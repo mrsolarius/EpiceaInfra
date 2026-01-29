@@ -140,7 +140,7 @@
 
 - name: Générer fichier .env Monitoring
   ansible.builtin.template:
-    src: env.j2
+    src: monitoring.env.j2
     dest: "{{ docker_compose_path }}/monitoring/.env"
     mode: '0644'
     owner: root
@@ -207,8 +207,8 @@
   ansible.builtin.debug:
     msg:
       - "✅ Stack Monitoring déployée avec succès"
-      - "Grafana: {{ 'https' if enable_letsencrypt else 'http' }}://{{ service_domains.grafana }}"
-      - "User: {{ grafana_admin_user | default('admin') }}"
+      - "Grafana: {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.grafana }}"
+      - "User: {{ monitoring_grafana_admin_user | default('admin') }}"
       - "Password: (voir vault.yml)"
       - ""
       - "Prometheus scrape Traefik metrics automatiquement"

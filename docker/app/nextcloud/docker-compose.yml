@@ -71,7 +71,7 @@ services:
       - "traefik.http.routers.nextcloud-https.entrypoints=websecure"
       - "traefik.http.routers.nextcloud-https.service=nextcloud"
       - "traefik.http.routers.nextcloud-https.tls=true"
-{% if enable_letsencrypt %}
+{% if proxy_enable_letsencrypt %}
       - "traefik.http.routers.nextcloud-https.tls.certresolver=letsencrypt"
 {% endif %}
       - "traefik.http.middlewares.nextcloud-dav.redirectregex.regex=^/.well-known/(card|cal)dav"

@@ -135,7 +135,7 @@
     update_cache: true
   when:
     - deploy_environment == 'production'
-    - enable_gpu | bool
+    - system_enable_gpu | bool
   notify: reboot system
 
 - name: Afficher résumé configuration
@@ -146,4 +146,4 @@
       - "✅ Fail2ban activé"
       - "✅ Collections Ansible installées"
       - "{% if deploy_environment == 'test' %}✅ DNS local configuré{% endif %}"
-      - "{% if enable_gpu %}✅ Drivers NVIDIA installés{% endif %}"
+      - "{% if system_enable_gpu %}✅ Drivers NVIDIA installés{% endif %}"

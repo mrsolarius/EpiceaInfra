@@ -4,15 +4,15 @@
 # ========================================
 
 # Configuration log rotation
-docker_log_max_size: "50m"
-docker_log_max_file: "5"
+docker_daemon_log_max_size: "50m"
+docker_daemon_log_max_file: "5"
 
 # Network
 proxy_network_name: "traefik-proxy"
 monitoring_network_name: "monitoring"
 
 # GPU (conditionnel depuis group_vars)
-enable_gpu: false
+system_enable_gpu: false
 
 # Version Docker (info)
 # Le rôle installe toujours la dernière version disponible

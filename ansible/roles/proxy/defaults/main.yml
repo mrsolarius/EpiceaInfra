@@ -9,7 +9,7 @@ traefik_dashboard_enabled: true
 traefik_log_level: "INFO"
 
 # Let's Encrypt
-traefik_acme_enabled: "{{ enable_letsencrypt | default(false) }}"
+traefik_acme_enabled: "{{ proxy_enable_letsencrypt | default(false) }}"
 traefik_acme_email: "admin@{{ base_domain }}"
 traefik_acme_staging: false  # true pour tests Let's Encrypt
 traefik_acme_dns_challenge: false

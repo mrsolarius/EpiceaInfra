@@ -6,9 +6,9 @@
 deploy_environment: test
 
 # Features conditionnelles
-enable_gpu: false
-enable_letsencrypt: false
-enable_zfs_snapshots: false
+system_enable_gpu: false
+proxy_enable_letsencrypt: false
+storage_enable_zfs_snapshots: false
 
 # Domaine de base
 base_domain: "epicea-test.local"
@@ -24,7 +24,7 @@ service_domains:
   pgadmin: "db.{{ base_domain }}"
 
 # Configuration NFS (Storage VM)
-nfs_server: "192.168.111.199" # IP_STORAGE_TEST
+nfs_server: "192.168.100.196" # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "/mnt/media"
@@ -63,25 +63,25 @@ traefik_log_level: "DEBUG"
 traefik_auth: "admin:$apr1$1aZVZLrd$t8WqKSkO2NX/JYudCgp06."  # admin/admin en test (htpasswd)
 
 # Configuration Docker
-docker_log_max_size: "10m"
-docker_log_max_file: "3"
+docker_daemon_log_max_size: "10m"
+docker_daemon_log_max_file: "3"
 
 # Monitoring
-prometheus_retention: "15d"  # Moins long en test
-loki_retention: "7d"
-prometheus_scrape_interval: "15s"
-prometheus_evaluation_interval: "15s"
-prometheus_cadvisor_enabled: true  # Monitoring Docker
-grafana_admin_user: "admin"
-grafana_admin_password: "admin"  # À changer en production !
-grafana_root_url: "https://monitoring.epicea-test.local"
-grafana_plugins: ""  # Plugins Grafana à installer (séparés par ,)
-grafana_middlewares: ""  # Middlewares Traefik optionnels
-prometheus_node_exporter_enabled: true
+monitoring_prometheus_retention: "15d"  # Moins long en test
+monitoring_loki_retention: "7d"
+monitoring_prometheus_scrape_interval: "15s"
+monitoring_prometheus_evaluation_interval: "15s"
+monitoring_prometheus_cadvisor_enabled: true  # Monitoring Docker
+monitoring_grafana_admin_user: "admin"
+monitoring_grafana_admin_password: "admin"  # À changer en production !
+monitoring_grafana_root_url: "https://monitoring.epicea-test.local"
+monitoring_grafana_plugins: ""  # Plugins Grafana à installer (séparés par ,)
+monitoring_grafana_middlewares: ""  # Middlewares Traefik optionnels
+monitoring_prometheus_node_exporter_enabled: true
 
 # Backup
-backup_enabled: false  # Pas de backups automatiques en test
-backup_retention_days: 7
+backup_system_enabled: false  # Pas de backups automatiques en test
+backup_system_retention_days: 7
 
 # Versions des images Docker
 docker_versions:
