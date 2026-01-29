@@ -15,7 +15,7 @@ services:
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
-      - ${DATA_PATH}:/data
+      - ${REDIS_DATA_PATH}:/data
       - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - default

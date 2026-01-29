@@ -54,7 +54,6 @@ enabled_services:
   - monitoring
 
 # Les chemins sont maintenant définis dans common.yml via l'objet storage
-# base_path, docker_compose_path, config_path, data_path sont dépréciés
 
 # Configuration Traefik (test)
 traefik_acme_enabled: false  # Pas de Let's Encrypt en test

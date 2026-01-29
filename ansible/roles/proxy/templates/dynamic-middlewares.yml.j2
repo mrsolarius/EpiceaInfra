@@ -90,7 +90,7 @@ http:
   # ========================================
   routers:
     # Dashboard Traefik HTTP
-    traefik-dashboard-http:
+    traefik-http:
       entryPoints:
         - web
       rule: "Host(`{{ service_domains.traefik }}`)"
@@ -99,7 +99,7 @@ http:
         - traefik-auth
 
     # Dashboard Traefik HTTPS
-    traefik-dashboard-https:
+    traefik-https:
       entryPoints:
         - websecure
       rule: "Host(`{{ service_domains.traefik }}`)"
@@ -107,27 +107,43 @@ http:
       middlewares:
         - traefik-auth
       tls:
-{% if proxy_enable_letsencrypt %}
-        certResolver: letsencrypt
-{% else %}
-        {}
-{% endif %}
+        certResolver: "{{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
 
     # Metrics Prometheus
-    traefik-metrics:
+    traefik-metrics-http:
       entryPoints:
         - web
+      rule: "Host(`{{ service_domains.traefik }}`) && PathPrefix(`/metrics`)"
+      service: prometheus@internal
+      middlewares:
+        - traefik-auth
+
+    # Metrics Prometheus HTTPS
+    traefik-metrics-https:
+      entryPoints:
         - websecure
       rule: "Host(`{{ service_domains.traefik }}`) && PathPrefix(`/metrics`)"
       service: prometheus@internal
       middlewares:
         - traefik-auth
       tls:
-{% if proxy_enable_letsencrypt %}
-        certResolver: letsencrypt
-{% else %}
-        {}
-{% endif %}
+        certResolver: "{{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
+
+    # Ping Traefik HTTP
+    traefik-ping-http:
+      entryPoints:
+        - web
+      rule: "Host(`{{ service_domains.traefik }}`) && PathPrefix(`/ping`)"
+      service: ping@internal
+
+    # Ping Traefik HTTPS
+    traefik-ping-https:
+      entryPoints:
+        - websecure
+      rule: "Host(`{{ service_domains.traefik }}`) && PathPrefix(`/ping`)"
+      service: ping@internal
+      tls:
+        certResolver: "{{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
 
   # ========================================
   # Services (pour tests)

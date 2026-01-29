@@ -23,8 +23,8 @@ services:
     env_file: .env
     volumes:
       # Configuration file-based
-      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./config/dynamic:/etc/traefik/dynamic:ro
+      - ${TRAEFIK_CONFIG_PATH}/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ${TRAEFIK_CONFIG_PATH}/dynamic:/etc/traefik/dynamic:ro
       # Certificats Let's Encrypt
       - ./letsencrypt:/letsencrypt
       # Logs

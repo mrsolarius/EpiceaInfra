@@ -77,7 +77,7 @@ gpu_monitoring: true
 # Configuration Traefik (production)
 traefik_acme_enabled: true
 traefik_acme_email: "admin@{{ base_domain }}"  # À MODIFIER
-traefik_acme_storage: "{{ config_path }}/traefik/acme.json"
+traefik_acme_storage: "{{ storage.ansible.configs }}/traefik/acme.json"
 traefik_dashboard_enabled: true
 traefik_log_level: "INFO"
 

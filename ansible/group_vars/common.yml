@@ -38,7 +38,9 @@ storage:
 
   # Stockage de masse (NFS)
   media:
-    jellyfin_media: "{{ drive_nfs_root }}/media"
+    jellyfin_movies: "{{ drive_nfs_root }}/media/movies"
+    jellyfin_shows: "{{ drive_nfs_root }}/media/shows"
+    jellyfin_root: "{{ drive_nfs_root }}/media"
     immich_photos: "{{ drive_nfs_root }}/photos/immich"
     nextcloud_data: "{{ drive_nfs_root }}/cloud/data"
     backups: "{{ drive_nfs_root }}/backups"

@@ -149,6 +149,7 @@ services:
       - monitoring
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network={{ proxy_network_name }}"
       - "traefik.http.routers.grafana-http.entrypoints=web"
       - "traefik.http.routers.grafana-http.rule=Host(`${GRAFANA_DOMAIN}`)"
       - "traefik.http.routers.grafana-http.service=grafana"
@@ -157,7 +158,7 @@ services:
       - "traefik.http.routers.grafana-https.rule=Host(`${GRAFANA_DOMAIN}`)"
       - "traefik.http.routers.grafana-https.service=grafana"
       - "traefik.http.routers.grafana-https.tls=true"
-      - "traefik.http.routers.grafana-https.tls.certresolver=${GRAFANA_CERT_RESOLVER}"
+      - "traefik.http.routers.grafana-https.tls.certresolver={{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
       - "traefik.http.routers.grafana-https.middlewares=compression@file"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 

@@ -14,7 +14,7 @@ services:
     env_file: .env
     command: ["postgres", "-c", "shared_preload_libraries=vchord,pg_stat_statements"]
     volumes:
-      - ${DB_PATH}:/var/lib/postgresql/data
+      - ${IMMICH_DB_DATA_PATH}:/var/lib/postgresql/data
       - ./init-immich-db.sql:/docker-entrypoint-initdb.d/init.sql
     shm_size: 128mb
     healthcheck:
@@ -30,7 +30,7 @@ services:
     image: ghcr.io/immich-app/immich-server:{{ docker_versions.immich.server }}
     command: [ "start.sh", "immich" ]
     volumes:
-      - ${UPLOAD_PATH}:/usr/src/app/upload
+      - ${IMMICH_UPLOAD_PATH}:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
     env_file: .env
     depends_on:
@@ -52,6 +52,7 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network={{ proxy_network_name }}"
       - "traefik.http.routers.immich-http.rule=Host(`${IMMICH_DOMAIN}`)"
       - "traefik.http.routers.immich-http.entrypoints=web"
       - "traefik.http.routers.immich-http.service=immich"
@@ -59,16 +60,14 @@ services:
       - "traefik.http.routers.immich-https.entrypoints=websecure"
       - "traefik.http.routers.immich-https.service=immich"
       - "traefik.http.routers.immich-https.tls=true"
-{% if proxy_enable_letsencrypt %}
-      - "traefik.http.routers.immich-https.tls.certresolver=letsencrypt"
-{% endif %}
+      - "traefik.http.routers.immich-https.tls.certresolver={{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
       - "traefik.http.services.immich.loadbalancer.server.port=2283"
 
   immich-machine-learning:
     container_name: immich_machine_learning
     image: ghcr.io/immich-app/immich-machine-learning:{{ docker_versions.immich.machine_learning }}
     volumes:
-      - ${MODEL_CACHE_PATH}:/cache
+      - ${IMMICH_MODEL_CACHE_PATH}:/cache
     env_file: .env
     restart: {{ docker_restart_policy }}
     deploy:

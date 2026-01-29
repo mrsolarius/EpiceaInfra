@@ -14,7 +14,7 @@ services:
     env_file: .env
     command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
     volumes:
-      - ${DB_PATH}:/var/lib/postgresql/data
+      - ${NEXTCLOUD_DB_DATA_PATH}:/var/lib/postgresql/data
       - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - default
@@ -41,13 +41,14 @@ services:
           memory: 512M
     env_file: .env
     volumes:
-      - ${HTML_PATH}:/var/www/html
-      - ${DATA_PATH}:/var/www/html/data
+      - ${NEXTCLOUD_HTML_PATH}:/var/www/html
+      - ${NEXTCLOUD_DATA_PATH}:/var/www/html/data
     networks:
       - default
       - proxy
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network={{ proxy_network_name }}"
       - "traefik.http.routers.nextcloud-http.rule=Host(`${NEXTCLOUD_TRUSTED_DOMAINS}`)"
       - "traefik.http.routers.nextcloud-http.entrypoints=web"
       - "traefik.http.routers.nextcloud-http.service=nextcloud"
@@ -55,9 +56,7 @@ services:
       - "traefik.http.routers.nextcloud-https.entrypoints=websecure"
       - "traefik.http.routers.nextcloud-https.service=nextcloud"
       - "traefik.http.routers.nextcloud-https.tls=true"
-{% if proxy_enable_letsencrypt %}
-      - "traefik.http.routers.nextcloud-https.tls.certresolver=letsencrypt"
-{% endif %}
+      - "traefik.http.routers.nextcloud-https.tls.certresolver={{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
       - "traefik.http.middlewares.nextcloud-dav.redirectregex.regex=^/.well-known/(card|cal)dav"
       - "traefik.http.middlewares.nextcloud-dav.redirectregex.replacement=/remote.php/dav/"
       - "traefik.http.routers.nextcloud-http.middlewares=nextcloud-dav"

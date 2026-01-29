@@ -13,8 +13,8 @@
     group: "{{ system_group }}"
   loop:
     - "{{ storage.ansible.compose }}/traefik"
-    - "{{ storage.ansible.compose }}/traefik/config"
-    - "{{ storage.ansible.compose }}/traefik/config/dynamic"
+    - "{{ traefik_config_path }}"
+    - "{{ traefik_config_path }}/dynamic"
     - "{{ storage.ansible.compose }}/traefik/letsencrypt"
     - "{{ storage.ansible.compose }}/traefik/logs"
 
@@ -30,7 +30,7 @@
 - name: Déployer configuration statique Traefik
   ansible.builtin.template:
     src: traefik.yml.j2
-    dest: "{{ storage.ansible.compose }}/traefik/config/traefik.yml"
+    dest: "{{ traefik_config_path }}/traefik.yml"
     mode: '0644'
     owner: "{{ system_user }}"
     group: "{{ system_group }}"
@@ -39,7 +39,7 @@
 - name: Déployer middlewares dynamiques
   ansible.builtin.template:
     src: dynamic-middlewares.yml.j2
-    dest: "{{ storage.ansible.compose }}/traefik/config/dynamic/middlewares.yml"
+    dest: "{{ traefik_config_path }}/dynamic/middlewares.yml"
     mode: '0644'
     owner: "{{ system_user }}"
     group: "{{ system_group }}"
