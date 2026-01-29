@@ -39,3 +39,4 @@ networks:
   proxy:
     name: ${PROXY_NETWORK}
     external: true
+

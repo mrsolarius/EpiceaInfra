@@ -1,0 +1,33 @@
+---
+# ========================================
+# Versions des images Docker (Dictionnaire structuré)
+# ========================================
+
+docker_versions:
+  # Infrastructure partagée
+  common:
+    docker_socket_proxy: "latest"
+    traefik: "v3.6.6"
+    postgres: "16-alpine"
+    redis: "8-alpine"
+    postgres_exporter: "v0.15.0"
+    redis_exporter: "v1.55.0"
+
+  # Stack Monitoring
+  monitoring:
+    prometheus: "v3.9.1"
+    alertmanager: "v0.26.0"
+    cadvisor: "v0.55.1"
+    grafana: "12.3.1"
+    loki: "3.3.2"
+    promtail: "3.3.2"
+
+  # Stack Immich
+  immich:
+    server: "v2.4.1"
+    machine_learning: "v1.130.2"
+    postgres: "16-vectorchord0.3.0-pgvectors0.3.0"
+
+  # Autres Applications
+  nextcloud: "32.0.5"
+  jellyfin: "10.11.6"

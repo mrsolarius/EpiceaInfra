@@ -1,6 +1,6 @@
 services:
   nextcloud-db:
-    image: postgres:{{ docker_versions.postgres }}
+    image: postgres:{{ docker_versions.common.postgres }}
     container_name: nextcloud_db
     restart: {{ docker_restart_policy }}
     deploy:
@@ -81,7 +81,7 @@ services:
       - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
 
   nextcloud-postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:{{ docker_versions.postgres_exporter }}
+    image: prometheuscommunity/postgres-exporter:{{ docker_versions.common.postgres_exporter }}
     container_name: nextcloud_postgres_exporter
     restart: unless-stopped
     deploy:
@@ -113,3 +113,4 @@ networks:
   proxy:
     name: ${PROXY_NETWORK}
     external: true
+

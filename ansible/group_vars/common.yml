@@ -1,0 +1,11 @@
+---
+# ========================================
+# Variables communes à tous les environnements
+# ========================================
+
+timezone: "Europe/Paris"
+
+# Propriétés Docker communes
+docker_restart_policy: "always"
+monitoring_network_name: "monitoring"
+proxy_network_name: "traefik-proxy"

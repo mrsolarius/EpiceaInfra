@@ -4,7 +4,8 @@
   become: true
 
   vars_files:
-    - ../group_vars/all.yml
+    - ../group_vars/common.yml
+    - ../group_vars/versions.yml
     - ../secrets/vault.yml
 
   pre_tasks:

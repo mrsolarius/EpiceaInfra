@@ -1,6 +1,6 @@
 services:
   prometheus:
-    image: prom/prometheus:{{ docker_versions.prometheus }}
+    image: prom/prometheus:{{ docker_versions.monitoring.prometheus }}
     container_name: prometheus
     restart: {{ docker_restart_policy }}
     user: root
@@ -34,7 +34,7 @@ services:
       start_period: 10s
 
   alertmanager:
-    image: prom/alertmanager:{{ docker_versions.alertmanager }}
+    image: prom/alertmanager:{{ docker_versions.monitoring.alertmanager }}
     container_name: alertmanager
     restart: {{ docker_restart_policy }}
     deploy:
@@ -60,7 +60,7 @@ services:
       start_period: 10s
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:{{ docker_versions.cadvisor }}
+    image: gcr.io/cadvisor/cadvisor:{{ docker_versions.monitoring.cadvisor }}
     container_name: cadvisor
     restart: {{ docker_restart_policy }}
     privileged: true
@@ -99,7 +99,7 @@ services:
         condition: service_healthy
 
   redis-exporter:
-    image: oliver006/redis_exporter:{{ docker_versions.redis_exporter }}
+    image: oliver006/redis_exporter:{{ docker_versions.common.redis_exporter }}
     container_name: redis-exporter
     restart: {{ docker_restart_policy }}
     deploy:
@@ -127,7 +127,7 @@ services:
       start_period: 10s
 
   grafana:
-    image: grafana/grafana:{{ docker_versions.grafana }}
+    image: grafana/grafana:{{ docker_versions.monitoring.grafana }}
     container_name: grafana
     restart: {{ docker_restart_policy }}
     user: root
@@ -185,7 +185,7 @@ services:
         condition: service_healthy
 
   loki:
-    image: grafana/loki:{{ docker_versions.loki }}
+    image: grafana/loki:{{ docker_versions.monitoring.loki }}
     container_name: loki
     restart: {{ docker_restart_policy }}
     user: root
@@ -211,7 +211,7 @@ services:
       start_period: 30s
 
   promtail:
-    image: grafana/promtail:{{ docker_versions.promtail }}
+    image: grafana/promtail:{{ docker_versions.monitoring.promtail }}
     container_name: promtail
     restart: {{ docker_restart_policy }}
     deploy:
@@ -236,7 +236,7 @@ services:
         condition: service_healthy
 
   docker-socket-proxy:
-    image: tecnativa/docker-socket-proxy:{{ docker_versions.docker_socket_proxy }}
+    image: tecnativa/docker-socket-proxy:{{ docker_versions.common.docker_socket_proxy }}
     container_name: docker-socket-proxy-monitoring
     restart: unless-stopped
     deploy:

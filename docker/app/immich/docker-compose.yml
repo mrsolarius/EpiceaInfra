@@ -1,7 +1,7 @@
 services:
   immich-postgres:
     container_name: immich_postgres
-    image: ghcr.io/immich-app/postgres:{{ docker_versions.immich_postgres }}
+    image: ghcr.io/immich-app/postgres:{{ docker_versions.immich.postgres }}
     restart: {{ docker_restart_policy }}
     deploy:
       resources:
@@ -31,7 +31,7 @@ services:
 
   immich-server:
     container_name: immich_server
-    image: ghcr.io/immich-app/immich-server:{{ docker_versions.immich }}
+    image: ghcr.io/immich-app/immich-server:{{ docker_versions.immich.server }}
     command: [ "start.sh", "immich" ]
     volumes:
       - /mnt/photos:/usr/src/app/upload
@@ -70,7 +70,7 @@ services:
 
   immich-machine-learning:
     container_name: immich_machine_learning
-    image: ghcr.io/immich-app/immich-machine-learning:{{ docker_versions.immich_ml }}
+    image: ghcr.io/immich-app/immich-machine-learning:{{ docker_versions.immich.machine_learning }}
     volumes:
       - ${DATA_PATH}/immich/model-cache:/cache
     env_file: .env
@@ -87,7 +87,7 @@ services:
       - default
 
   immich-postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:{{ docker_versions.postgres_exporter }}
+    image: prometheuscommunity/postgres-exporter:{{ docker_versions.common.postgres_exporter }}
     container_name: immich_postgres_exporter
     restart: unless-stopped
     deploy:
@@ -119,3 +119,4 @@ networks:
   proxy:
     name: ${PROXY_NETWORK}
     external: true
+

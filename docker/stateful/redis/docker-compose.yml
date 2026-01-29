@@ -1,6 +1,6 @@
 services:
   redis:
-    image: redis:{{ docker_versions.redis }}
+    image: redis:{{ docker_versions.common.redis }}
     container_name: redis
     command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
     restart: {{ docker_restart_policy }}
@@ -31,3 +31,4 @@ networks:
   proxy:
     name: ${PROXY_NETWORK}
     external: true
+
