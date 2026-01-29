@@ -21,7 +21,6 @@ services:
       - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - default
-      - proxy
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -81,8 +80,36 @@ services:
       - "traefik.http.routers.nextcloud-https.middlewares=nextcloud-dav"
       - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
 
+  nextcloud-postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:{{ docker_versions.postgres_exporter }}
+    container_name: nextcloud_postgres_exporter
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@nextcloud-db:5432/${POSTGRES_DB}?sslmode=disable"
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      PG_EXPORTER_CONSTANT_LABELS: "instance=nextcloud"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
+    volumes:
+      - ./postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    networks:
+      - default
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   default:
+  monitoring:
+    name: {{ monitoring_network_name }}
+    external: true
   proxy:
     name: ${PROXY_NETWORK}
     external: true

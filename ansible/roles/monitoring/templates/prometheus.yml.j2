@@ -82,7 +82,7 @@ scrape_configs:
   # ========================================
   - job_name: 'postgres-nextcloud'
     static_configs:
-      - targets: ['nextcloud-postgres-exporter:9187']
+      - targets: ['nextcloud_postgres_exporter:9187']
         labels:
           service: 'postgresql'
           environment: '{{ deploy_environment }}'
@@ -92,7 +92,7 @@ scrape_configs:
 
   - job_name: 'postgres-immich'
     static_configs:
-      - targets: ['immich-postgres-exporter:9187']
+      - targets: ['immich_postgres_exporter:9187']
         labels:
           service: 'postgresql'
           environment: '{{ deploy_environment }}'

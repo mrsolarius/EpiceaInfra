@@ -16,7 +16,6 @@
     - "{{ docker_compose_path }}/monitoring/prometheus"
     - "{{ docker_compose_path }}/monitoring/prometheus/rules"
     - "{{ docker_compose_path }}/monitoring/alertmanager"
-    - "{{ docker_compose_path }}/monitoring/postgres-exporter"
     - "{{ docker_compose_path }}/monitoring/loki"
     - "{{ docker_compose_path }}/monitoring/promtail"
     - "{{ docker_compose_path }}/monitoring/grafana/provisioning/datasources"
@@ -53,15 +52,6 @@
   ansible.builtin.copy:
     src: redis-alerts.yml
     dest: "{{ docker_compose_path }}/monitoring/prometheus/rules/redis-alerts.yml"
-    mode: '0644'
-    owner: root
-    group: root
-  notify: restart monitoring
-
-- name: Déployer queries custom postgres-exporter
-  ansible.builtin.copy:
-    src: postgres-exporter-queries.yaml
-    dest: "{{ docker_compose_path }}/monitoring/postgres-exporter/queries.yaml"
     mode: '0644'
     owner: root
     group: root

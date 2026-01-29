@@ -98,56 +98,6 @@ services:
       docker-socket-proxy:
         condition: service_healthy
 
-  nextcloud-postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:{{ docker_versions.postgres_exporter }}
-    container_name: nextcloud_postgres_exporter
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: 128M
-    environment:
-      DATA_SOURCE_NAME: "postgresql://${NEXTCLOUD_DB_USER}:${NEXTCLOUD_DB_PASSWORD}@nextcloud-db:5432/${NEXTCLOUD_DB_NAME}?sslmode=disable"
-      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
-      PG_EXPORTER_CONSTANT_LABELS: "instance=nextcloud"
-      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
-    volumes:
-      - ./postgres-exporter/queries.yaml:/etc/postgres-exporter/queries.yaml:ro
-    networks:
-      - monitoring
-      - traefik-proxy
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  immich-postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:{{ docker_versions.postgres_exporter }}
-    container_name: immich_postgres_exporter
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: 128M
-    environment:
-      DATA_SOURCE_NAME: "postgresql://${IMMICH_DB_USER}:${IMMICH_DB_PASSWORD}@immich-postgres:5432/${IMMICH_DB_NAME}?sslmode=disable"
-      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
-      PG_EXPORTER_CONSTANT_LABELS: "instance=immich"
-      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
-    volumes:
-      - ./postgres-exporter/queries.yaml:/etc/postgres-exporter/queries.yaml:ro
-    networks:
-      - monitoring
-      - traefik-proxy
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   redis-exporter:
     image: oliver006/redis_exporter:{{ docker_versions.redis_exporter }}
     container_name: redis-exporter
@@ -333,6 +283,7 @@ networks:
     external: true
     name: traefik-proxy
   monitoring:
-    driver: bridge
+    external: true
+    name: monitoring
   docker-socket:
     internal: true

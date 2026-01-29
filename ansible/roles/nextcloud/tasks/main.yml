@@ -30,6 +30,12 @@
     dest: "{{ docker_compose_path }}/nextcloud/.env"
     mode: '0600'
 
+- name: Copier les requêtes personnalisées postgres-exporter
+  ansible.builtin.copy:
+    src: ../../../ansible/roles/monitoring/files/postgres-exporter-queries.yaml
+    dest: "{{ docker_compose_path }}/nextcloud/postgres-exporter-queries.yaml"
+    mode: '0644'
+
 - name: Générer le fichier docker-compose
   ansible.builtin.template:
     src: ../../../docker/app/nextcloud/docker-compose.yml

@@ -28,7 +28,6 @@ services:
       retries: 5
     networks:
       - default
-      - proxy
 
   immich-server:
     container_name: immich_server
@@ -86,10 +85,37 @@ services:
           memory: 1G
     networks:
       - default
-      - proxy
+
+  immich-postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:{{ docker_versions.postgres_exporter }}
+    container_name: immich_postgres_exporter
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${DB_USERNAME}:${DB_PASSWORD}@immich-postgres:5432/${DB_DATABASE_NAME}?sslmode=disable"
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      PG_EXPORTER_CONSTANT_LABELS: "instance=immich"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
+    volumes:
+      - ./postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    networks:
+      - default
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 networks:
   default:
+  monitoring:
+    name: {{ monitoring_network_name }}
+    external: true
   proxy:
     name: ${PROXY_NETWORK}
     external: true

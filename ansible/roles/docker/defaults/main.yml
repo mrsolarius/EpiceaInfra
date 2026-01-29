@@ -9,6 +9,7 @@ docker_log_max_file: "5"
 
 # Network
 proxy_network_name: "traefik-proxy"
+monitoring_network_name: "monitoring"
 
 # GPU (conditionnel depuis group_vars)
 enable_gpu: false

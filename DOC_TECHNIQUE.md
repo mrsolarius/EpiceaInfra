@@ -118,8 +118,8 @@ EpiceaInfra/
 Pour éviter l'exposition directe de `/var/run/docker.sock` aux conteneurs exposés sur Internet (Traefik), un proxy de socket (`tecnativa/docker-socket-proxy`) est utilisé.
 
 - **Traefik** : Communique avec le proxy via le réseau interne `docker-socket`. Le proxy est configuré pour n'autoriser que les accès nécessaires à l'auto-discovery (Containers, Services, Networks, etc.).
-- **Monitoring (cAdvisor & Promtail)** : Utilisent également un proxy de socket filtré pour collecter les métriques et logs.
-- **Isolation** : Le socket Unix n'est monté que dans les conteneurs proxies, qui ne sont pas exposés sur Internet.
+- **Monitoring** : Chaque application inclut ses propres exportateurs de métriques (ex: `postgres-exporter`) en tant que sidecar, connectés à la fois au réseau interne de l'application et au réseau global `monitoring`.
+- **Isolation** : Les bases de données ne sont jamais exposées sur le réseau `proxy`. Seuls les services "Front" y ont accès. Le socket Unix n'est monté que dans les conteneurs proxies, qui ne sont pas exposés sur Internet.
 
 ---
 
