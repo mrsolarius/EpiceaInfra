@@ -37,7 +37,7 @@
 
 - name: Générer le fichier docker-compose
   ansible.builtin.template:
-    src: ../../../docker/app/nextcloud/docker-compose.yml
+    src: docker-compose.yml.j2
     dest: "{{ storage.ansible.compose }}/nextcloud/docker-compose.yml"
     mode: '0644'
     trim_blocks: true

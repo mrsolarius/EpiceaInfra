@@ -56,7 +56,7 @@
 
 - name: Générer docker-compose.yml Traefik
   ansible.builtin.template:
-    src: "{{ playbook_dir }}/../../docker/traefik/docker-compose.yml"
+    src: docker-compose.yml.j2
     dest: "{{ storage.ansible.compose }}/traefik/docker-compose.yml"
     mode: '0644'
     owner: "{{ common_system_user }}"

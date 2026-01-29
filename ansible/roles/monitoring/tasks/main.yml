@@ -152,7 +152,7 @@
 
 - name: Générer docker-compose.yml Monitoring
   ansible.builtin.template:
-    src: "{{ playbook_dir }}/../../docker/monitoring/docker-compose.yml"
+    src: docker-compose.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/docker-compose.yml"
     mode: '0644'
     owner: "{{ common_system_user }}"

@@ -32,7 +32,7 @@
 
 - name: Copier le docker-compose pour Redis
   ansible.builtin.template:
-    src: ../../../docker/stateful/redis/docker-compose.yml
+    src: docker-compose.yml.j2
     dest: "{{ storage.ansible.compose }}/redis/docker-compose.yml"
     mode: '0644'
     trim_blocks: true

@@ -38,7 +38,7 @@
 
 - name: Générer le fichier docker-compose
   ansible.builtin.template:
-    src: ../../../docker/app/immich/docker-compose.yml
+    src: docker-compose.yml.j2
     dest: "{{ storage.ansible.compose }}/immich/docker-compose.yml"
     mode: '0644'
     trim_blocks: true
