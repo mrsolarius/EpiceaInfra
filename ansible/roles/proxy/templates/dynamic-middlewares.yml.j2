@@ -107,7 +107,7 @@ http:
       middlewares:
         - traefik-auth
       tls:
-{% if enable_letsencrypt %}
+{% if proxy_enable_letsencrypt %}
         certResolver: letsencrypt
 {% else %}
         {}
@@ -123,7 +123,7 @@ http:
       middlewares:
         - traefik-auth
       tls:
-{% if enable_letsencrypt %}
+{% if proxy_enable_letsencrypt %}
         certResolver: letsencrypt
 {% else %}
         {}

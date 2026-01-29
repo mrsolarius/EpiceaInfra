@@ -48,7 +48,7 @@ entryPoints:
 
   websecure:
     address: ":443"
-{% if enable_letsencrypt %}
+{% if proxy_enable_letsencrypt %}
     http:
       tls:
         certResolver: letsencrypt
@@ -81,7 +81,7 @@ providers:
 # ========================================
 # Let's Encrypt (production uniquement)
 # ========================================
-{% if enable_letsencrypt %}
+{% if proxy_enable_letsencrypt %}
 certificatesResolvers:
   letsencrypt:
     acme:
