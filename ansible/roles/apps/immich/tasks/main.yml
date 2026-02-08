@@ -32,7 +32,7 @@
 
 - name: Copier les requêtes personnalisées postgres-exporter
   ansible.builtin.copy:
-    src: ../../../ansible/roles/monitoring/files/postgres-exporter-queries.yaml
+    src: ../../../monitoring/files/postgres-exporter-queries.yaml
     dest: "{{ storage.ansible.compose }}/immich/postgres-exporter-queries.yaml"
     mode: '0644'
 

@@ -23,7 +23,7 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network={{ proxy_network_name }}"
+      - "traefik.docker.network={{ docker_proxy_network_name }}"
       - "traefik.http.routers.jellyfin-http.rule=Host(`${JELLYFIN_DOMAIN}`)"
       - "traefik.http.routers.jellyfin-http.entrypoints=web"
       - "traefik.http.routers.jellyfin-http.service=jellyfin"
@@ -36,6 +36,6 @@ services:
 
 networks:
   proxy:
-    name: {{ proxy_network_name }}
+    name: {{ docker_proxy_network_name }}
     external: true
 

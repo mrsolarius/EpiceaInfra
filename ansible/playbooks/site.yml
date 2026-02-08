@@ -45,20 +45,20 @@
       when: "'monitoring' in enabled_services"
 
     # Services partagés (Redis)
-    - role: database
+    - role: redis
       tags: [redis, database, services]
       when: "'redis' in enabled_services or 'shared-services' in enabled_services"
 
     # Applications
-    - role: nextcloud
+    - role: apps/nextcloud
       tags: [nextcloud, services]
       when: "'nextcloud' in enabled_services"
 
-    - role: immich
+    - role: apps/immich
       tags: [immich, services]
       when: "'immich' in enabled_services"
 
-    - role: jellyfin
+    - role: apps/jellyfin
       tags: [jellyfin, services]
       when: "'jellyfin' in enabled_services"
 

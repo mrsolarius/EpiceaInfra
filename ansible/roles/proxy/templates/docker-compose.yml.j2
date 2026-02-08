@@ -78,7 +78,7 @@ services:
 networks:
   proxy:
     external: true
-    name: {{ proxy_network_name }}
+    name: {{ docker_proxy_network_name }}
   docker-socket:
     internal: true
 

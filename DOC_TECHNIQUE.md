@@ -24,18 +24,18 @@ EpiceaInfra/
 │   │   └── test.yml            # Variables environnement test
 │   ├── inventory/hosts.yml     # Inventaire des hôtes
 │   ├── playbooks/site.yml      # Playbook principal
-│   ├── roles/                  # Rôles Ansible (voir détail ci-dessous)
+│   ├── roles/                  # Rôles Ansible
+│   │   ├── apps/               # Rôles applicatifs
+│   │   │   ├── immich/
+│   │   │   ├── jellyfin/
+│   │   │   └── nextcloud/
+│   │   ├── common/             # Base system
+│   │   ├── docker/             # Docker engine
+│   │   ├── monitoring/         # Stack monitoring
+│   │   ├── proxy/              # Traefik
+│   │   ├── redis/              # Cache Redis
+│   │   └── storage/            # Montages NFS
 │   └── secrets/vault.yml.example # Template des secrets
-├── docker/                     # Configurations Docker Compose
-│   ├── app/                    # Applications métier
-│   │   ├── immich/             # Gestion photos
-│   │   ├── jellyfin/           # Média streaming
-│   │   └── nextcloud/          # Cloud personnel
-│   ├── monitoring/             # Stack monitoring
-│   ├── stateful/               # Services avec état
-│   │   ├── postgres/           # Base de données
-│   │   └── redis/              # Cache
-│   └── traefik/                # Reverse proxy
 ├── scripts/                    # Scripts utilitaires
 │   ├── bootstrap.sh            # Bootstrap initial
 │   ├── test-traefik.sh         # Tests Traefik
@@ -88,7 +88,7 @@ EpiceaInfra/
         ▼                       ▼                       ▼
 ┌───────────────┐       ┌───────────────┐       ┌───────────────┐
 │  POSTGRESQL   │       │    REDIS      │       │   NFS MOUNTS  │
-│  (pgvecto.rs) │       │  (Cache)      │       │               │
+│  (Dédié/App)  │       │  (Mutualisé)  │       │               │
 │  :5432        │       │  :6379        │       │  /mnt/media   │
 │               │       │               │       │  /mnt/photos  │
 │ - Nextcloud   │       │ - Sessions    │       │  /mnt/cloud   │
@@ -314,13 +314,14 @@ traefik_network_name: "traefik-proxy"
 
 ---
 
-### 5. `database` - Redis Mutualisé
+### 5. `redis` - Redis Mutualisé
 
 **Fichiers :**
 - `tasks/main.yml` - Déploiement de Redis Stack
 - `templates/redis.env.j2` - Variables Redis
+- `templates/redis.conf.j2` - Configuration Redis
 
-**Note importante :** Les instances PostgreSQL sont désormais gérées directement par les rôles applicatifs (`immich`, `nextcloud`) pour une meilleure isolation et compatibilité (ex: extensions spécifiques comme VectorChord).
+**Note importante :** Les instances PostgreSQL sont désormais gérées directement par les rôles applicatifs (`apps/immich`, `apps/nextcloud`) pour une meilleure isolation et compatibilité (ex: extensions spécifiques comme VectorChord).
 
 **Redis :**
 
@@ -341,7 +342,7 @@ traefik_network_name: "traefik-proxy"
 - `tasks/main.yml` - Déploiement monitoring
 - `handlers/main.yml` - Restart monitoring
 - `templates/*.j2` - Configurations
-- `files/*.json` - Dashboards Grafana
+- `files/dashboards/*.json` - Dashboards Grafana
 - `files/*-alerts.yml` - Règles d'alerting
 
 **Composants déployés :**
@@ -469,7 +470,7 @@ route:
 
 ---
 
-### 7. `immich` - Gestion de Photos
+### 7. `apps/immich` - Gestion de Photos
 
 **Fichiers :**
 - `tasks/main.yml` - Déploiement Immich
@@ -500,7 +501,7 @@ route:
 
 ---
 
-### 8. `jellyfin` - Streaming Média
+### 8. `apps/jellyfin` - Streaming Média
 
 **Fichiers :**
 - `tasks/main.yml` - Déploiement Jellyfin
@@ -519,7 +520,7 @@ route:
 
 ---
 
-### 9. `nextcloud` - Cloud Personnel
+### 9. `apps/nextcloud` - Cloud Personnel
 
 **Fichiers :**
 - `tasks/main.yml` - Déploiement Nextcloud

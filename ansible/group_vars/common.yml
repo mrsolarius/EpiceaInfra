@@ -7,8 +7,8 @@ timezone: "Europe/Paris"
 
 # Propriétés Docker communes
 docker_restart_policy: "always"
-monitoring_network_name: "monitoring"
-proxy_network_name: "traefik-proxy"
+docker_monitoring_network_name: "monitoring"
+docker_proxy_network_name: "traefik-proxy"
 
 # ====================================================
 # 1. RACINES PHYSIQUES (Où sont les disques ?)

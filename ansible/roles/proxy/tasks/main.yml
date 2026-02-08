@@ -65,9 +65,9 @@
     lstrip_blocks: true
   notify: restart traefik
 
-- name: Créer réseau Docker {{ proxy_network_name }}
+- name: Créer réseau Docker {{ docker_proxy_network_name }}
   community.docker.docker_network:
-    name: "{{ proxy_network_name }}"
+    name: "{{ docker_proxy_network_name }}"
     driver: bridge
     state: present
 
