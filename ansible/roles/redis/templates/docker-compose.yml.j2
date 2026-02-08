@@ -1,0 +1,34 @@
+services:
+  redis:
+    image: redis:{{ docker_versions.common.redis }}
+    container_name: redis
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    restart: {{ docker_restart_policy }}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - ${REDIS_DATA_PATH}:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - default
+      - proxy
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  default:
+  proxy:
+    name: {{ docker_proxy_network_name }}
+    external: true
+
