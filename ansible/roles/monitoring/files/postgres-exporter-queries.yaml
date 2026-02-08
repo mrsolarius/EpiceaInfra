@@ -251,7 +251,7 @@ pg_stat_user_indexes_usage:
   query: |
     SELECT
       schemaname,
-      tablename,
+      relname as tablename,
       indexrelname as indexname,
       idx_scan,
       idx_tup_read,
