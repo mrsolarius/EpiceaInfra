@@ -25,11 +25,7 @@ echo "📦 Installation Python + Git..."
 apt-get install -y -qq python3 python3-pip git curl
 
 echo "📦 Installation Ansible..."
-python3 -m pip install --break-system-packages ansible
-
-# Ajouter Ansible au PATH
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-export PATH="$HOME/.local/bin:$PATH"
+apt-get install -y -qq ansible
 
 echo ""
 echo "========================================"

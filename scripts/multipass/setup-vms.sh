@@ -7,6 +7,9 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+# Désactiver la conversion de chemin MSYS/Git Bash pour les commandes envoyées aux VMs
+export MSYS_NO_PATHCONV=1
+
 echo -e "${GREEN}=== Configuration VMs Multipass pour tests Epicea ===${NC}\n"
 
 # Récupère le chemin du projet (depuis scripts/multipass/)
@@ -89,11 +92,12 @@ echo -e "  Epicea VM  : ${YELLOW}${EPICEA_IP}${NC}\n"
 
 # 4. Monter temporairement le projet sur Storage VM pour accéder aux scripts
 echo -e "${GREEN}📋 Montage temporaire du projet sur Storage VM...${NC}"
-multipass mount "$PROJECT_ROOT" "$STORAGE_VM:/tmp/infra-scripts"
+# Utiliser un chemin relatif simple pour éviter les problèmes de drive letter Windows dans le mount
+multipass mount . "$STORAGE_VM:/tmp/infra-scripts"
 
 # 5. Initialiser VM Storage (NFS server)
 echo -e "${GREEN}🔧 Configuration NFS sur Storage VM...${NC}"
-multipass exec "$STORAGE_VM" -- bash ./scripts/multipass/init-storage-vm.sh
+multipass exec "$STORAGE_VM" -- sudo bash /tmp/infra-scripts/scripts/multipass/init-storage-vm.sh
 
 # Démonter après utilisation
 echo -e "${GREEN}📋 Démontage du projet sur Storage VM...${NC}"
@@ -102,7 +106,7 @@ multipass umount "$STORAGE_VM:/tmp/infra-scripts"
 # 6. Initialiser VM Epicea (Docker + Ansible)
 # Le projet est déjà monté dans /home/ubuntu/infra
 echo -e "${GREEN}🔧 Configuration Epicea VM...${NC}"
-multipass exec "$EPICEA_VM" -- bash ./scripts/multipass/init-epicea-vm.sh "$STORAGE_IP"
+multipass exec "$EPICEA_VM" -- sudo bash /home/ubuntu/infra/scripts/multipass/init-epicea-vm.sh "$STORAGE_IP"
 
 # 7. Mettre à jour l'inventory Ansible avec les bonnes IPs
 echo -e "${GREEN}📝 Mise à jour inventory Ansible...${NC}"

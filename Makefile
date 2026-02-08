@@ -73,7 +73,7 @@ secrets:
 # ========================================
 test-deploy:
 	@echo "🚀 Déploiement sur environnement TEST..."
-	@multipass exec epicea-test -- bash -c "cd /home/ubuntu/infra/ansible && ANSIBLE_CONFIG=/home/ubuntu/infra/ansible/ansible.cfg ansible-playbook -i inventory/hosts.yml --limit test playbooks/site.yml -e '@group_vars/test.yml'"
+	@MSYS_NO_PATHCONV=1 multipass exec epicea-test -- bash -c "cd /home/ubuntu/infra/ansible && export PATH=\$PATH:/usr/bin && ANSIBLE_CONFIG=/home/ubuntu/infra/ansible/ansible.cfg ansible-playbook -i inventory/hosts.yml --limit test playbooks/site.yml -e '@group_vars/test.yml'"
 
 deploy:
 	@echo "🚀 Déploiement sur PRODUCTION..."
@@ -88,7 +88,7 @@ deploy:
 # ========================================
 test-status:
 	@echo "📊 Status services TEST..."
-	@multipass exec epicea-test -- docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+	@MSYS_NO_PATHCONV=1 multipass exec epicea-test -- docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 status:
 	@echo "📊 Status services..."
@@ -96,7 +96,7 @@ status:
 
 test-logs:
 	@echo "📋 Logs services TEST..."
-	@multipass exec epicea-test -- docker compose -f /opt/epicea/docker/traefik/docker-compose.yml logs -f --tail=100
+	@MSYS_NO_PATHCONV=1 multipass exec epicea-test -- docker compose -f /opt/epicea/docker/traefik/docker-compose.yml logs -f --tail=100
 
 # ========================================
 # VALIDATION

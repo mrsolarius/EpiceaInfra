@@ -16,7 +16,7 @@ echo ""
 
 # Lancer bootstrap (installe Ansible uniquement)
 echo "🚀 Lancement du bootstrap..."
-sudo bash /home/ubuntu/infra/scripts/bootstrap.sh
+sudo /bin/bash /home/ubuntu/infra/scripts/bootstrap.sh
 
 echo ""
 echo "========================================"
