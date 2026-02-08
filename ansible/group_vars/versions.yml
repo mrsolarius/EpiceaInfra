@@ -6,7 +6,7 @@
 docker_versions:
   # Infrastructure partagée
   common:
-    docker_socket_proxy: "latest"
+    docker_socket_proxy: "v0.4.2"
     traefik: "v3.6.6"
     postgres: "16-alpine"
     redis: "8-alpine"
