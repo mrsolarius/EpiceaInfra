@@ -52,7 +52,7 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network={{ proxy_network_name }}"
+      - "traefik.docker.network={{ docker_proxy_network_name }}"
       - "traefik.http.routers.immich-http.rule=Host(`${IMMICH_DOMAIN}`)"
       - "traefik.http.routers.immich-http.entrypoints=web"
       - "traefik.http.routers.immich-http.service=immich"
@@ -109,9 +109,9 @@ services:
 networks:
   default:
   monitoring:
-    name: {{ monitoring_network_name }}
+    name: {{ docker_monitoring_network_name }}
     external: true
   proxy:
-    name: {{ proxy_network_name }}
+    name: {{ docker_proxy_network_name }}
     external: true
 

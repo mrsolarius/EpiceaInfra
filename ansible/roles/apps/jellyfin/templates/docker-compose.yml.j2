@@ -21,9 +21,15 @@ services:
       - 7359:7359/udp  # Auto-discovery
     networks:
       - proxy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network={{ proxy_network_name }}"
+      - "traefik.docker.network={{ docker_proxy_network_name }}"
       - "traefik.http.routers.jellyfin-http.rule=Host(`${JELLYFIN_DOMAIN}`)"
       - "traefik.http.routers.jellyfin-http.entrypoints=web"
       - "traefik.http.routers.jellyfin-http.service=jellyfin"
@@ -36,6 +42,6 @@ services:
 
 networks:
   proxy:
-    name: {{ proxy_network_name }}
+    name: {{ docker_proxy_network_name }}
     external: true
 

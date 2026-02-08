@@ -96,46 +96,10 @@
     group: "{{ common_system_group }}"
   notify: restart monitoring
 
-- name: Déployer dashboard Traefik pour Grafana
+- name: Déployer dashboards Grafana
   ansible.builtin.copy:
-    src: traefik-dashboard.json
-    dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/traefik.json"
-    mode: '0644'
-    owner: "{{ common_system_user }}"
-    group: "{{ common_system_group }}"
-  notify: restart monitoring
-
-- name: Déployer dashboard Docker pour Grafana
-  ansible.builtin.copy:
-    src: docker-dashboard.json
-    dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/docker.json"
-    mode: '0644'
-    owner: "{{ common_system_user }}"
-    group: "{{ common_system_group }}"
-  notify: restart monitoring
-
-- name: Déployer dashboard PostgreSQL pour Grafana
-  ansible.builtin.copy:
-    src: postgresql-dashboard.json
-    dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/postgresql.json"
-    mode: '0644'
-    owner: "{{ common_system_user }}"
-    group: "{{ common_system_group }}"
-  notify: restart monitoring
-
-- name: Déployer dashboard Redis pour Grafana
-  ansible.builtin.copy:
-    src: redis-dashboard.json
-    dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/redis.json"
-    mode: '0644'
-    owner: "{{ common_system_user }}"
-    group: "{{ common_system_group }}"
-  notify: restart monitoring
-
-- name: Déployer dashboard Bare Metal & NFS pour Grafana
-  ansible.builtin.copy:
-    src: node-exporter-dashboard.json
-    dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/node-exporter.json"
+    src: dashboards/
+    dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/"
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"

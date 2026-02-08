@@ -28,3 +28,13 @@
     project_src: "{{ storage.ansible.compose }}/jellyfin"
     state: present
     pull: always
+
+- name: Attendre que Jellyfin soit prêt
+  ansible.builtin.shell:
+    cmd: docker compose ps --format json | jq -r '.Health' | grep -c healthy || true
+    chdir: "{{ storage.ansible.compose }}/jellyfin"
+  register: jellyfin_health
+  until: jellyfin_health.stdout | int > 0
+  retries: 12
+  delay: 5
+  changed_when: false

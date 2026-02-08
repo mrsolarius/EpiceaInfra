@@ -27,7 +27,7 @@ drive_ssd_path: "/opt/epicea/ssd" # En test, on simule le SSD sur le NVMe
 drive_nfs_root: "/mnt/nas"
 
 # Configuration NFS (Storage VM)
-nfs_server: "192.168.100.196" # IP_STORAGE_TEST
+nfs_server: "172.20.179.70" # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "{{ drive_nfs_root }}/media"

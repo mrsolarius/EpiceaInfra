@@ -68,7 +68,7 @@ providers:
   docker:
     endpoint: "http://docker-socket-proxy:2375"
     exposedByDefault: false
-    network: {{ proxy_network_name }}
+    network: {{ docker_proxy_network_name }}
     watch: true
 
   # File-based config (middlewares, etc.)

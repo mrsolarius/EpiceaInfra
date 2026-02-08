@@ -1,0 +1,6 @@
+# .ansible-lint
+exclude_paths:
+  - .github/
+  - scripts/
+rules:
+  - no-changed-when

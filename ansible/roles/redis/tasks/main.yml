@@ -1,5 +1,5 @@
 ---
-# Le rôle database gère maintenant exclusivement Redis Stack.
+# Le rôle redis gère maintenant exclusivement Redis Stack.
 # Les instances PostgreSQL sont gérées directement par les applications (Nextcloud, Immich).
 
 # ==============================================================================

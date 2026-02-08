@@ -8,8 +8,8 @@ docker_daemon_log_max_size: "50m"
 docker_daemon_log_max_file: "5"
 
 # Network
-proxy_network_name: "traefik-proxy"
-monitoring_network_name: "monitoring"
+docker_proxy_network_name: "traefik-proxy"
+docker_monitoring_network_name: "monitoring"
 
 # Chemins de base (via storage dans common.yml)
 docker_compose_path: "{{ storage.ansible.compose }}"
