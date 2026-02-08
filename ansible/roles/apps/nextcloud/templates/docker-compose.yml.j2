@@ -46,6 +46,12 @@ services:
     networks:
       - default
       - proxy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/login"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ docker_proxy_network_name }}"

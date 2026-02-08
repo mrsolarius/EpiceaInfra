@@ -49,3 +49,13 @@
     project_src: "{{ storage.ansible.compose }}/immich"
     state: present
     pull: always
+
+- name: Attendre que Immich soit prêt
+  ansible.builtin.shell:
+    cmd: docker compose ps --format json | jq -r '.Health' | grep -c healthy || true
+    chdir: "{{ storage.ansible.compose }}/immich"
+  register: immich_health
+  until: immich_health.stdout | int >= 2
+  retries: 24
+  delay: 5
+  changed_when: false

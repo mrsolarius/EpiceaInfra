@@ -50,8 +50,14 @@
     pull: always
 
 - name: Attendre que Nextcloud soit prêt
-  ansible.builtin.pause:
-    seconds: 10
+  ansible.builtin.shell:
+    cmd: docker compose ps --format json | jq -r '.Health' | grep -c healthy || true
+    chdir: "{{ storage.ansible.compose }}/nextcloud"
+  register: nextcloud_health
+  until: nextcloud_health.stdout | int > 0
+  retries: 24
+  delay: 5
+  changed_when: false
 
 - name: Vérifier si Nextcloud est déjà configuré
   community.docker.docker_container_exec:
