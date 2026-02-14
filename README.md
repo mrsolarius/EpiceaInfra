@@ -62,7 +62,7 @@ graph TD
                 Jellyfin[Jellyfin]
                 Immich[Immich-Server]
                 Nextcloud[Nextcloud]
-                Litopia[Litopia (Front/Back)]
+                Litopia[Litopia Front/Back]
             end
 
             subgraph stateful [Stateful Services]
