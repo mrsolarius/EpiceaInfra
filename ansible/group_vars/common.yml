@@ -4,6 +4,7 @@
 # ========================================
 
 timezone: "Europe/Paris"
+allow_automatic_reboot: false
 
 # Propriétés Docker communes
 docker_restart_policy: "always"

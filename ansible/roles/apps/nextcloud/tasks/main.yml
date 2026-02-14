@@ -74,17 +74,15 @@
   community.docker.docker_container_exec:
     container: nextcloud
     command: >
-      php occ config:system:set {{ item.key }} --value="{{ item.value }}" {{ item.type | default('') }}
-  loop:
-    - { key: "dbhost", value: "nextcloud-db:5432" }
-    - { key: "dbtype", value: "pgsql" }
-    - { key: "overwrite.cli.url", value: "https://{{ service_domains.nextcloud }}" }
-    - { key: "overwriteprotocol", value: "https" }
-    - { key: "redis host", value: "redis" }
-    - { key: "filelocking.enabled", value: "true", type: "--type=boolean" }
-    - { key: "memcache.distributed", value: "\\OC\\Memcache\\Redis" }
-    - { key: "memcache.locking", value: "\\OC\\Memcache\\Redis" }
-    - { key: "xframe_options_action", value: "SAMEORIGIN" }
+      /bin/sh -lc "php occ config:system:set dbhost --value='nextcloud-db:5432' &&
+      php occ config:system:set dbtype --value='pgsql' &&
+      php occ config:system:set overwrite.cli.url --value='https://{{ service_domains.nextcloud }}' &&
+      php occ config:system:set overwriteprotocol --value='https' &&
+      php occ config:system:set redis host --value='redis' &&
+      php occ config:system:set filelocking.enabled --value='true' --type=boolean &&
+      php occ config:system:set memcache.distributed --value='\OC\Memcache\Redis' &&
+      php occ config:system:set memcache.locking --value='\OC\Memcache\Redis' &&
+      php occ config:system:set xframe_options_action --value='SAMEORIGIN'"
   register: occ_config
   until: occ_config is not failed
   retries: 5

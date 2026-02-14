@@ -8,3 +8,4 @@
     msg: "Reboot pour appliquer drivers NVIDIA"
     post_reboot_delay: 30
   listen: reboot system
+  when: allow_automatic_reboot | default(false)

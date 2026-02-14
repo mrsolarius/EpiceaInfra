@@ -42,11 +42,17 @@
     state: directory
     mode: '0755'
 
-- name: Ajouter la clÃ© GPG officielle Docker
-  ansible.builtin.shell: |
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    chmod a+r /etc/apt/keyrings/docker.gpg
-  args:
+- name: Télécharger la clé GPG officielle Docker
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: '0644'
+    force: false
+  when: docker_check.rc != 0
+
+- name: Dearmor la clé GPG Docker
+  ansible.builtin.command:
+    cmd: gpg --dearmor -o /etc/apt/keyrings/docker.gpg /etc/apt/keyrings/docker.asc
     creates: /etc/apt/keyrings/docker.gpg
   when: docker_check.rc != 0
 

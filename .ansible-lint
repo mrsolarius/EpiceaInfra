@@ -1,6 +1,30 @@
-# .ansible-lint
+---
+# .ansible-lint configuration pour EpiceaInfra
+
+profile: production
+
 exclude_paths:
   - .github/
   - scripts/
-rules:
+  - "*.md"
+  - "*.py"
+  - "*.txt"
+  - "inventory/"
+
+skip_list:
+  - role-name
+  - meta-no-info
+  - meta-incorrect
+  - layout
+  - no-handler
+
+warn_list:
   - no-changed-when
+  - command-instead-of-module
+  - risky-shell-pipe
+  - partial-become
+  - fqcn-builtins
+
+rules:
+  yaml:
+    line-length: disable

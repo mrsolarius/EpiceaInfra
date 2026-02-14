@@ -42,22 +42,6 @@
   community.general.timezone:
     name: "{{ timezone }}"
 
-# Les collections sont normalement gÃ©rÃ©es via ansible/requirements.yml
-# On peut laisser cette tÃ¢che avec ignore_errors si on veut Ãªtre sÃ»r sur l'hÃ´te de contrÃ´le
-# mais l'erreur 500 de Galaxy bloque le dÃ©ploiement.
-- name: Installation des collections Ansible
-  ansible.builtin.command:
-    cmd: ansible-galaxy collection install {{ item }}
-  loop:
-    - community.general
-    - community.docker
-    - ansible.posix
-  changed_when: false
-  become: false
-  delegate_to: localhost
-  run_once: true
-  ignore_errors: true
-
 - name: Configuration UFW - rÃ¨gles de base
   community.general.ufw:
     rule: "{{ item.rule }}"
@@ -145,6 +129,5 @@
       - "âœ… Paquets de base installÃ©s"
       - "âœ… Firewall UFW configurÃ©"
       - "âœ… Fail2ban activÃ©"
-      - "âœ… Collections Ansible installÃ©es"
       - "{% if deploy_environment == 'test' %}âœ… DNS local configurÃ©{% endif %}"
       - "{% if system_enable_gpu %}âœ… Drivers NVIDIA installÃ©s{% endif %}"
