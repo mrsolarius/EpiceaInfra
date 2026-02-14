@@ -12,6 +12,7 @@ storage_enable_zfs_snapshots: false
 
 # Domaine de base
 base_domain: "epicea-test.local"
+litopia_domain: "litopia.local"
 
 # Domaines des services
 service_domains:
@@ -20,6 +21,7 @@ service_domains:
   jellyfin: "jellyfin.{{ base_domain }}"
   nextcloud: "cloud.{{ base_domain }}"
   grafana: "monitoring.{{ base_domain }}"
+  litopia: "{{ litopia_domain }}"
 
 # Racines physiques (Multipass)
 drive_nvme_path: "/opt/epicea"
@@ -27,7 +29,7 @@ drive_ssd_path: "/opt/epicea/ssd" # En test, on simule le SSD sur le NVMe
 drive_nfs_root: "/mnt/nas"
 
 # Configuration NFS (Storage VM)
-nfs_server: "172.20.179.70" # IP_STORAGE_TEST
+nfs_server: "172.29.245.245" # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "{{ drive_nfs_root }}/media"
@@ -44,16 +46,17 @@ nfs_mounts:
     path: "{{ drive_nfs_root }}/backups"
     opts: "rw,hard,intr,nfsvers=4"
 
-# Services activés
+# Services activÃ©s
 enabled_services:
-  - shared-services  # Postgres + Redis mutualisés
+  - shared-services  # Postgres + Redis mutualisÃ©s
   - traefik
   - immich
   - jellyfin
   - nextcloud
   - monitoring
+  - litopia
 
-# Les chemins sont maintenant définis dans common.yml via l'objet storage
+# Les chemins sont maintenant dÃ©finis dans common.yml via l'objet storage
 
 # Configuration Traefik (test)
 traefik_acme_enabled: false  # Pas de Let's Encrypt en test
@@ -72,9 +75,9 @@ monitoring_prometheus_scrape_interval: "15s"
 monitoring_prometheus_evaluation_interval: "15s"
 monitoring_prometheus_cadvisor_enabled: true  # Monitoring Docker
 monitoring_grafana_admin_user: "admin"
-monitoring_grafana_admin_password: "admin"  # À changer en production !
+monitoring_grafana_admin_password: "admin"  # Ã€ changer en production !
 monitoring_grafana_root_url: "https://monitoring.epicea-test.local"
-monitoring_grafana_plugins: ""  # Plugins Grafana à installer (séparés par ,)
+monitoring_grafana_plugins: ""  # Plugins Grafana Ã  installer (sÃ©parÃ©s par ,)
 monitoring_grafana_middlewares: ""  # Middlewares Traefik optionnels
 monitoring_prometheus_node_exporter_enabled: true
 
@@ -83,4 +86,4 @@ backup_system_enabled: false  # Pas de backups automatiques en test
 backup_system_retention_days: 7
 
 # Notifications
-# Pas de notifications Discord/Telegram par défaut si discord_webhook_url n'est pas défini dans le vault
+# Pas de notifications Discord/Telegram par dÃ©faut si discord_webhook_url n'est pas dÃ©fini dans le vault

@@ -12,7 +12,7 @@ storage_enable_zfs_snapshots: true
 
 # Domaine de base
 base_domain: "louisvolat.fr"
-litopia: "litopia.fr"
+litopia_domain: "litopia.fr"
 
 # Domaines des services
 service_domains:
@@ -21,6 +21,7 @@ service_domains:
   jellyfin: "jellyfin.{{ base_domain }}"
   nextcloud: "cloud.{{ base_domain }}"
   grafana: "monitoring.{{ base_domain }}"
+  litopia: "{{ litopia_domain }}"
 
 # Racines physiques (Production)
 drive_nvme_path: "/opt/epicea"
@@ -47,7 +48,7 @@ nfs_backup_mount:
   path: "{{ drive_nfs_root }}/backups"
   opts: "rw,hard,intr,nfsvers=4.1"
 
-# Services activés
+# Services activÃ©s
 enabled_services:
   - traefik
   - redis
@@ -56,8 +57,9 @@ enabled_services:
   - nextcloud
   - monitoring
   - games  # AMP
+  - litopia
 
-# Les chemins sont maintenant définis dans common.yml via l'objet storage
+# Les chemins sont maintenant dÃ©finis dans common.yml via l'objet storage
 
 # Configuration ZFS (SSD local 1To)
 zfs_pool_name: "tank"
@@ -70,13 +72,13 @@ zfs_datasets:
     mountpoint: "{{ storage.databases.redis }}"
 
 # Configuration GPU (RTX 5060 LP)
-gpu_driver_version: "550"  # Version driver NVIDIA (à adapter)
+gpu_driver_version: "550"  # Version driver NVIDIA (Ã  adapter)
 gpu_docker_runtime: true
 gpu_monitoring: true
 
 # Configuration Traefik (production)
 traefik_acme_enabled: true
-traefik_acme_email: "admin@{{ base_domain }}"  # À MODIFIER
+traefik_acme_email: "admin@{{ base_domain }}"  # Ã€ MODIFIER
 traefik_acme_storage: "{{ storage.ansible.configs }}/traefik/acme.json"
 traefik_dashboard_enabled: true
 traefik_log_level: "INFO"
@@ -96,7 +98,7 @@ monitoring_prometheus_node_exporter_enabled: true
 # Backup
 backup_system_enabled: true
 backup_system_retention_days: 30
-backup_system_schedule: "0 3 * * *"  # Tous les jours à 3h du matin
+backup_system_schedule: "0 3 * * *"  # Tous les jours Ã  3h du matin
 
 # Notifications (Discord/Telegram)
 # discord_webhook_url: "{{ vault_discord_webhook }}"  # Dans vault.yml

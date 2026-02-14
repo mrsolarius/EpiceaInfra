@@ -1,0 +1,50 @@
+groups:
+  - name: litopia_container_alerts
+    interval: 30s
+    rules:
+      - alert: LitopiaCriticalContainerDown
+        expr: time() - container_last_seen{name=~"litopia-(db|back)"} > 60
+        for: 5m
+        labels:
+          severity: critical
+          component: litopia
+          subsystem: container
+        annotations:
+          summary: "Conteneur Litopia critique indisponible ðŸ”´"
+          description: "Le conteneur {{ $labels.name }} ne rÃ©pond plus depuis plus de 5 minutes."
+
+      - alert: LitopiaContainerDown
+        expr: time() - container_last_seen{name=~"litopia-(front|postgres-exporter)"} > 60
+        for: 5m
+        labels:
+          severity: warning
+          component: litopia
+          subsystem: container
+        annotations:
+          summary: "Conteneur Litopia indisponible ðŸŸ "
+          description: "Le conteneur {{ $labels.name }} ne rÃ©pond plus depuis plus de 5 minutes."
+
+      - alert: LitopiaHighCPU
+        expr: rate(container_cpu_usage_seconds_total{name=~"litopia-(db|back|front)"}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: litopia
+          subsystem: container
+        annotations:
+          summary: "CPU Ã©levÃ© sur Litopia ðŸ”¥"
+          description: "Le conteneur {{ $labels.name }} dÃ©passe 80% CPU depuis plus de 10 minutes."
+
+      - alert: LitopiaHighMemory
+        expr: |
+          (container_memory_usage_bytes{name=~"litopia-(db|back|front)"}
+          / container_spec_memory_limit_bytes{name=~"litopia-(db|back|front)"} * 100) > 90
+          and on(name) container_spec_memory_limit_bytes{name=~"litopia-(db|back|front)"} > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: litopia
+          subsystem: container
+        annotations:
+          summary: "MÃ©moire Ã©levÃ©e sur Litopia ðŸ’¾"
+          description: "Le conteneur {{ $labels.name }} dÃ©passe 90% de mÃ©moire allouÃ©e depuis plus de 10 minutes."

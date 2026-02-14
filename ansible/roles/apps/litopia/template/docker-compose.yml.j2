@@ -1,0 +1,134 @@
+services:
+  litopia-front:
+    image: ghcr.io/litopiacommunity/litopia-front:{{ docker_versions.litopia.frontend }}
+    container_name: litopia-front
+    restart: {{ docker_restart_policy }}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.10'
+          memory: 128M
+    env_file: ./litopia-front.env
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ docker_proxy_network_name }}"
+      - "traefik.http.routers.litopia-front.rule=Host(`${LITOPIA_DOMAIN}`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.litopia-front.entrypoints=web"
+      - "traefik.http.routers.litopia-front.service=litopia-front"
+      - "traefik.http.routers.litopia-front.priority=1"
+      - "traefik.http.routers.litopia-front.rule=Host(`${LITOPIA_DOMAIN}`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.litopia-front.entrypoints=websecure"
+      - "traefik.http.routers.litopia-front.service=litopia-front"
+      - "traefik.http.routers.litopia-front.tls=true"
+      - "traefik.http.routers.litopia-front.tls.certresolver={{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
+      - "traefik.http.routers.litopia-front.priority=1"
+      - "traefik.http.services.litopia-front.loadbalancer.server.port=4000"
+
+  litopia-back:
+    image: ghcr.io/litopiacommunity/litopia-back:{{ docker_versions.litopia.backend }}
+    container_name: litopia-back
+    restart: {{ docker_restart_policy }}
+    depends_on:
+      litopia-db:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    env_file: .env
+    networks:
+      - default
+      - proxy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ docker_proxy_network_name }}"
+      - "traefik.http.routers.litopia-back-http.rule=Host(`${LITOPIA_DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.litopia-back-http.entrypoints=web"
+      - "traefik.http.routers.litopia-back-http.service=litopia-back"
+      - "traefik.http.routers.litopia-back-http.priority=1000"
+      - "traefik.http.routers.litopia-back-https.rule=Host(`${LITOPIA_DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.litopia-back-https.entrypoints=websecure"
+      - "traefik.http.routers.litopia-back-https.service=litopia-back"
+      - "traefik.http.routers.litopia-back-https.tls=true"
+      - "traefik.http.routers.litopia-back-https.tls.certresolver={{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
+      - "traefik.http.routers.litopia-back-https.priority=1000"
+      - "traefik.http.services.litopia-back.loadbalancer.server.port=3000"
+
+  litopia-db:
+    image: postgres:{{ docker_versions.common.postgres }}
+    container_name: litopia-db
+    restart: {{ docker_restart_policy }}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.1'
+          memory: 256M
+    env_file: .env
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    volumes:
+      - ${LITOPIA_DB_DATA_PATH}:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  litopia-postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:{{ docker_versions.common.postgres_exporter }}
+    container_name: litopia-postgres-exporter
+    restart: {{ docker_restart_policy }}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@litopia-db:5432/${POSTGRES_DB}?sslmode=disable"
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      PG_EXPORTER_CONSTANT_LABELS: "instance=litopia"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
+    volumes:
+      - ./postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    networks:
+      - default
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  default:
+  monitoring:
+    name: {{ docker_monitoring_network_name }}
+    external: true
+  proxy:
+    name: {{ docker_proxy_network_name }}
+    external: true

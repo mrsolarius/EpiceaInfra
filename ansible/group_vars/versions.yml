@@ -31,3 +31,6 @@ docker_versions:
   # Autres Applications
   nextcloud: "32.0.5"
   jellyfin: "10.11.6"
+  litopia:
+    frontend: "v1.1.0"
+    backend: "v1.1.0"

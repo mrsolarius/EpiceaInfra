@@ -62,6 +62,9 @@
       tags: [jellyfin, services]
       when: "'jellyfin' in enabled_services"
 
+    - role: apps/litopia
+      tags: [litopia, services]
+      when: "'litopia' in enabled_services"
   post_tasks:
     - name: Vérifier que tous les services sont up
       ansible.builtin.command:
@@ -76,6 +79,9 @@
         - nextcloud
         - immich-server
         - jellyfin
+        - litopia-db
+        - litopia-back
+        - litopia-front
       register: services_check
       changed_when: false
       failed_when: false

@@ -35,6 +35,7 @@ storage:
     immich: "{{ drive_ssd_path }}/immich-db"
     nextcloud: "{{ drive_ssd_path }}/nextcloud-db"
     redis: "{{ drive_ssd_path }}/redis"
+    litopia: "{{ drive_ssd_path }}/litopia-db"
 
   # Stockage de masse (NFS)
   media:

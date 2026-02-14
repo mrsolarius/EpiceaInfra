@@ -100,6 +100,16 @@ scrape_configs:
     scrape_interval: 30s
     scrape_timeout: 10s
 
+  - job_name: 'postgres-litopia'
+    static_configs:
+      - targets: ['litopia-postgres-exporter:9187']
+        labels:
+          service: 'postgresql'
+          environment: '{{ deploy_environment }}'
+          instance: 'litopia'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
   # ========================================
   # Redis Exporter
   # ========================================

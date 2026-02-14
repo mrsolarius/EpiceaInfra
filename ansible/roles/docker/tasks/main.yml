@@ -4,15 +4,15 @@
 # Description: Installation + configuration Docker
 # ========================================
 
-- name: Vérifier si Docker est déjà installé
+- name: VÃ©rifier si Docker est dÃ©jÃ  installÃ©
   ansible.builtin.command: docker --version
   register: docker_check
   failed_when: false
   changed_when: false
 
-- name: Afficher la version Docker actuelle (si installée)
+- name: Afficher la version Docker actuelle (si installÃ©e)
   ansible.builtin.debug:
-    msg: "Docker déjà installé : {{ docker_check.stdout }}"
+    msg: "Docker dÃ©jÃ  installÃ© : {{ docker_check.stdout }}"
   when: docker_check.rc == 0
 
 - name: Supprimer les anciennes versions de Docker
@@ -26,7 +26,7 @@
     state: absent
   when: docker_check.rc != 0
 
-- name: Installer les dépendances pour le repository Docker
+- name: Installer les dÃ©pendances pour le repository Docker
   ansible.builtin.apt:
     name:
       - ca-certificates
@@ -36,13 +36,13 @@
     state: present
     update_cache: true
 
-- name: Créer le dossier pour les clés GPG
+- name: CrÃ©er le dossier pour les clÃ©s GPG
   ansible.builtin.file:
     path: /etc/apt/keyrings
     state: directory
     mode: '0755'
 
-- name: Ajouter la clé GPG officielle Docker
+- name: Ajouter la clÃ© GPG officielle Docker
   ansible.builtin.shell: |
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     chmod a+r /etc/apt/keyrings/docker.gpg
@@ -57,12 +57,12 @@
     filename: docker
   when: docker_check.rc != 0
 
-- name: Mettre à jour le cache APT
+- name: Mettre Ã  jour le cache APT
   ansible.builtin.apt:
     update_cache: true
   when: docker_check.rc != 0
 
-- name: Installer Docker Engine (dernière version)
+- name: Installer Docker Engine (derniÃ¨re version)
   ansible.builtin.apt:
     name:
       - docker-ce
@@ -70,10 +70,10 @@
       - containerd.io
       - docker-buildx-plugin
       - docker-compose-plugin
-    state: latest  # ← Force la dernière version
+    state: latest  # â† Force la derniÃ¨re version
     update_cache: true
 
-- name: Créer le dossier de configuration Docker
+- name: CrÃ©er le dossier de configuration Docker
   ansible.builtin.file:
     path: /etc/docker
     state: directory
@@ -106,43 +106,43 @@
     groups: docker
     append: true
 
-- name: Démarrer et activer Docker
+- name: DÃ©marrer et activer Docker
   ansible.builtin.systemd:
     name: docker
     state: started
     enabled: true
 
-- name: Créer le réseau {{ docker_proxy_network_name }}
+- name: CrÃ©er le rÃ©seau {{ docker_proxy_network_name }}
   community.docker.docker_network:
     name: "{{ docker_proxy_network_name }}"
     driver: bridge
     state: present
 
-- name: Créer le réseau {{ docker_monitoring_network_name }}
+- name: CrÃ©er le rÃ©seau {{ docker_monitoring_network_name }}
   community.docker.docker_network:
     name: "{{ docker_monitoring_network_name }}"
     driver: bridge
     state: present
 
-- name: Vérifier Docker fonctionne
+- name: VÃ©rifier Docker fonctionne
   ansible.builtin.command: docker ps
   changed_when: false
 
-- name: Récupérer la version Docker installée
+- name: RÃ©cupÃ©rer la version Docker installÃ©e
   ansible.builtin.command: docker version --format '{{ "{{" }}.Server.Version{{ "}}" }}'
   register: docker_version_installed
   changed_when: false
 
-- name: Récupérer l'API version Docker
+- name: RÃ©cupÃ©rer l'API version Docker
   ansible.builtin.command: docker version --format '{{ "{{" }}.Server.APIVersion{{ "}}" }}'
   register: docker_api_version
   changed_when: false
 
-- name: Afficher résultat
+- name: Afficher rÃ©sultat
   ansible.builtin.debug:
     msg:
-      - "✅ Docker installé : {{ docker_version_installed.stdout }}"
-      - "✅ Docker API version : {{ docker_api_version.stdout }}"
-      - "Réseau Proxy : {{ docker_proxy_network_name }}"
-      - "Réseau Monitoring : {{ docker_monitoring_network_name }}"
-      - "{% if docker_api_version.stdout is version('1.44', '>=') %}✅ Compatible avec Traefik v3.3+{% else %}⚠️  API trop ancienne pour Traefik v3.3 (minimum 1.44){% endif %}"
+      - "âœ… Docker installÃ© : {{ docker_version_installed.stdout }}"
+      - "âœ… Docker API version : {{ docker_api_version.stdout }}"
+      - "RÃ©seau Proxy : {{ docker_proxy_network_name }}"
+      - "RÃ©seau Monitoring : {{ docker_monitoring_network_name }}"
+      - "{% if docker_api_version.stdout is version('1.44', '>=') %}âœ… Compatible avec Traefik v3.3+{% else %}âš ï¸  API trop ancienne pour Traefik v3.3 (minimum 1.44){% endif %}"
