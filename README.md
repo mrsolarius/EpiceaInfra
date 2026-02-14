@@ -62,6 +62,7 @@ graph TD
                 Jellyfin[Jellyfin]
                 Immich[Immich-Server]
                 Nextcloud[Nextcloud]
+                Litopia[Litopia (Front/Back)]
             end
 
             subgraph stateful [Stateful Services]
@@ -83,12 +84,14 @@ graph TD
     Traefik -- "/jellyfin" --> Jellyfin
     Traefik -- "/immich" --> Immich
     Traefik -- "/nextcloud" --> Nextcloud
+    Traefik -- "litopia.fr" --> Litopia
     Traefik -- "/grafana" --> Grafana
 
     %% --- Flux Applicatifs ---
     Immich -- "DB" --> PostgreSQL
     Immich -- "Cache" --> Redis
     Nextcloud -- "DB" --> PostgreSQL
+    Litopia -- "DB" --> PostgreSQL
     Prometheus -- "Scrape Metrics" --> Traefik
     Grafana -- "Data Source" --> Prometheus
     Grafana -- "Data Source" --> Loki

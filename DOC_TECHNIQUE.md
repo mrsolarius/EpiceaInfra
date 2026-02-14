@@ -28,6 +28,7 @@ EpiceaInfra/
 │   │   ├── apps/               # Rôles applicatifs
 │   │   │   ├── immich/
 │   │   │   ├── jellyfin/
+│   │   │   ├── litopia/
 │   │   │   └── nextcloud/
 │   │   ├── common/             # Base system
 │   │   ├── docker/             # Docker engine
@@ -137,6 +138,7 @@ storage:
     immich: "{{ drive_ssd_path }}/immich-db"
     nextcloud: "{{ drive_ssd_path }}/nextcloud-db"
     redis: "{{ drive_ssd_path }}/redis"
+    litopia: "{{ drive_ssd_path }}/litopia-db"
   media:
     immich_photos: "{{ drive_nfs_root }}/photos/immich"
     nextcloud_data: "{{ drive_nfs_root }}/cloud/data"
@@ -321,7 +323,7 @@ traefik_network_name: "traefik-proxy"
 - `templates/redis.env.j2` - Variables Redis
 - `templates/redis.conf.j2` - Configuration Redis
 
-**Note importante :** Les instances PostgreSQL sont désormais gérées directement par les rôles applicatifs (`apps/immich`, `apps/nextcloud`) pour une meilleure isolation et compatibilité (ex: extensions spécifiques comme VectorChord).
+**Note importante :** Les instances PostgreSQL sont désormais gérées directement par les rôles applicatifs (`apps/immich`, `apps/nextcloud`, `apps/litopia`) pour une meilleure isolation et compatibilité (ex: extensions spécifiques comme VectorChord).
 
 **Redis :**
 
@@ -548,6 +550,40 @@ route:
 
 ---
 
+### 10. `apps/litopia` - Portail communautaire
+
+**Fichiers :**
+- `tasks/main.yml` - Deploiement Litopia
+- `templates/litopia-back.env.j2` - Variables d'environnement backend + DB
+- `templates/litopia-front.env.j2` - Variables d'environnement frontend
+- `templates/docker-compose.yml.j2` - Stack Litopia
+
+**Composants :**
+
+| Service | Image | Description |
+|---------|-------|-------------|
+| litopia-front | `ghcr.io/litopiacommunity/litopia-front:v1.1.0` | Front web |
+| litopia-back | `ghcr.io/litopiacommunity/litopia-back:v1.1.0` | API NestJS |
+| litopia-db | `postgres:16-alpine` | BDD PostgreSQL |
+| litopia-postgres-exporter | `prometheuscommunity/postgres-exporter:v0.15.0` | Metriques PostgreSQL |
+
+**Reseaux :**
+- `proxy` pour le front/back expose via Traefik
+- `monitoring` pour l'exporter
+- `default` pour la base
+
+**Particularites :**
+- **Domaines** : Host `{{ service_domains.litopia }}`, front sur `/` et API sur `/api`.
+- **DB dediee** : Donnees sur `storage.databases.litopia`.
+- **Secrets** : Discord, AMP, et `API_LOCAL_KEY` via `vault.yml`.
+
+**Healthchecks :**
+- Front : `http://localhost:4000`
+- Back : `http://localhost:3000/api`
+- DB : `pg_isready`
+
+---
+
 ## 🔐 Gestion des Secrets
 
 ### Fichier `vault.yml`
@@ -580,6 +616,31 @@ redis_password: "..."
 # Nextcloud
 nextcloud_admin_user: "admin"
 nextcloud_admin_password: "..."
+
+# Litopia
+litopia_db_user: "litopia"
+litopia_db_password: "..."
+litopia_db_database: "litopia"
+litopia_discord_client_id: "..."
+litopia_discord_client_secret: "..."
+litopia_discord_client_token: "..."
+litopia_discord_callback_url: "/api/auth/redirect"
+litopia_discord_candidature_channel_id: "..."
+litopia_discord_guild_id: "..."
+litopia_discord_role_ghost: "..."
+litopia_discord_role_candidate: "..."
+litopia_discord_role_pre_accepted: "..."
+litopia_discord_role_pretopien: "..."
+litopia_discord_role_litopien: "..."
+litopia_discord_role_active_litopien: "..."
+litopia_discord_role_inactive_litopien: "..."
+litopia_discord_role_refused: "..."
+litopia_discord_role_litogod: "..."
+litopia_discord_role_unique_god: "..."
+litopia_amp_host: "..."
+litopia_amp_instance: "..."
+litopia_amp_login: "..."
+litopia_api_local_key: "..."
 
 # Grafana
 grafana_admin_user: "admin"
@@ -645,6 +706,7 @@ ansible-playbook --ask-vault-pass playbooks/site.yml
 - immich
 - jellyfin
 - nextcloud
+- litopia
 - monitoring
 - games (AMP)
 
@@ -672,6 +734,8 @@ ansible-playbook --ask-vault-pass playbooks/site.yml
 | Immich PostgreSQL | `ghcr.io/immich-app/postgres` | 14-vectorchord0.4.3-pgvectors0.2.0 | 0.5 | 1G |
 | Jellyfin | `jellyfin/jellyfin` | 10.11.6 | 2.0 | 4G |
 | Nextcloud | `nextcloud` | 32.0.5 | 1.0 | 1G |
+| Litopia Front | `ghcr.io/litopiacommunity/litopia-front` | v1.1.0 | 0.25 | 256M |
+| Litopia Back | `ghcr.io/litopiacommunity/litopia-back` | v1.1.0 | 0.5 | 512M |
 | Socket Proxy | `docker-socket-proxy` | latest | 0.1 | 64M |
 
 ---
@@ -715,6 +779,7 @@ make clean               # Purger Docker (docker system prune -af)
 | cadvisor | cadvisor:8080 | 15s | CPU, RAM, réseau, I/O containers |
 | postgres-nextcloud | nextcloud-postgres-exporter:9187 | 30s | Connexions, queries, cache, locks |
 | postgres-immich | immich-postgres-exporter:9187 | 30s | Connexions, queries, cache, locks |
+| postgres-litopia | litopia-postgres-exporter:9187 | 30s | Connexions, queries, cache, locks |
 | redis | redis-exporter:9121 | 30s | Hit rate, mémoire, commandes |
 
 ### Flux d'alerting
