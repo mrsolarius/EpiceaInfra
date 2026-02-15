@@ -24,7 +24,3 @@ warn_list:
   - risky-shell-pipe
   - partial-become
   - fqcn-builtins
-
-rules:
-  yaml:
-    line-length: disable
