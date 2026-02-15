@@ -19,7 +19,7 @@ jobs:
           cache: 'pip'
       - name: Install dependencies
         run: |
-          pip install ansible ansible-lint
+          pip install -r requirements.txt
           ansible-galaxy collection install -r ansible/requirements.yml
       - name: Ansible Lint
         run: ansible-lint ansible/
