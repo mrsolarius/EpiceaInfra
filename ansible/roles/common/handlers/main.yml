@@ -3,9 +3,9 @@
 # Handlers: common
 # ========================================
 
-- name: reboot system
+- name: Reboot system
   ansible.builtin.reboot:
     msg: "Reboot pour appliquer drivers NVIDIA"
     post_reboot_delay: 30
-  listen: reboot system
+  listen: Reboot system
   when: allow_automatic_reboot | default(false)

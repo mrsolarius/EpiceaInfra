@@ -10,6 +10,7 @@ exclude_paths:
   - "*.py"
   - "*.txt"
   - "inventory/"
+  - ".venv/"
 
 skip_list:
   - role-name
@@ -17,6 +18,7 @@ skip_list:
   - meta-incorrect
   - layout
   - no-handler
+  - var-naming[no-role-prefix]
 
 warn_list:
   - no-changed-when

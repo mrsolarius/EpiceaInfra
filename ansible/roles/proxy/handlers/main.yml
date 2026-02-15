@@ -3,15 +3,15 @@
 # Handlers: proxy (Traefik)
 # ========================================
 
-- name: restart traefik
+- name: Restart traefik
   community.docker.docker_compose_v2:
     project_src: "{{ storage.ansible.compose }}/traefik"
     state: restarted
-  listen: restart traefik
+  listen: Restart traefik
 
-- name: reload traefik config
+- name: Reload traefik config
   ansible.builtin.command:
     cmd: docker exec traefik traefik healthcheck --ping
   changed_when: false
   failed_when: false
-  listen: reload traefik config
+  listen: Reload traefik config

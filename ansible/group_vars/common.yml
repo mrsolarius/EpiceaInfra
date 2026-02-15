@@ -27,7 +27,7 @@ storage:
   ansible:
     compose: "{{ drive_nvme_path }}/docker"
     configs: "{{ drive_nvme_path }}/config"
-  
+
   # Applications nécessitant de la vitesse (NVMe)
   monitoring: "{{ drive_nvme_path }}/monitoring"
 

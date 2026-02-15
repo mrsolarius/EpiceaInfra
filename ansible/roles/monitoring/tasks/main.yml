@@ -4,7 +4,7 @@
 # Description: Stack de monitoring complÃƒÂ¨te
 # ========================================
 
-- name: CrÃƒÂ©er structure dossiers Monitoring
+- name: Créer structure dossiers Monitoring
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -24,41 +24,41 @@
     - "{{ storage.monitoring }}/grafana"
     - "{{ storage.monitoring }}/loki"
 
-- name: DÃƒÂ©ployer configuration Prometheus
+- name: Déployer configuration Prometheus
   ansible.builtin.template:
     src: prometheus.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/prometheus/prometheus.yml"
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart monitoring
+  notify: Restart monitoring
 
-- name: DÃƒÂ©ployer configuration Alertmanager
+- name: Déployer configuration Alertmanager
   ansible.builtin.template:
     src: alertmanager.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/alertmanager/alertmanager.yml"
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart monitoring
+  notify: Restart monitoring
 
-- name: DÃƒÂ©ployer rÃƒÂ¨gles d'alerting PostgreSQL
+- name: Déployer rÃƒÂ¨gles d'alerting PostgreSQL
   ansible.builtin.copy:
     src: postgres-alerts.yml
     dest: "{{ storage.ansible.compose }}/monitoring/prometheus/rules/postgres-alerts.yml"
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart monitoring
+  notify: Restart monitoring
 
-- name: DÃƒÂ©ployer rÃƒÂ¨gles d'alerting Redis
+- name: Déployer rÃƒÂ¨gles d'alerting Redis
   ansible.builtin.copy:
     src: redis-alerts.yml
     dest: "{{ storage.ansible.compose }}/monitoring/prometheus/rules/redis-alerts.yml"
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart monitoring
+  notify: Restart monitoring
 
 - name: DÃ©ployer rÃ¨gles d'alerting Litopia (conteneurs)
   ansible.builtin.copy:
@@ -67,63 +67,63 @@
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart monitoring
+  notify: Restart monitoring
 
-- name: DÃƒÂ©ployer configuration Loki
+- name: Déployer configuration Loki
   ansible.builtin.template:
     src: loki-config.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/loki/loki-config.yml"
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart monitoring
+  notify: Restart monitoring
 
-- name: DÃƒÂ©ployer configuration Promtail
+- name: Déployer configuration Promtail
   ansible.builtin.template:
     src: promtail-config.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/promtail/promtail-config.yml"
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart monitoring
+  notify: Restart monitoring
 
-- name: DÃƒÂ©ployer datasource Grafana (Prometheus)
+- name: Déployer datasource Grafana (Prometheus)
   ansible.builtin.template:
     src: grafana-datasource.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/datasources/prometheus.yml"
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart monitoring
+  notify: Restart monitoring
 
-- name: DÃƒÂ©ployer provisioning dashboards Grafana
+- name: Déployer provisioning dashboards Grafana
   ansible.builtin.template:
     src: grafana-dashboards.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/dashboards.yml"
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart monitoring
+  notify: Restart monitoring
 
-- name: DÃƒÂ©ployer dashboards Grafana
+- name: Déployer dashboards Grafana
   ansible.builtin.copy:
     src: dashboards/
     dest: "{{ storage.ansible.compose }}/monitoring/grafana/provisioning/dashboards/"
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart monitoring
+  notify: Restart monitoring
 
-- name: GÃƒÂ©nÃƒÂ©rer fichier .env Monitoring
+- name: Générer fichier .env Monitoring
   ansible.builtin.template:
     src: monitoring.env.j2
     dest: "{{ storage.ansible.compose }}/monitoring/.env"
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart monitoring
+  notify: Restart monitoring
 
-- name: GÃƒÂ©nÃƒÂ©rer docker-compose.yml Monitoring
+- name: Générer docker-compose.yml Monitoring
   ansible.builtin.template:
     src: docker-compose.yml.j2
     dest: "{{ storage.ansible.compose }}/monitoring/docker-compose.yml"
@@ -132,9 +132,9 @@
     group: "{{ common_system_group }}"
     trim_blocks: true
     lstrip_blocks: true
-  notify: restart monitoring
+  notify: Restart monitoring
 
-- name: VÃƒÂ©rifier configuration Monitoring (dry-run)
+- name: Vérifier configuration Monitoring (dry-run)
   ansible.builtin.command:
     cmd: docker compose config
     chdir: "{{ storage.ansible.compose }}/monitoring"
@@ -142,7 +142,7 @@
   register: monitoring_config_check
   failed_when: monitoring_config_check.rc != 0
 
-- name: DÃƒÂ©marrer stack Monitoring
+- name: Démarrer stack Monitoring
   community.docker.docker_compose_v2:
     project_src: "{{ storage.ansible.compose }}/monitoring"
     state: present
@@ -151,10 +151,15 @@
   register: monitoring_deploy
   ignore_errors: true
 
-- name: Afficher logs Loki en cas d'ÃƒÂ©chec (stdout + stderr)
+- name: Afficher logs Loki en cas d'échec (stdout + stderr)
   ansible.builtin.shell:
-    cmd: docker logs loki 2>&1 | tail -100 || echo "Impossible de rÃƒÂ©cupÃƒÂ©rer les logs"
+    cmd: |
+      set -o pipefail
+      docker logs loki 2>&1 | tail -100 || echo "Impossible de récupérer les logs"
+    args:
+      executable: /bin/bash
   register: loki_logs
+  changed_when: false
   when: monitoring_deploy.failed | default(false)
   ignore_errors: true
 
@@ -163,12 +168,12 @@
     msg: "{{ loki_logs.stdout }}"
   when: monitoring_deploy.failed | default(false)
 
-- name: Fail si monitoring ne dÃƒÂ©marre pas
+- name: Fail si monitoring ne démarre pas
   ansible.builtin.fail:
-    msg: "Ãƒâ€°chec du dÃƒÂ©marrage de la stack Monitoring. Voir les logs ci-dessus."
+    msg: "Ãƒâ€°chec du démarrage de la stack Monitoring. Voir les logs ci-dessus."
   when: monitoring_deploy.failed | default(false)
 
-- name: VÃƒÂ©rifier que les conteneurs sont running
+- name: Vérifier que les conteneurs sont running
   ansible.builtin.shell:
     cmd: docker compose ps --format json | jq -r '.State' | grep -c running || true
     chdir: "{{ storage.ansible.compose }}/monitoring"
@@ -182,13 +187,9 @@
 - name: Afficher statut Monitoring
   ansible.builtin.debug:
     msg:
-      - "Ã¢Å“â€¦ Stack Monitoring dÃƒÂ©ployÃƒÂ©e avec succÃƒÂ¨s"
+      - "Ã¢Å“â€¦ Stack Monitoring déployée avec succÃƒÂ¨s"
       - "Grafana: {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.grafana }}"
       - "User: {{ monitoring_grafana_admin_user | default('admin') }}"
       - "Password: (voir vault.yml)"
       - ""
       - "Prometheus scrape Traefik metrics automatiquement"
-
-
-
-

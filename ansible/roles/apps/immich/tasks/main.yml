@@ -14,9 +14,9 @@
     path: "{{ storage.databases.immich }}"
     state: directory
     mode: '0700'
-    owner: "999" # postgres
+    owner: "999"  # postgres
     group: "999"
-    recurse: yes
+    recurse: true
 
 - name: Générer le script d'initialisation PostgreSQL
   ansible.builtin.template:
@@ -59,3 +59,4 @@
   retries: 24
   delay: 5
   changed_when: false
+

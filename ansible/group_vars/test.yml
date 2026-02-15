@@ -25,11 +25,11 @@ service_domains:
 
 # Racines physiques (Multipass)
 drive_nvme_path: "/opt/epicea"
-drive_ssd_path: "/opt/epicea/ssd" # En test, on simule le SSD sur le NVMe
+drive_ssd_path: "/opt/epicea/ssd"  # En test, on simule le SSD sur le NVMe
 drive_nfs_root: "/mnt/nas"
 
 # Configuration NFS (Storage VM)
-nfs_server: "172.29.254.80" # IP_STORAGE_TEST
+nfs_server: "172.29.246.44"  # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "{{ drive_nfs_root }}/media"
@@ -40,7 +40,7 @@ nfs_mounts:
   - src: "{{ nfs_server }}:/exports/cloud"
     path: "{{ drive_nfs_root }}/cloud"
     opts: "rw,hard,intr,nfsvers=4"
-    owner: "33" # www-data
+    owner: "33"  # www-data
     group: "33"
   - src: "{{ nfs_server }}:/exports/backups"
     path: "{{ drive_nfs_root }}/backups"

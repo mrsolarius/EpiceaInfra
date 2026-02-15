@@ -112,6 +112,6 @@ fail2ban_maxretry: 5
 
 # UFW Rules additionnelles (production)
 ufw_additional_rules:
-  - { rule: 'allow', port: '8080', proto: 'tcp', comment: 'Traefik dashboard' }
-  - { rule: 'allow', port: '9090', proto: 'tcp', comment: 'Prometheus (internal)' }
-  - { rule: 'allow', from: '192.168.1.0/24', comment: 'LAN local' }
+  - {rule: 'allow', port: '8080', proto: 'tcp', comment: 'Traefik dashboard'}
+  - {rule: 'allow', port: '9090', proto: 'tcp', comment: 'Prometheus (internal)'}
+  - {rule: 'allow', from: '192.168.1.0/24', comment: 'LAN local'}

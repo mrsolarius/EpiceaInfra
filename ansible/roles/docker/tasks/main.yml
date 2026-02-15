@@ -76,7 +76,7 @@
       - containerd.io
       - docker-buildx-plugin
       - docker-compose-plugin
-    state: latest  # â† Force la derniÃ¨re version
+    state: present
     update_cache: true
 
 - name: CrÃ©er le dossier de configuration Docker
@@ -104,7 +104,7 @@
       }
     dest: /etc/docker/daemon.json
     mode: '0644'
-  notify: restart docker
+  notify: Restart docker
 
 - name: Ajouter utilisateur au groupe docker
   ansible.builtin.user:
@@ -152,3 +152,4 @@
       - "RÃ©seau Proxy : {{ docker_proxy_network_name }}"
       - "RÃ©seau Monitoring : {{ docker_monitoring_network_name }}"
       - "{% if docker_api_version.stdout is version('1.44', '>=') %}âœ… Compatible avec Traefik v3.3+{% else %}âš ï¸  API trop ancienne pour Traefik v3.3 (minimum 1.44){% endif %}"
+

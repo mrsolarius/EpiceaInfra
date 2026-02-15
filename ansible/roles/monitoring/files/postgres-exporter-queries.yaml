@@ -1,3 +1,4 @@
+---
 # Custom queries for PostgreSQL Exporter
 # Focus on pg_stat_statements and pgvector-specific metrics
 

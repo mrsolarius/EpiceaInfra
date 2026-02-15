@@ -20,6 +20,9 @@ docker/traefik/logs/
 !docker/stateful/postgres/
 !docker/stateful/redis/
 
+# Pyton
+/.venv/
+
 # Ansible
 *.retry
 ansible/.vault_pass

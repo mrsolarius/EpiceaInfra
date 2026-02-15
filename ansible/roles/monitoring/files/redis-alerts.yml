@@ -1,3 +1,4 @@
+---
 groups:
   - name: redis_alerts
     interval: 30s

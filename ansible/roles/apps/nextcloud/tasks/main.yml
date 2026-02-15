@@ -1,9 +1,10 @@
+---
 - name: Créer les répertoires de données Nextcloud
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     mode: '0755'
-    owner: "33" # www-data
+    owner: "33"  # www-data
     group: "33"
   loop:
     - "{{ storage.ansible.compose }}/nextcloud"
@@ -13,9 +14,9 @@
     path: "{{ storage.databases.nextcloud }}"
     state: directory
     mode: '0700'
-    owner: "999" # postgres
+    owner: "999"  # postgres
     group: "999"
-    recurse: yes
+    recurse: true
 
 - name: Générer le script d'initialisation PostgreSQL
   ansible.builtin.template:

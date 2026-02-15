@@ -1,3 +1,4 @@
+---
 groups:
   - name: litopia_container_alerts
     interval: 30s

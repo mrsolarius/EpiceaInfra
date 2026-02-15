@@ -49,9 +49,9 @@
     proto: "{{ item.proto | default('tcp') }}"
     comment: "{{ item.comment | default('') }}"
   loop:
-    - { rule: 'allow', port: '22', comment: 'SSH' }
-    - { rule: 'allow', port: '80', comment: 'HTTP' }
-    - { rule: 'allow', port: '443', comment: 'HTTPS' }
+    - {rule: 'allow', port: '22', comment: 'SSH'}
+    - {rule: 'allow', port: '80', comment: 'HTTP'}
+    - {rule: 'allow', port: '443', comment: 'HTTPS'}
 
 - name: Configuration UFW - autoriser Node Exporter depuis le rÃ©seau local et Docker
   community.general.ufw:
@@ -71,9 +71,9 @@
     proto: tcp
     comment: "{{ item.comment }}"
   loop:
-    - { port: '5432', comment: 'Block external PostgreSQL' }
-    - { port: '6379', comment: 'Block external Redis' }
-    - { port: '9100', comment: 'Block external Node Exporter' }
+    - {port: '5432', comment: 'Block external PostgreSQL'}
+    - {port: '6379', comment: 'Block external Redis'}
+    - {port: '9100', comment: 'Block external Node Exporter'}
 
 - name: Configuration UFW - rÃ¨gles additionnelles (production)
   community.general.ufw:
@@ -114,14 +114,19 @@
   when:
     - deploy_environment == 'production'
     - system_enable_gpu | bool
-  notify: reboot system
+  notify: Reboot system
+
+- name: VÃ©rifier la prÃ©sence de la clÃ© privÃ©e SSH
+  ansible.builtin.stat:
+    path: "/home/{{ common_system_user }}/.ssh/id_rsa"
+  register: ssh_private_key
 
 - name: VÃ©rifier les permissions des clÃ©s privÃ©es SSH (si existantes)
   ansible.builtin.file:
     path: "/home/{{ common_system_user }}/.ssh/id_rsa"
     mode: '0600'
     state: file
-  ignore_errors: true
+  when: ssh_private_key.stat.exists | default(false)
 
 - name: Afficher rÃ©sumÃ© configuration
   ansible.builtin.debug:

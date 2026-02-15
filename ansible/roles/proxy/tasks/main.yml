@@ -34,7 +34,7 @@
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart traefik
+  notify: Restart traefik
 
 - name: DÃ©ployer middlewares dynamiques
   ansible.builtin.template:
@@ -43,7 +43,7 @@
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart traefik
+  notify: Restart traefik
 
 - name: GÃ©nÃ©rer fichier .env Traefik
   ansible.builtin.template:
@@ -52,7 +52,7 @@
     mode: '0600'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
-  notify: restart traefik
+  notify: Restart traefik
 
 - name: GÃ©nÃ©rer docker-compose.yml Traefik
   ansible.builtin.template:
@@ -63,7 +63,7 @@
     group: "{{ common_system_group }}"
     trim_blocks: true
     lstrip_blocks: true
-  notify: restart traefik
+  notify: Restart traefik
 
 - name: CrÃ©er rÃ©seau Docker {{ docker_proxy_network_name }}
   community.docker.docker_network:

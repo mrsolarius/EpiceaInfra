@@ -14,9 +14,9 @@
     path: "{{ storage.databases.litopia }}"
     state: directory
     mode: '0700'
-    owner: "999" # postgres
+    owner: "999"  # postgres
     group: "999"
-    recurse: yes
+    recurse: true
 
 - name: Generer le fichier .env Litopia (backend + DB)
   ansible.builtin.template:

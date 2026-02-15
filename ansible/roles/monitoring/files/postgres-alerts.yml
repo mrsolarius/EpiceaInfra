@@ -1,3 +1,4 @@
+---
 groups:
   - name: postgresql_alerts
     interval: 30s

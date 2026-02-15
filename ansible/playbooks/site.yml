@@ -25,44 +25,44 @@
 
   roles:
     # Infrastructure de base
-    - role: common
+    - role: ../roles/common
       tags: [common, base]
 
-    - role: docker
+    - role: ../roles/docker
       tags: [docker, base]
 
-    - role: storage
+    - role: ../roles/storage
       tags: [storage, base]
 
     # Reverse proxy
-    - role: proxy
+    - role: ../roles/proxy
       tags: [proxy, services]
       when: "'traefik' in enabled_services"
 
     # Monitoring
-    - role: monitoring
+    - role: ../roles/monitoring
       tags: [monitoring, services]
       when: "'monitoring' in enabled_services"
 
     # Services partagés (Redis)
-    - role: redis
+    - role: ../roles/redis
       tags: [redis, database, services]
       when: "'redis' in enabled_services or 'shared-services' in enabled_services"
 
     # Applications
-    - role: apps/nextcloud
+    - role: ../roles/apps/nextcloud
       tags: [nextcloud, services]
       when: "'nextcloud' in enabled_services"
 
-    - role: apps/immich
+    - role: ../roles/apps/immich
       tags: [immich, services]
       when: "'immich' in enabled_services"
 
-    - role: apps/jellyfin
+    - role: ../roles/apps/jellyfin
       tags: [jellyfin, services]
       when: "'jellyfin' in enabled_services"
 
-    - role: apps/litopia
+    - role: ../roles/apps/litopia
       tags: [litopia, services]
       when: "'litopia' in enabled_services"
   post_tasks:

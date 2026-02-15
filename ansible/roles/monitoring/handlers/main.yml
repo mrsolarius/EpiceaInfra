@@ -3,8 +3,8 @@
 # Handlers: monitoring
 # ========================================
 
-- name: restart monitoring
+- name: Restart monitoring
   community.docker.docker_compose_v2:
     project_src: "{{ storage.ansible.compose }}/monitoring"
     state: restarted
-  listen: restart monitoring
+  listen: Restart monitoring
