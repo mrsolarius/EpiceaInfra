@@ -34,3 +34,6 @@ docker_versions:
   litopia:
     frontend: "v1.1.0"
     backend: "v1.1.0"
+  backpaking:
+    frontend: "v1.1.2"
+    backend: "v2.1.2"

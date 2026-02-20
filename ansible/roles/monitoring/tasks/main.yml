@@ -60,7 +60,7 @@
     group: "{{ common_system_group }}"
   notify: Restart monitoring
 
-- name: DÃ©ployer rÃ¨gles d'alerting Litopia (conteneurs)
+- name: Déployer règles d'alerting Litopia (conteneurs)
   ansible.builtin.copy:
     src: container-alerts.yml
     dest: "{{ storage.ansible.compose }}/monitoring/prometheus/rules/container-alerts.yml"

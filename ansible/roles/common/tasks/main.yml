@@ -1,10 +1,10 @@
 ---
 # ========================================
 # Role: common
-# Description: Configuration systÃ¨me de base
+# Description: Configuration système de base
 # ========================================
 
-- name: Mise Ã  jour du systÃ¨me
+- name: Mise à jour du système
   ansible.builtin.apt:
     upgrade: dist
     update_cache: true
@@ -42,7 +42,7 @@
   community.general.timezone:
     name: "{{ timezone }}"
 
-- name: Configuration UFW - rÃ¨gles de base
+- name: Configuration UFW - règles de base
   community.general.ufw:
     rule: "{{ item.rule }}"
     port: "{{ item.port }}"
@@ -53,7 +53,7 @@
     - {rule: 'allow', port: '80', comment: 'HTTP'}
     - {rule: 'allow', port: '443', comment: 'HTTPS'}
 
-- name: Configuration UFW - autoriser Node Exporter depuis le rÃ©seau local et Docker
+- name: Configuration UFW - autoriser Node Exporter depuis le réseau local et Docker
   community.general.ufw:
     rule: allow
     port: '9100'
@@ -64,7 +64,7 @@
     - '192.168.1.0/24'
     - '172.16.0.0/12'
 
-- name: Configuration UFW - bloquer accÃ¨s externe PostgreSQL, Redis et Node Exporter
+- name: Configuration UFW - bloquer accès externe PostgreSQL, Redis et Node Exporter
   community.general.ufw:
     rule: deny
     port: "{{ item.port }}"
@@ -75,7 +75,7 @@
     - {port: '6379', comment: 'Block external Redis'}
     - {port: '9100', comment: 'Block external Node Exporter'}
 
-- name: Configuration UFW - rÃ¨gles additionnelles (production)
+- name: Configuration UFW - règles additionnelles (production)
   community.general.ufw:
     rule: "{{ item.rule }}"
     port: "{{ item.port | default(omit) }}"
@@ -116,23 +116,23 @@
     - system_enable_gpu | bool
   notify: Reboot system
 
-- name: VÃ©rifier la prÃ©sence de la clÃ© privÃ©e SSH
+- name: Vérifier la présence de la clé privée SSH
   ansible.builtin.stat:
     path: "/home/{{ common_system_user }}/.ssh/id_rsa"
   register: ssh_private_key
 
-- name: VÃ©rifier les permissions des clÃ©s privÃ©es SSH (si existantes)
+- name: Vérifier les permissions des clés privées SSH (si existantes)
   ansible.builtin.file:
     path: "/home/{{ common_system_user }}/.ssh/id_rsa"
     mode: '0600'
     state: file
   when: ssh_private_key.stat.exists | default(false)
 
-- name: Afficher rÃ©sumÃ© configuration
+- name: Afficher résumé configuration
   ansible.builtin.debug:
     msg:
-      - "âœ… Paquets de base installÃ©s"
-      - "âœ… Firewall UFW configurÃ©"
-      - "âœ… Fail2ban activÃ©"
-      - "{% if deploy_environment == 'test' %}âœ… DNS local configurÃ©{% endif %}"
-      - "{% if system_enable_gpu %}âœ… Drivers NVIDIA installÃ©s{% endif %}"
+      - "âœ… Paquets de base installés"
+      - "âœ… Firewall UFW configuré"
+      - "âœ… Fail2ban activé"
+      - "{% if deploy_environment == 'test' %}âœ… DNS local configuré{% endif %}"
+      - "{% if system_enable_gpu %}âœ… Drivers NVIDIA installés{% endif %}"

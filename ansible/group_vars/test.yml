@@ -13,6 +13,8 @@ storage_enable_zfs_snapshots: false
 # Domaine de base
 base_domain: "epicea-test.local"
 litopia_domain: "litopia.local"
+backpaking_domain: "backpaking.{{ base_domain }}"
+backpaking_api_domain: "api.{{ backpaking_domain }}"
 
 # Domaines des services
 service_domains:
@@ -22,6 +24,8 @@ service_domains:
   nextcloud: "cloud.{{ base_domain }}"
   grafana: "monitoring.{{ base_domain }}"
   litopia: "{{ litopia_domain }}"
+  backpaking: "{{ backpaking_domain }}"
+  backpaking_api: "{{ backpaking_api_domain }}"
 
 # Racines physiques (Multipass)
 drive_nvme_path: "/opt/epicea"
@@ -29,7 +33,7 @@ drive_ssd_path: "/opt/epicea/ssd"  # En test, on simule le SSD sur le NVMe
 drive_nfs_root: "/mnt/nas"
 
 # Configuration NFS (Storage VM)
-nfs_server: "172.29.246.44"  # IP_STORAGE_TEST
+nfs_server: "172.18.13.243"  # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "{{ drive_nfs_root }}/media"
@@ -46,17 +50,16 @@ nfs_mounts:
     path: "{{ drive_nfs_root }}/backups"
     opts: "rw,hard,intr,nfsvers=4"
 
-# Services activÃ©s
+# Services activés
 enabled_services:
-  - shared-services  # Postgres + Redis mutualisÃ©s
+  - shared-services  # Postgres + Redis mutualisés
   - traefik
   - immich
   - jellyfin
   - nextcloud
   - monitoring
   - litopia
-
-# Les chemins sont maintenant dÃ©finis dans common.yml via l'objet storage
+  - backpaking
 
 # Configuration Traefik (test)
 traefik_acme_enabled: false  # Pas de Let's Encrypt en test
@@ -75,9 +78,9 @@ monitoring_prometheus_scrape_interval: "15s"
 monitoring_prometheus_evaluation_interval: "15s"
 monitoring_prometheus_cadvisor_enabled: true  # Monitoring Docker
 monitoring_grafana_admin_user: "admin"
-monitoring_grafana_admin_password: "admin"  # Ã€ changer en production !
+monitoring_grafana_admin_password: "admin"  # À changer en production !
 monitoring_grafana_root_url: "https://monitoring.epicea-test.local"
-monitoring_grafana_plugins: ""  # Plugins Grafana Ã  installer (sÃ©parÃ©s par ,)
+monitoring_grafana_plugins: ""  # Plugins Grafana à installer (séparés par ,)
 monitoring_grafana_middlewares: ""  # Middlewares Traefik optionnels
 monitoring_prometheus_node_exporter_enabled: true
 
@@ -86,4 +89,4 @@ backup_system_enabled: false  # Pas de backups automatiques en test
 backup_system_retention_days: 7
 
 # Notifications
-# Pas de notifications Discord/Telegram par dÃ©faut si discord_webhook_url n'est pas dÃ©fini dans le vault
+# Pas de notifications Discord/Telegram par défaut si discord_webhook_url n'est pas défini dans le vault

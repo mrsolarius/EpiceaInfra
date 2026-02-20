@@ -4,15 +4,15 @@
 # Description: Installation + configuration Docker
 # ========================================
 
-- name: VÃ©rifier si Docker est dÃ©jÃ  installÃ©
+- name: Vérifier si Docker est déjà installé
   ansible.builtin.command: docker --version
   register: docker_check
   failed_when: false
   changed_when: false
 
-- name: Afficher la version Docker actuelle (si installÃ©e)
+- name: Afficher la version Docker actuelle (si installée)
   ansible.builtin.debug:
-    msg: "Docker dÃ©jÃ  installÃ© : {{ docker_check.stdout }}"
+    msg: "Docker déjà installé : {{ docker_check.stdout }}"
   when: docker_check.rc == 0
 
 - name: Supprimer les anciennes versions de Docker
@@ -26,7 +26,7 @@
     state: absent
   when: docker_check.rc != 0
 
-- name: Installer les dÃ©pendances pour le repository Docker
+- name: Installer les dépendances pour le repository Docker
   ansible.builtin.apt:
     name:
       - ca-certificates
@@ -36,7 +36,7 @@
     state: present
     update_cache: true
 
-- name: CrÃ©er le dossier pour les clÃ©s GPG
+- name: Créer le dossier pour les clés GPG
   ansible.builtin.file:
     path: /etc/apt/keyrings
     state: directory
@@ -63,12 +63,12 @@
     filename: docker
   when: docker_check.rc != 0
 
-- name: Mettre Ã  jour le cache APT
+- name: Mettre à jour le cache APT
   ansible.builtin.apt:
     update_cache: true
   when: docker_check.rc != 0
 
-- name: Installer Docker Engine (derniÃ¨re version)
+- name: Installer Docker Engine (dernière version)
   ansible.builtin.apt:
     name:
       - docker-ce
@@ -79,7 +79,7 @@
     state: present
     update_cache: true
 
-- name: CrÃ©er le dossier de configuration Docker
+- name: Créer le dossier de configuration Docker
   ansible.builtin.file:
     path: /etc/docker
     state: directory
@@ -112,44 +112,44 @@
     groups: docker
     append: true
 
-- name: DÃ©marrer et activer Docker
+- name: Démarrer et activer Docker
   ansible.builtin.systemd:
     name: docker
     state: started
     enabled: true
 
-- name: CrÃ©er le rÃ©seau {{ docker_proxy_network_name }}
+- name: Créer le réseau {{ docker_proxy_network_name }}
   community.docker.docker_network:
     name: "{{ docker_proxy_network_name }}"
     driver: bridge
     state: present
 
-- name: CrÃ©er le rÃ©seau {{ docker_monitoring_network_name }}
+- name: Créer le réseau {{ docker_monitoring_network_name }}
   community.docker.docker_network:
     name: "{{ docker_monitoring_network_name }}"
     driver: bridge
     state: present
 
-- name: VÃ©rifier Docker fonctionne
+- name: Vérifier Docker fonctionne
   ansible.builtin.command: docker ps
   changed_when: false
 
-- name: RÃ©cupÃ©rer la version Docker installÃ©e
+- name: Récupérer la version Docker installée
   ansible.builtin.command: docker version --format '{{ "{{" }}.Server.Version{{ "}}" }}'
   register: docker_version_installed
   changed_when: false
 
-- name: RÃ©cupÃ©rer l'API version Docker
+- name: Récupérer l'API version Docker
   ansible.builtin.command: docker version --format '{{ "{{" }}.Server.APIVersion{{ "}}" }}'
   register: docker_api_version
   changed_when: false
 
-- name: Afficher rÃ©sultat
+- name: Afficher résultat
   ansible.builtin.debug:
     msg:
-      - "âœ… Docker installÃ© : {{ docker_version_installed.stdout }}"
+      - "âœ… Docker installé : {{ docker_version_installed.stdout }}"
       - "âœ… Docker API version : {{ docker_api_version.stdout }}"
-      - "RÃ©seau Proxy : {{ docker_proxy_network_name }}"
-      - "RÃ©seau Monitoring : {{ docker_monitoring_network_name }}"
+      - "Réseau Proxy : {{ docker_proxy_network_name }}"
+      - "Réseau Monitoring : {{ docker_monitoring_network_name }}"
       - "{% if docker_api_version.stdout is version('1.44', '>=') %}âœ… Compatible avec Traefik v3.3+{% else %}âš ï¸  API trop ancienne pour Traefik v3.3 (minimum 1.44){% endif %}"
 

@@ -47,8 +47,8 @@ groups:
           severity: warning
           component: postgresql
         annotations:
-          summary: "Deadlocks PostgreSQL dÃ©tectÃ©s sur {{ $labels.instance }} ðŸ”’"
-          description: "La base de donnÃ©es PostgreSQL {{ $labels.datname }} sur {{ $labels.instance }} a {{ $value }} deadlocks par seconde."
+          summary: "Deadlocks PostgreSQL détectés sur {{ $labels.instance }} ðŸ”’"
+          description: "La base de données PostgreSQL {{ $labels.datname }} sur {{ $labels.instance }} a {{ $value }} deadlocks par seconde."
 
       # Long-running transactions
       - alert: PostgreSQLLongRunningTransactions
@@ -70,7 +70,7 @@ groups:
           component: postgresql
         annotations:
           summary: "Sessions PostgreSQL inactives en transaction ðŸ’¤"
-          description: "La base de donnÃ©es PostgreSQL {{ $labels.datname }} a {{ $value }} sessions inactives en transaction depuis plus de 10 minutes."
+          description: "La base de données PostgreSQL {{ $labels.datname }} a {{ $value }} sessions inactives en transaction depuis plus de 10 minutes."
 
       # High I/O wait time
       - alert: PostgreSQLHighIOWait
@@ -80,8 +80,8 @@ groups:
           severity: warning
           component: postgresql
         annotations:
-          summary: "Temps d'attente E/S PostgreSQL Ã©levÃ© sur {{ $labels.instance }} ðŸ’¾"
-          description: "La base de donnÃ©es PostgreSQL {{ $labels.datname }} sur {{ $labels.instance }} subit un temps d'attente E/S Ã©levÃ© : {{ $value }}ms. VÃ©rifiez les requÃªtes lentes ou la performance disque."
+          summary: "Temps d'attente E/S PostgreSQL élevé sur {{ $labels.instance }} ðŸ’¾"
+          description: "La base de données PostgreSQL {{ $labels.datname }} sur {{ $labels.instance }} subit un temps d'attente E/S élevé : {{ $value }}ms. Vérifiez les requÃªtes lentes ou la performance disque."
 
       # Excessive temp file usage (disk spillage)
       - alert: PostgreSQLExcessiveTempFiles
@@ -92,7 +92,7 @@ groups:
           component: postgresql
         annotations:
           summary: "Usage excessif de fichiers temporaires PostgreSQL sur {{ $labels.instance }} ðŸ“"
-          description: "La base de donnÃ©es PostgreSQL {{ $labels.datname }} sur {{ $labels.instance }} Ã©crit {{ $value }} octets/s dans des fichiers temporaires. Les requÃªtes nÃ©cessitent peut-Ãªtre une optimisation ou une augmentation de work_mem."
+          description: "La base de données PostgreSQL {{ $labels.datname }} sur {{ $labels.instance }} écrit {{ $value }} octets/s dans des fichiers temporaires. Les requÃªtes nécessitent peut-Ãªtre une optimisation ou une augmentation de work_mem."
 
       # Table bloat
       - alert: PostgreSQLTableBloat
@@ -102,7 +102,7 @@ groups:
           severity: warning
           component: postgresql
         annotations:
-          summary: "Table PostgreSQL gonflÃ©e (bloat) sur {{ $labels.instance }} ðŸŽˆ"
+          summary: "Table PostgreSQL gonflée (bloat) sur {{ $labels.instance }} ðŸŽˆ"
           description: "La table {{ $labels.schemaname }}.{{ $labels.tablename }} sur {{ $labels.instance }} contient {{ $value }}% de tuples morts. Envisagez de lancer un VACUUM."
 
       # Replication lag (if using replication)
@@ -113,8 +113,8 @@ groups:
           severity: warning
           component: postgresql
         annotations:
-          summary: "Lag de rÃ©plication PostgreSQL dÃ©tectÃ© ðŸ¢"
-          description: "Le lag de rÃ©plication PostgreSQL est de {{ $value }} secondes sur {{ $labels.instance }}."
+          summary: "Lag de réplication PostgreSQL détecté ðŸ¢"
+          description: "Le lag de réplication PostgreSQL est de {{ $value }} secondes sur {{ $labels.instance }}."
 
       # Too many sequential scans on vector tables
       - alert: PostgreSQLVectorTableSeqScans
@@ -125,8 +125,8 @@ groups:
           component: postgresql
           subsystem: pgvector
         annotations:
-          summary: "Trop de scans sÃ©quentiels sur table vectorielle ðŸ”"
-          description: "La table vectorielle {{ $labels.tablename }} utilise plus de scans sÃ©quentiels que de scans d'index. Envisagez de crÃ©er ou reconstruire les index HNSW/IVFFlat."
+          summary: "Trop de scans séquentiels sur table vectorielle ðŸ”"
+          description: "La table vectorielle {{ $labels.tablename }} utilise plus de scans séquentiels que de scans d'index. Envisagez de créer ou reconstruire les index HNSW/IVFFlat."
 
       # No vector index usage
       - alert: PostgreSQLVectorIndexUnused
@@ -137,8 +137,8 @@ groups:
           component: postgresql
           subsystem: pgvector
         annotations:
-          summary: "Grand index vectoriel inutilisÃ© sur {{ $labels.instance }} ðŸ—‘ï¸"
-          description: "L'index vectoriel {{ $labels.index_name }} sur {{ $labels.table_name }} ({{ $labels.index_type }}) sur l'instance {{ $labels.instance }} est volumineux (>10Mo) mais n'a eu que {{ $value }} scans durant la derniÃ¨re heure."
+          summary: "Grand index vectoriel inutilisé sur {{ $labels.instance }} ðŸ—‘ï¸"
+          description: "L'index vectoriel {{ $labels.index_name }} sur {{ $labels.table_name }} ({{ $labels.index_type }}) sur l'instance {{ $labels.instance }} est volumineux (>10Mo) mais n'a eu que {{ $value }} scans durant la dernière heure."
 
       # High lock wait count
       - alert: PostgreSQLHighLockWaitCount
@@ -148,5 +148,5 @@ groups:
           severity: warning
           component: postgresql
         annotations:
-          summary: "Nombre Ã©levÃ© d'attentes de verrouillage PostgreSQL sur {{ $labels.instance }} ðŸ”"
-          description: "La base de donnÃ©es {{ $labels.datname }} sur {{ $labels.instance }} a {{ $value }} verrous en attente ({{ $labels.mode }} {{ $labels.locktype }})."
+          summary: "Nombre élevé d'attentes de verrouillage PostgreSQL sur {{ $labels.instance }} ðŸ”"
+          description: "La base de données {{ $labels.datname }} sur {{ $labels.instance }} a {{ $value }} verrous en attente ({{ $labels.mode }} {{ $labels.locktype }})."

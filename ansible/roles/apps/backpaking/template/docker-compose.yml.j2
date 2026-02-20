@@ -1,0 +1,137 @@
+services:
+  backpaking-front:
+    image: ghcr.io/mrsolarius/backpacking-front:{{ docker_versions.backpaking.frontend }}
+    container_name: backpaking-front
+    restart: {{ docker_restart_policy }}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.10'
+          memory: 128M
+    env_file: ./backpaking-front.env
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qSO- http://localhost:${BACKPAKING_FRONT_PORT}/ 2>&1 | grep -q 'HTTP/1.1 [1-4]'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ docker_proxy_network_name }}"
+      - "traefik.http.routers.backpaking-front-http.rule=Host(`${BACKPAKING_DOMAIN}`)"
+      - "traefik.http.routers.backpaking-front-http.entrypoints=web"
+      - "traefik.http.routers.backpaking-front-http.service=backpaking-front"
+      - "traefik.http.routers.backpaking-front-http.priority=1"
+      - "traefik.http.routers.backpaking-front-https.rule=Host(`${BACKPAKING_DOMAIN}`)"
+      - "traefik.http.routers.backpaking-front-https.entrypoints=websecure"
+      - "traefik.http.routers.backpaking-front-https.service=backpaking-front"
+      - "traefik.http.routers.backpaking-front-https.tls=true"
+      - "traefik.http.routers.backpaking-front-https.tls.certresolver={{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
+      - "traefik.http.routers.backpaking-front-https.priority=1"
+      - "traefik.http.services.backpaking-front.loadbalancer.server.port=${BACKPAKING_FRONT_PORT}"
+
+  backpaking-back:
+    image: ghcr.io/mrsolarius/backpacking-back:{{ docker_versions.backpaking.backend }}
+    container_name: backpaking-back
+    restart: {{ docker_restart_policy }}
+    depends_on:
+      backpaking-db:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    env_file: .env
+    networks:
+      - default
+      - proxy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qSO- http://localhost:${BACKPAKING_BACK_PORT}/actuator/health 2>&1 | grep -q 'HTTP/1.1 [1-4]'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ docker_proxy_network_name }}"
+      - "traefik.http.routers.backpaking-back-http.rule=Host(`${BACKPAKING_API_DOMAIN}`)"
+      - "traefik.http.routers.backpaking-back-http.entrypoints=web"
+      - "traefik.http.routers.backpaking-back-http.service=backpaking-back"
+      - "traefik.http.routers.backpaking-back-http.priority=1000"
+      - "traefik.http.routers.backpaking-back-https.rule=Host(`${BACKPAKING_API_DOMAIN}`)"
+      - "traefik.http.routers.backpaking-back-https.entrypoints=websecure"
+      - "traefik.http.routers.backpaking-back-https.service=backpaking-back"
+      - "traefik.http.routers.backpaking-back-https.tls=true"
+      - "traefik.http.routers.backpaking-back-https.tls.certresolver={{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
+      - "traefik.http.routers.backpaking-back-https.priority=1000"
+      - "traefik.http.services.backpaking-back.loadbalancer.server.port=${BACKPAKING_BACK_PORT}"
+      - "traefik.http.middlewares.backpaking-back-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.backpaking-back-https.middlewares=backpaking-back-headers"
+
+
+  backpaking-db:
+    image: postgres:{{ docker_versions.common.postgres }}
+    container_name: backpaking-db
+    restart: {{ docker_restart_policy }}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.1'
+          memory: 256M
+    env_file: .env
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    volumes:
+      - ${BACKPAKING_DB_DATA_PATH}:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backpaking-postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:{{ docker_versions.common.postgres_exporter }}
+    container_name: backpaking-postgres-exporter
+    restart: {{ docker_restart_policy }}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@backpaking-db:5432/${POSTGRES_DB}?sslmode=disable"
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      PG_EXPORTER_CONSTANT_LABELS: "instance=backpaking"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
+    volumes:
+      - ./postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    networks:
+      - default
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  default:
+  monitoring:
+    name: {{ docker_monitoring_network_name }}
+    external: true
+  proxy:
+    name: {{ docker_proxy_network_name }}
+    external: true

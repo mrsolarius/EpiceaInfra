@@ -1,4 +1,4 @@
-.PHONY: help test-init test-deploy test-status vm-up vm-down
+.PHONY: help test-init test-deploy test-status vm-up vm-down lint linit
 
 # ========================================
 # Makefile Epicea Infrastructure
@@ -29,6 +29,10 @@ help:
 	@echo "  make init               # Initialiser secrets"
 	@echo "  make deploy             # Déployer infrastructure"
 	@echo "  make status             # Status services"
+	@echo ""
+	@echo "Qualité :"
+	@echo "  make lint               # Lancer ansible-lint"
+	@echo "  make linit              # Alias de lint"
 	@echo ""
 
 # ========================================
@@ -105,6 +109,13 @@ validate:
 	@echo "✅ Validation configuration..."
 	@$(ANSIBLE_PLAYBOOK) --syntax-check ansible/playbooks/site.yml
 	@echo "✅ Syntax Ansible OK"
+
+# ========================================
+# LINT
+# ========================================
+lint:
+	@echo "🧹 ansible-lint..."
+	@ansible-lint
 
 # ========================================
 # NETTOYAGE

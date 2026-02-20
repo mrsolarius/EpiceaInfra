@@ -1,10 +1,10 @@
 ---
 # ========================================
 # Role: proxy (Traefik)
-# Description: DÃ©ploiement reverse proxy Traefik
+# Description: Déploiement reverse proxy Traefik
 # ========================================
 
-- name: CrÃ©er structure dossiers Traefik
+- name: Créer structure dossiers Traefik
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -27,7 +27,7 @@
     group: "{{ common_system_group }}"
   when: proxy_enable_letsencrypt | bool
 
-- name: DÃ©ployer configuration statique Traefik
+- name: Déployer configuration statique Traefik
   ansible.builtin.template:
     src: traefik.yml.j2
     dest: "{{ traefik_config_path }}/traefik.yml"
@@ -36,7 +36,7 @@
     group: "{{ common_system_group }}"
   notify: Restart traefik
 
-- name: DÃ©ployer middlewares dynamiques
+- name: Déployer middlewares dynamiques
   ansible.builtin.template:
     src: dynamic-middlewares.yml.j2
     dest: "{{ traefik_config_path }}/dynamic/middlewares.yml"
@@ -45,7 +45,7 @@
     group: "{{ common_system_group }}"
   notify: Restart traefik
 
-- name: GÃ©nÃ©rer fichier .env Traefik
+- name: Générer fichier .env Traefik
   ansible.builtin.template:
     src: proxy.env.j2
     dest: "{{ storage.ansible.compose }}/traefik/.env"
@@ -54,7 +54,7 @@
     group: "{{ common_system_group }}"
   notify: Restart traefik
 
-- name: GÃ©nÃ©rer docker-compose.yml Traefik
+- name: Générer docker-compose.yml Traefik
   ansible.builtin.template:
     src: docker-compose.yml.j2
     dest: "{{ storage.ansible.compose }}/traefik/docker-compose.yml"
@@ -65,13 +65,13 @@
     lstrip_blocks: true
   notify: Restart traefik
 
-- name: CrÃ©er rÃ©seau Docker {{ docker_proxy_network_name }}
+- name: Créer réseau Docker {{ docker_proxy_network_name }}
   community.docker.docker_network:
     name: "{{ docker_proxy_network_name }}"
     driver: bridge
     state: present
 
-- name: VÃ©rifier configuration Traefik (dry-run)
+- name: Vérifier configuration Traefik (dry-run)
   ansible.builtin.command:
     cmd: docker compose config
     chdir: "{{ storage.ansible.compose }}/traefik"
@@ -79,7 +79,7 @@
   register: traefik_config_check
   failed_when: traefik_config_check.rc != 0
 
-- name: DÃ©marrer Traefik
+- name: Démarrer Traefik
   community.docker.docker_compose_v2:
     project_src: "{{ storage.ansible.compose }}/traefik"
     state: present
@@ -104,7 +104,7 @@
     state: started
   when: traefik_deploy.changed
 
-- name: VÃ©rifier health check Traefik
+- name: Vérifier health check Traefik
   ansible.builtin.uri:
     url: "http://localhost:8080/ping"
     method: GET
@@ -117,8 +117,8 @@
 - name: Afficher statut Traefik
   ansible.builtin.debug:
     msg:
-      - "âœ… Traefik dÃ©ployÃ© avec succÃ¨s"
+      - "âœ… Traefik déployé avec succès"
       - "Dashboard: {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}"
       - "Metrics: {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}/metrics"
       - "Ping: {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}/ping"
-      - "Auth: {{ 'ConfigurÃ© dans vault.yml' if deploy_environment == 'production' else 'admin / admin' }}"
+      - "Auth: {{ 'Configuré dans vault.yml' if deploy_environment == 'production' else 'admin / admin' }}"

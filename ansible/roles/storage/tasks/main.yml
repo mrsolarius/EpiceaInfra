@@ -4,7 +4,7 @@
 # Description: Montages NFS + configuration stockage
 # ========================================
 
-- name: CrÃ©er les racines de stockage
+- name: Créer les racines de stockage
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -19,14 +19,14 @@
     - "{{ storage.ansible.configs }}"
     - "{{ storage.monitoring }}"
 
-- name: CrÃ©er les dossiers pour les bases de donnÃ©es (SSD)
+- name: Créer les dossiers pour les bases de données (SSD)
   ansible.builtin.file:
     path: "{{ item.value }}"
     state: directory
     mode: '0700'
   loop: "{{ storage.databases | dict2items }}"
 
-- name: CrÃ©er les points de montage NFS
+- name: Créer les points de montage NFS
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: directory
@@ -42,7 +42,7 @@
     state: mounted
   loop: "{{ nfs_mounts }}"
 
-- name: Configurer les permissions aprÃ¨s montage
+- name: Configurer les permissions après montage
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: directory
@@ -52,14 +52,14 @@
   loop: "{{ nfs_mounts }}"
   when: item.owner is defined or item.group is defined or item.mode is defined
 
-- name: VÃ©rifier les montages
+- name: Vérifier les montages
   ansible.builtin.command: df -h {{ item.path }}
   loop: "{{ nfs_mounts }}"
   changed_when: false
   register: nfs_check
 
-- name: Afficher rÃ©sumÃ© stockage
+- name: Afficher résumé stockage
   ansible.builtin.debug:
     msg:
-      - "âœ… Montages NFS configurÃ©s :"
+      - "âœ… Montages NFS configurés :"
       - "{% for mount in nfs_mounts %}  - {{ mount.path }} â†’ {{ mount.src }}{% endfor %}"

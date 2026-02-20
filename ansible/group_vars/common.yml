@@ -37,6 +37,7 @@ storage:
     nextcloud: "{{ drive_ssd_path }}/nextcloud-db"
     redis: "{{ drive_ssd_path }}/redis"
     litopia: "{{ drive_ssd_path }}/litopia-db"
+    backpaking: "{{ drive_ssd_path }}/backpaking-db"
 
   # Stockage de masse (NFS)
   media:

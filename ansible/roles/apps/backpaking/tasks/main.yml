@@ -1,0 +1,80 @@
+---
+- name: Creer les repertoires Backpaking
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
+  loop:
+    - "{{ storage.ansible.compose }}/backpaking"
+
+- name: Creer les repertoires de donnees PostgreSQL Backpaking
+  ansible.builtin.file:
+    path: "{{ storage.databases.backpaking }}"
+    state: directory
+    mode: '0700'
+    owner: "999"  # postgres
+    group: "999"
+    recurse: true
+
+- name: Generer le fichier .env Backpaking (backend + DB)
+  ansible.builtin.template:
+    src: "{{ role_path }}/template/backpaking-back.env.j2"
+    dest: "{{ storage.ansible.compose }}/backpaking/.env"
+    mode: '0600'
+
+- name: Generer le fichier .env Backpaking (frontend)
+  ansible.builtin.template:
+    src: "{{ role_path }}/template/backpaking-front.env.j2"
+    dest: "{{ storage.ansible.compose }}/backpaking/backpaking-front.env"
+    mode: '0644'
+
+- name: Copier les requetes personnalisees postgres-exporter
+  ansible.builtin.copy:
+    src: ../../../monitoring/files/postgres-exporter-queries.yaml
+    dest: "{{ storage.ansible.compose }}/backpaking/postgres-exporter-queries.yaml"
+    mode: '0644'
+
+- name: Generer le fichier docker-compose Backpaking
+  ansible.builtin.template:
+    src: "{{ role_path }}/template/docker-compose.yml.j2"
+    dest: "{{ storage.ansible.compose }}/backpaking/docker-compose.yml"
+    mode: '0644'
+    trim_blocks: true
+    lstrip_blocks: true
+
+- name: Login to GHCR (optional)
+  community.docker.docker_login:
+    registry_url: ghcr.io
+    username: "{{ ghcr_username }}"
+    password: "{{ ghcr_token }}"
+    reauthorize: true
+  no_log: true
+  when:
+    - (ghcr_username | default('')) | length > 0
+    - (ghcr_token | default('')) | length > 0
+
+- name: Demarrer Backpaking
+  community.docker.docker_compose_v2:
+    project_src: "{{ storage.ansible.compose }}/backpaking"
+    state: present
+    pull: always
+
+- name: Attendre que Backpaking soit pret
+  ansible.builtin.shell:
+    cmd: docker compose ps --format json | jq -r '.Health' | grep -c healthy || true
+    chdir: "{{ storage.ansible.compose }}/backpaking"
+  register: backpaking_health
+  until: backpaking_health.stdout | int >= 3
+  retries: 24
+  delay: 5
+  changed_when: false
+
+- name: Logout from GHCR after Backpaking (optional)
+  community.docker.docker_login:
+    registry_url: ghcr.io
+    state: absent
+  when:
+    - (ghcr_username | default('')) | length > 0
+    - (ghcr_token | default('')) | length > 0

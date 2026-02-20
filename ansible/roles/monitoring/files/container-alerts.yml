@@ -12,7 +12,7 @@ groups:
           subsystem: container
         annotations:
           summary: "Conteneur Litopia critique indisponible ðŸ”´"
-          description: "Le conteneur {{ $labels.name }} ne rÃ©pond plus depuis plus de 5 minutes."
+          description: "Le conteneur {{ $labels.name }} ne répond plus depuis plus de 5 minutes."
 
       - alert: LitopiaContainerDown
         expr: time() - container_last_seen{name=~"litopia-(front|postgres-exporter)"} > 60
@@ -23,7 +23,7 @@ groups:
           subsystem: container
         annotations:
           summary: "Conteneur Litopia indisponible ðŸŸ "
-          description: "Le conteneur {{ $labels.name }} ne rÃ©pond plus depuis plus de 5 minutes."
+          description: "Le conteneur {{ $labels.name }} ne répond plus depuis plus de 5 minutes."
 
       - alert: LitopiaHighCPU
         expr: rate(container_cpu_usage_seconds_total{name=~"litopia-(db|back|front)"}[5m]) * 100 > 80
@@ -33,8 +33,8 @@ groups:
           component: litopia
           subsystem: container
         annotations:
-          summary: "CPU Ã©levÃ© sur Litopia ðŸ”¥"
-          description: "Le conteneur {{ $labels.name }} dÃ©passe 80% CPU depuis plus de 10 minutes."
+          summary: "CPU élevé sur Litopia ðŸ”¥"
+          description: "Le conteneur {{ $labels.name }} dépasse 80% CPU depuis plus de 10 minutes."
 
       - alert: LitopiaHighMemory
         expr: |
@@ -47,5 +47,55 @@ groups:
           component: litopia
           subsystem: container
         annotations:
-          summary: "MÃ©moire Ã©levÃ©e sur Litopia ðŸ’¾"
-          description: "Le conteneur {{ $labels.name }} dÃ©passe 90% de mÃ©moire allouÃ©e depuis plus de 10 minutes."
+          summary: "Mémoire élevée sur Litopia ðŸ’¾"
+          description: "Le conteneur {{ $labels.name }} dépasse 90% de mémoire allouée depuis plus de 10 minutes."
+
+  - name: backpaking_container_alerts
+    interval: 30s
+    rules:
+      - alert: BackpakingCriticalContainerDown
+        expr: time() - container_last_seen{name=~"backpaking-(db|back)"} > 60
+        for: 5m
+        labels:
+          severity: critical
+          component: backpaking
+          subsystem: container
+        annotations:
+          summary: "Conteneur Backpaking critique indisponible"
+          description: "Le conteneur {{ $labels.name }} ne repond plus depuis plus de 5 minutes."
+
+      - alert: BackpakingContainerDown
+        expr: time() - container_last_seen{name=~"backpaking-(front|postgres-exporter)"} > 60
+        for: 5m
+        labels:
+          severity: warning
+          component: backpaking
+          subsystem: container
+        annotations:
+          summary: "Conteneur Backpaking indisponible"
+          description: "Le conteneur {{ $labels.name }} ne repond plus depuis plus de 5 minutes."
+
+      - alert: BackpakingHighCPU
+        expr: rate(container_cpu_usage_seconds_total{name=~"backpaking-(db|back|front)"}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: backpaking
+          subsystem: container
+        annotations:
+          summary: "CPU eleve sur Backpaking"
+          description: "Le conteneur {{ $labels.name }} depasse 80% CPU depuis plus de 10 minutes."
+
+      - alert: BackpakingHighMemory
+        expr: |
+          (container_memory_usage_bytes{name=~"backpaking-(db|back|front)"}
+          / container_spec_memory_limit_bytes{name=~"backpaking-(db|back|front)"} * 100) > 90
+          and on(name) container_spec_memory_limit_bytes{name=~"backpaking-(db|back|front)"} > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: backpaking
+          subsystem: container
+        annotations:
+          summary: "Memoire elevee sur Backpaking"
+          description: "Le conteneur {{ $labels.name }} depasse 90% de memoire allouee depuis plus de 10 minutes."
