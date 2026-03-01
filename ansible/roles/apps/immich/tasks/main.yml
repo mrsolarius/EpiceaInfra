@@ -17,6 +17,7 @@
     owner: "999"  # postgres
     group: "999"
     recurse: true
+    recurse: true
 
 - name: Générer le script d'initialisation PostgreSQL
   ansible.builtin.template:

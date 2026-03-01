@@ -18,11 +18,14 @@
     group: "999"
     recurse: true
 
-- name: Generer le fichier .env Backpaking (backend + DB)
+- name: Generer les fichiers .env Backpaking (backend + DB)
   ansible.builtin.template:
     src: "{{ role_path }}/template/backpaking-back.env.j2"
-    dest: "{{ storage.ansible.compose }}/backpaking/backpaking-back.env"
+    dest: "{{ item }}"
     mode: '0600'
+  loop:
+    - "{{ storage.ansible.compose }}/backpaking/backpaking-back.env"
+    - "{{ storage.ansible.compose }}/backpaking/.env"
 
 - name: Generer le fichier .env Backpaking (frontend)
   ansible.builtin.template:

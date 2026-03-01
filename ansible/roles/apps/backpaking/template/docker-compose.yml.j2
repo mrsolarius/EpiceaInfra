@@ -50,7 +50,7 @@ services:
         reservations:
           cpus: '0.25'
           memory: 256M
-    env_file: .env
+    env_file: ./backpaking-back.env
     networks:
       - default
       - proxy
@@ -90,7 +90,7 @@ services:
         reservations:
           cpus: '0.1'
           memory: 256M
-    env_file: .env
+    env_file: ./backpaking-back.env
     command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
     volumes:
       - ${BACKPAKING_DB_DATA_PATH}:/var/lib/postgresql/data

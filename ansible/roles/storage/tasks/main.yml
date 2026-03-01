@@ -19,6 +19,7 @@
     - "{{ storage.ansible.configs }}"
     - "{{ storage.monitoring }}"
 
+
 - name: Créer les dossiers pour les bases de données (SSD)
   ansible.builtin.file:
     path: "{{ item.value }}"
