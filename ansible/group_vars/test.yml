@@ -14,7 +14,6 @@ storage_enable_zfs_snapshots: false
 base_domain: "epicea-test.local"
 litopia_domain: "litopia.local"
 backpaking_domain: "backpaking.{{ base_domain }}"
-backpaking_api_domain: "api.{{ backpaking_domain }}"
 
 # Domaines des services
 service_domains:
@@ -25,7 +24,6 @@ service_domains:
   grafana: "monitoring.{{ base_domain }}"
   litopia: "{{ litopia_domain }}"
   backpaking: "{{ backpaking_domain }}"
-  backpaking_api: "{{ backpaking_api_domain }}"
 
 # Racines physiques (Multipass)
 drive_nvme_path: "/opt/epicea"
@@ -33,7 +31,7 @@ drive_ssd_path: "/opt/epicea/ssd"  # En test, on simule le SSD sur le NVMe
 drive_nfs_root: "/mnt/nas"
 
 # Configuration NFS (Storage VM)
-nfs_server: "172.18.13.243"  # IP_STORAGE_TEST
+nfs_server: "172.18.21.69"  # IP_STORAGE_TEST
 nfs_mounts:
   - src: "{{ nfs_server }}:/exports/media"
     path: "{{ drive_nfs_root }}/media"

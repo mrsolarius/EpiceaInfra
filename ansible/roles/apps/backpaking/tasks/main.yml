@@ -21,7 +21,7 @@
 - name: Generer le fichier .env Backpaking (backend + DB)
   ansible.builtin.template:
     src: "{{ role_path }}/template/backpaking-back.env.j2"
-    dest: "{{ storage.ansible.compose }}/backpaking/.env"
+    dest: "{{ storage.ansible.compose }}/backpaking/backpaking-back.env"
     mode: '0600'
 
 - name: Generer le fichier .env Backpaking (frontend)

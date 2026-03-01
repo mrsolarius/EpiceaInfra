@@ -14,7 +14,6 @@ storage_enable_zfs_snapshots: true
 base_domain: "louisvolat.fr"
 litopia_domain: "litopia.fr"
 backpaking_domain: "backpaking.{{ base_domain }}"
-backpaking_api_domain: "api.{{ backpaking_domain }}"
 
 # Domaines des services
 service_domains:
@@ -25,7 +24,6 @@ service_domains:
   grafana: "monitoring.{{ base_domain }}"
   litopia: "{{ litopia_domain }}"
   backpaking: "{{ backpaking_domain }}"
-  backpaking_api: "{{ backpaking_api_domain }}"
 
 # Racines physiques (Production)
 drive_nvme_path: "/opt/epicea"
