@@ -1,0 +1,39 @@
+---
+groups:
+  - name: zfs_alerts
+    interval: 1m
+    rules:
+      # Pool dégradé (disque HS ou retiré) : remplacer le disque au plus vite
+      - alert: ZFSPoolDegraded
+        expr: node_zfs_zpool_state{state!="online"} > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: storage
+        annotations:
+          summary: "Pool ZFS {{ $labels.zpool }} en état {{ $labels.state }}"
+          description: "Le pool {{ $labels.zpool }} sur {{ $labels.instance }} n'est plus ONLINE. Vérifier avec : zpool status -v {{ $labels.zpool }}"
+
+  - name: backup_alerts
+    interval: 5m
+    rules:
+      # Dernière réplication réussie trop ancienne (timer quotidien)
+      - alert: BackupReplicationStale
+        expr: time() - syncoid_last_success_timestamp_seconds > 36 * 3600
+        for: 15m
+        labels:
+          severity: critical
+          component: backup
+        annotations:
+          summary: "Réplication du pool {{ $labels.pool }} en retard"
+          description: "Aucune réplication réussie de {{ $labels.pool }} vers {{ $labels.instance }} depuis plus de 36h. Voir : journalctl -u syncoid-pull"
+
+      - alert: BackupReplicationFailed
+        expr: syncoid_last_run_status > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: backup
+        annotations:
+          summary: "Échec de la dernière réplication ZFS"
+          description: "Le dernier passage de syncoid sur {{ $labels.instance }} a échoué. Voir : journalctl -u syncoid-pull"

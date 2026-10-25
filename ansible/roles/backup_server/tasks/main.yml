@@ -1,0 +1,139 @@
+---
+# ========================================
+# Role: backup_server
+# Description: Serveur de sauvegarde - socle système + réception syncoid (pull)
+# ========================================
+# Le pool "vault" et sanoid (élagage) sont gérés par le rôle "zfs".
+
+- name: Installation des paquets de base
+  ansible.builtin.apt:
+    name:
+      - curl
+      - htop
+      - ncdu
+      - jq
+      - ufw
+      - fail2ban
+      - prometheus-node-exporter
+      - smartmontools
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Configuration du timezone
+  community.general.timezone:
+    name: "{{ timezone }}"
+
+- name: Configuration UFW - SSH
+  community.general.ufw:
+    rule: allow
+    port: '22'
+    proto: tcp
+    comment: 'SSH'
+
+- name: Configuration UFW - Node Exporter depuis le LAN
+  community.general.ufw:
+    rule: allow
+    port: '9100'
+    proto: tcp
+    from_ip: "{{ backup_lan_cidr }}"
+    comment: 'Node Exporter (LAN)'
+
+- name: Activation UFW (deny par défaut en entrée)
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming
+
+- name: Activer les services de supervision
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop:
+    - prometheus-node-exporter
+    - smartmontools
+    - fail2ban
+
+# ----------------------------------------
+# Datasets parents de réception
+# ----------------------------------------
+# Les racines des pools ne sont pas répliquées (--skip-parent) : on crée ici
+# leur équivalent, non monté, pour accueillir les datasets reçus.
+- name: Créer les datasets parents de réception
+  community.general.zfs:
+    name: "{{ backup_replication.target_root }}/{{ item }}"
+    state: present
+    extra_zfs_properties:
+      canmount: "off"
+  loop: "{{ backup_replication.pools }}"
+
+# ----------------------------------------
+# Accès SSH vers srv-main
+# ----------------------------------------
+- name: Créer le dossier SSH de root
+  ansible.builtin.file:
+    path: /root/.ssh
+    state: directory
+    mode: '0700'
+
+- name: Générer la clé SSH de réplication
+  ansible.builtin.command:
+    cmd: ssh-keygen -t ed25519 -N "" -C "syncoid@{{ inventory_hostname }}" -f {{ backup_replication.ssh_key }}
+    creates: "{{ backup_replication.ssh_key }}"
+
+- name: Lire la clé publique de réplication
+  ansible.builtin.slurp:
+    src: "{{ backup_replication.ssh_key }}.pub"
+  register: backup_ssh_pubkey
+
+- name: Exposer la clé publique au play srv-main
+  ansible.builtin.set_fact:
+    backup_syncoid_pubkey: "{{ backup_ssh_pubkey.content | b64decode | trim }}"
+
+- name: Récupérer la clé d'hôte de srv-main
+  ansible.builtin.command: ssh-keyscan -t ed25519 {{ hostvars[backup_replication.source_host].ansible_host }}
+  register: backup_source_hostkey
+  changed_when: false
+
+- name: Enregistrer srv-main dans known_hosts
+  ansible.builtin.known_hosts:
+    path: /root/.ssh/known_hosts
+    name: "{{ hostvars[backup_replication.source_host].ansible_host }}"
+    key: "{{ backup_source_hostkey.stdout_lines | select('match', '^[^#]') | first }}"
+
+# ----------------------------------------
+# Réplication planifiée
+# ----------------------------------------
+- name: Déployer le script de réplication
+  ansible.builtin.template:
+    src: syncoid-pull.sh.j2
+    dest: /usr/local/sbin/syncoid-pull.sh
+    mode: '0750'
+
+- name: Déployer l'unité systemd de réplication
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    mode: '0644'
+  loop:
+    - syncoid-pull.service
+    - syncoid-pull.timer
+  notify: Recharger systemd
+
+- name: Appliquer les unités systemd
+  ansible.builtin.meta: flush_handlers
+
+- name: Activer le timer de réplication
+  ansible.builtin.systemd:
+    name: syncoid-pull.timer
+    state: started
+    enabled: true
+
+- name: Afficher résumé sauvegarde
+  ansible.builtin.debug:
+    msg:
+      - "Réplication : {{ backup_replication.pools | join(', ') }} depuis {{ backup_replication.source_host }}"
+      - "Destination : {{ backup_replication.target_root }}"
+      - "Planification : {{ backup_replication.schedule }}"
+      - "Premier lancement manuel : systemctl start syncoid-pull.service (journalctl -fu syncoid-pull)"

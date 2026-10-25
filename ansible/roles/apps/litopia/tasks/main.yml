@@ -14,20 +14,19 @@
     path: "{{ storage.databases.litopia }}"
     state: directory
     mode: '0700'
-    owner: "999"  # postgres
-    group: "999"
-    recurse: true
-    recurse: true
+    # Pas de owner : l'image PostgreSQL règle les droits au démarrage
+    # (UID 70 pour les images alpine, 999 pour Immich). Un chown ici casse
+    # l'accès d'une base déjà lancée jusqu'à son prochain redémarrage.
 
 - name: Generer le fichier .env Litopia (backend + DB)
   ansible.builtin.template:
-    src: "{{ role_path }}/template/litopia-back.env.j2"
+    src: litopia-back.env.j2
     dest: "{{ storage.ansible.compose }}/litopia/.env"
     mode: '0600'
 
 - name: Generer le fichier .env Litopia (frontend)
   ansible.builtin.template:
-    src: "{{ role_path }}/template/litopia-front.env.j2"
+    src: litopia-front.env.j2
     dest: "{{ storage.ansible.compose }}/litopia/litopia-front.env"
     mode: '0644'
 
@@ -39,43 +38,30 @@
 
 - name: Generer le fichier docker-compose Litopia
   ansible.builtin.template:
-    src: "{{ role_path }}/template/docker-compose.yml.j2"
+    src: docker-compose.yml.j2
     dest: "{{ storage.ansible.compose }}/litopia/docker-compose.yml"
     mode: '0644'
     trim_blocks: true
     lstrip_blocks: true
 
-- name: Login to GHCR (optional)
+# Les images Litopia sont privées sur GHCR
+- name: Connexion à GHCR
   community.docker.docker_login:
     registry_url: ghcr.io
     username: "{{ ghcr_username }}"
     password: "{{ ghcr_token }}"
     reauthorize: true
   no_log: true
-  when:
-    - (ghcr_username | default('')) | length > 0
-    - (ghcr_token | default('')) | length > 0
 
 - name: Demarrer Litopia
   community.docker.docker_compose_v2:
     project_src: "{{ storage.ansible.compose }}/litopia"
     state: present
     pull: always
+    wait: true
+    wait_timeout: 600
 
-- name: Attendre que Litopia soit pret
-  ansible.builtin.shell:
-    cmd: docker compose ps --format json | jq -r '.Health' | grep -c healthy || true
-    chdir: "{{ storage.ansible.compose }}/litopia"
-  register: litopia_health
-  until: litopia_health.stdout | int >= 3
-  retries: 24
-  delay: 5
-  changed_when: false
-
-- name: Logout from GHCR after Litopia (optional)
+- name: Déconnexion de GHCR
   community.docker.docker_login:
     registry_url: ghcr.io
     state: absent
-  when:
-    - (ghcr_username | default('')) | length > 0
-    - (ghcr_token | default('')) | length > 0

@@ -11,7 +11,7 @@ groups:
           severity: critical
           component: redis
         annotations:
-          summary: "Instance Redis indisponible ðŸ”´"
+          summary: "Instance Redis indisponible 🔴"
           description: "L'instance Redis {{ $labels.instance }} est indisponible depuis plus d'une minute."
 
       # Low cache hit rate
@@ -24,19 +24,20 @@ groups:
           severity: warning
           component: redis
         annotations:
-          summary: "Faible taux de cache Redis ðŸ“‰"
-          description: "L'instance Redis {{ $labels.instance }} a un taux de cache de {{ $value }}% (devrait Ãªtre > 80%). Vérifiez les modèles d'utilisation des clés."
+          summary: "Faible taux de cache Redis 📉"
+          description: "L'instance Redis {{ $labels.instance }} a un taux de cache de {{ $value }}% (devrait être > 80%). Vérifiez les modèles d'utilisation des clés."
 
       # High memory usage
       - alert: RedisHighMemoryUsage
-        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 90
+        # Ignorée si maxmemory n'est pas défini (division par zéro -> +Inf)
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 90 and redis_memory_max_bytes > 0
         for: 5m
         labels:
           severity: warning
           component: redis
         annotations:
-          summary: "Utilisation mémoire Redis élevée ðŸ’¾"
-          description: "L'instance Redis {{ $labels.instance }} utilise {{ $value }}% de la mémoire maximale. Des clés pourraient commencer à Ãªtre évincées."
+          summary: "Utilisation mémoire Redis élevée 💾"
+          description: "L'instance Redis {{ $labels.instance }} utilise {{ $value }}% de la mémoire maximale. Des clés pourraient commencer à être évincées."
 
       # Memory fragmentation
       - alert: RedisHighMemoryFragmentation
@@ -46,8 +47,8 @@ groups:
           severity: warning
           component: redis
         annotations:
-          summary: "Fragmentation mémoire Redis élevée ðŸ§©"
-          description: "L'instance Redis {{ $labels.instance }} a un ratio de fragmentation de {{ $value }} (devrait Ãªtre < 1.5). Envisagez de redémarrer Redis ou d'activer la défragmentation active."
+          summary: "Fragmentation mémoire Redis élevée 🧩"
+          description: "L'instance Redis {{ $labels.instance }} a un ratio de fragmentation de {{ $value }} (devrait être < 1.5). Envisagez de redémarrer Redis ou d'activer la défragmentation active."
 
       # Low memory fragmentation (possible issue)
       - alert: RedisLowMemoryFragmentation
@@ -57,7 +58,7 @@ groups:
           severity: info
           component: redis
         annotations:
-          summary: "Fragmentation mémoire Redis faible ðŸ“‰"
+          summary: "Fragmentation mémoire Redis faible 📉"
           description: "L'instance Redis {{ $labels.instance }} a un ratio de fragmentation de {{ $value }} (< 0.7). Cela peut indiquer que des pages mémoire sont swappées sur le disque."
 
       # Keys being evicted
@@ -68,7 +69,7 @@ groups:
           severity: warning
           component: redis
         annotations:
-          summary: "Redis évince des clés ðŸ—‘ï¸"
+          summary: "Redis évince des clés 🗑️"
           description: "L'instance Redis {{ $labels.instance }} évince {{ $value }} clés par seconde. Envisagez d'augmenter maxmemory ou de revoir les politiques TTL."
 
       # Too many connected clients
@@ -79,19 +80,8 @@ groups:
           severity: warning
           component: redis
         annotations:
-          summary: "Trop de clients connectés à Redis ðŸ‘¥"
+          summary: "Trop de clients connectés à Redis 👥"
           description: "L'instance Redis {{ $labels.instance }} a {{ $value }} clients connectés. Vérifiez s'il y a des fuites de connexion."
-
-      # Blocked clients
-      - alert: RedisBlockedClients
-        expr: redis_blocked_clients > 5
-        for: 5m
-        labels:
-          severity: warning
-          component: redis
-        annotations:
-          summary: "Clients Redis bloqués ðŸš«"
-          description: "L'instance Redis {{ $labels.instance }} a {{ $value }} clients bloqués. Vérifiez les opérations lentes ou les commandes bloquantes sur listes/streams."
 
       # Rejected connections
       - alert: RedisRejectedConnections
@@ -101,7 +91,7 @@ groups:
           severity: warning
           component: redis
         annotations:
-          summary: "Redis rejette des connexions â›”"
+          summary: "Redis rejette des connexions ⛔"
           description: "L'instance Redis {{ $labels.instance }} rejette {{ $value }} connexions par seconde. Envisagez d'augmenter maxclients."
 
       # Slow commands detected
@@ -112,7 +102,7 @@ groups:
           severity: info
           component: redis
         annotations:
-          summary: "Commandes lentes Redis détectées ðŸ¢"
+          summary: "Commandes lentes Redis détectées 🐢"
           description: "L'instance Redis {{ $labels.instance }} a {{ $value }} commandes lentes dans le slowlog. Examinez et optimisez les opérations lentes."
 
       # RDB save failures
@@ -123,7 +113,7 @@ groups:
           severity: warning
           component: redis
         annotations:
-          summary: "Sauvegarde RDB Redis non terminée récemment ðŸ’¾"
+          summary: "Sauvegarde RDB Redis non terminée récemment 💾"
           description: "L'instance Redis {{ $labels.instance }} n'a pas terminé de sauvegarde RDB depuis plus d'une heure, et a des changements en attente."
 
       # AOF rewrite in progress for too long
@@ -147,7 +137,7 @@ groups:
           component: redis
         annotations:
           summary: "Latence commande Redis élevée â±ï¸"
-          description: "La commande {{ $labels.cmd }} sur l'instance Redis {{ $labels.instance }} a une latence moyenne de {{ $value }}Âµs (> 10ms)."
+          description: "La commande {{ $labels.cmd }} sur l'instance Redis {{ $labels.instance }} a une latence moyenne de {{ $value }}µs (> 10ms)."
 
       # High CPU usage
       - alert: RedisHighCPUUsage
@@ -157,8 +147,8 @@ groups:
           severity: warning
           component: redis
         annotations:
-          summary: "Utilisation CPU Redis élevée ðŸ”¥"
-          description: "L'instance Redis {{ $labels.instance }} utilise {{ $value }}% du CPU. EnquÃªtez sur les opérations coÃ»teuses."
+          summary: "Utilisation CPU Redis élevée 🔥"
+          description: "L'instance Redis {{ $labels.instance }} utilise {{ $value }}% du CPU. Enquêtez sur les opérations coûteuses."
 
       # No keys in Redis
       - alert: RedisNoKeys
@@ -168,8 +158,8 @@ groups:
           severity: info
           component: redis
         annotations:
-          summary: "Redis n'a aucune clé ðŸ“­"
-          description: "L'instance Redis {{ $labels.instance }} n'a aucune clé. Cela peut Ãªtre normal pour une nouvelle instance ou indiquer un problème."
+          summary: "Redis n'a aucune clé 📭"
+          description: "L'instance Redis {{ $labels.instance }} n'a aucune clé. Cela peut être normal pour une nouvelle instance ou indiquer un problème."
 
       # Master link down (replication)
       - alert: RedisMasterLinkDown
@@ -179,8 +169,8 @@ groups:
           severity: critical
           component: redis
         annotations:
-          summary: "Réplica Redis a perdu la connexion au maÃ®tre ðŸ”—"
-          description: "Le réplica Redis {{ $labels.instance }} a perdu la connexion au maÃ®tre depuis plus de 2 minutes."
+          summary: "Réplica Redis a perdu la connexion au maître 🔗"
+          description: "Le réplica Redis {{ $labels.instance }} a perdu la connexion au maître depuis plus de 2 minutes."
 
       # Network saturation
       - alert: RedisHighNetworkTraffic
@@ -190,5 +180,5 @@ groups:
           severity: info
           component: redis
         annotations:
-          summary: "Trafic réseau Redis élevé ðŸŒ"
+          summary: "Trafic réseau Redis élevé 🌐"
           description: "L'instance Redis {{ $labels.instance }} gère {{ $value }} octets/s de trafic réseau. Surveillez les goulots d'étranglement potentiels."

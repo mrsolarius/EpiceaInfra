@@ -19,7 +19,6 @@ services:
     ports:
       - "80:80"      # HTTP
       - "443:443"    # HTTPS
-      - "8080:8080"  # API / Dashboard / Healthcheck
     env_file: .env
     volumes:
       # Configuration file-based

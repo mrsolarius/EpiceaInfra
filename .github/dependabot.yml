@@ -1,43 +1,10 @@
+---
 version: 2
 updates:
-  # Maintenance des GitHub Actions
+  # Versions des actions GitHub du workflow CI.
+  # Les images Docker sont dans ansible/group_vars/versions.yml (templates Jinja,
+  # non lisibles par Dependabot) : à mettre à jour à la main.
   - package-ecosystem: "github-actions"
     directory: "/"
-    schedule:
-      interval: "weekly"
-
-  # Maintenance des images Docker (Traefik)
-  - package-ecosystem: "docker-compose"
-    directory: "/docker/traefik"
-    schedule:
-      interval: "weekly"
-
-  # Maintenance des images Docker (Monitoring)
-  - package-ecosystem: "docker-compose"
-    directory: "/docker/monitoring"
-    schedule:
-      interval: "weekly"
-
-  # Maintenance des images Docker (Redis)
-  - package-ecosystem: "docker-compose"
-    directory: "/docker/stateful/redis"
-    schedule:
-      interval: "weekly"
-
-  # Maintenance des images Docker (Postgres)
-  - package-ecosystem: "docker-compose"
-    directory: "/docker/stateful/postgres"
-    schedule:
-      interval: "weekly"
-
-  # Maintenance des images Docker (Immich)
-  - package-ecosystem: "docker-compose"
-    directory: "/docker/app/immich"
-    schedule:
-      interval: "weekly"
-
-  # Maintenance des images Docker (Nextcloud)
-  - package-ecosystem: "docker-compose"
-    directory: "/docker/app/nextcloud"
     schedule:
       interval: "weekly"

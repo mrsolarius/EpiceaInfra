@@ -1,0 +1,56 @@
+---
+# ========================================
+# Variables serveur de SAUVEGARDE (srv-backup)
+# ========================================
+#
+# Matériel srv-backup :
+#   - CPU  : Intel Core i7-6800K (6C/12T)
+#   - RAM  : 16 Go DDR3
+#   - NVMe : Crucial E100 480 Go (CT480E100SSD8, n/s 2519EACA7F89) -> OS
+#   - HDD  : 2 x Seagate Exos ST26000NM000C 26 To -> pool ZFS "vault" en miroir (~23,6 Tio utiles)
+#
+# Capacité : le pool "tank" de srv-main offre ~21 Tio utiles en RAIDZ2.
+# "vault" peut tout recevoir, mais la marge pour l'historique des snapshots
+# se réduit à mesure que tank se remplit : surveiller l'espace libre.
+
+deploy_environment: production
+
+# ARC limité à 8 Gio sur 16 Go
+zfs_arc_max_bytes: "{{ 8 * 1024 * 1024 * 1024 }}"
+
+zfs_pools:
+  - name: "vault"
+    vdev_type: "mirror"
+    mountpoint: "/mnt/vault"
+    disks:
+      # Branchés en SATA direct. Dans un boîtier USB, le préfixe devient "usb-"
+      # (vérifier avec : ls -l /dev/disk/by-id/ | grep -v part)
+      - /dev/disk/by-id/ata-ST26000NM000C-3WE103_ZXA24BZ3
+      - /dev/disk/by-id/ata-ST26000NM000C-3WE103_K1N00A6V
+
+zfs_datasets:
+  # readonly : les copies ne doivent jamais être modifiées localement
+  # (n'empêche pas la réception des flux zfs send), hérité par les datasets reçus.
+  # canmount off : un parent monté en lecture seule empêcherait de créer les
+  # points de montage des datasets reçus.
+  - name: "vault/srv-main"
+    properties: {readonly: "on", recordsize: "1M", canmount: "off"}
+
+# Rétention plus longue que sur srv-main. sanoid ne crée pas de snapshots ici,
+# il élague seulement ceux reçus de srv-main.
+sanoid_templates:
+  backup:
+    frequently: 0
+    hourly: 48
+    daily: 90
+    weekly: 0
+    monthly: 12
+    yearly: 1
+    autosnap: "no"
+    autoprune: "yes"
+
+sanoid_datasets:
+  - {name: "vault/srv-main", template: "backup", recursive: true}
+
+# Réseau local autorisé à scraper le node exporter
+backup_lan_cidr: "192.168.1.0/24"

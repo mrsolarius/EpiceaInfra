@@ -1,0 +1,9 @@
+---
+# ========================================
+# Role: backup_server - valeurs par défaut
+# ========================================
+
+backup_lan_cidr: "192.168.1.0/24"
+
+# Fichier de métriques lu par le collecteur textfile du node exporter Ubuntu
+backup_textfile_dir: "/var/lib/prometheus/node-exporter"

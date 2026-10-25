@@ -1,0 +1,87 @@
+#!/bin/bash
+# ========================================
+# Rapport de démarrage sur Discord - Géré par Ansible
+# ========================================
+# Envoyé à chaque démarrage, directement sur le webhook Discord (sans passer
+# par le monitoring) : si un pool manque, Docker et donc Prometheus/Alertmanager
+# ne démarrent pas, mais ce rapport part quand même.
+set -u
+
+WEBHOOK='{{ discord_webhook_url }}'
+POOLS=({{ zfs_pools | map(attribute='name') | join(' ') }})
+HOST=$(hostname)
+DOCKER_TIMEOUT=600   # attente max (s) que les conteneurs aient fini de démarrer
+
+pools_missing=0
+pools_degraded=0
+pool_lines=""
+for pool in "${POOLS[@]}"; do
+  if ! zpool list -H "$pool" >/dev/null 2>&1; then
+    pool_lines+="❌ \`$pool\` : absent"$'\n'
+    pools_missing=1
+    continue
+  fi
+  health=$(zpool list -H -o health "$pool")
+  if [[ "$health" == "ONLINE" ]]; then
+    pool_lines+="✅ \`$pool\` : ONLINE"$'\n'
+  else
+    progress=$(zpool status "$pool" | grep -oE "[0-9.]+% done" | head -1)
+    pool_lines+="⚠️ \`$pool\` : $health${progress:+ (reconstruction : $progress)}"$'\n'
+    pools_degraded=1
+  fi
+done
+
+# Docker ne démarre pas sans tous les pools (garde-fou) : inutile d'attendre
+docker_ok=0
+docker_line=""
+if (( pools_missing )); then
+  docker_line="❌ Docker arrêté : un pool est absent (garde-fou ZFS)"
+else
+  for (( waited = 0; waited < DOCKER_TIMEOUT; waited += 10 )); do
+    if systemctl is-active -q docker \
+       && ! docker ps --format '{{ '{{' }}.Status{{ '}}' }}' | grep -q "health: starting"; then
+      break
+    fi
+    sleep 10
+  done
+  if systemctl is-active -q docker; then
+    total=$(docker ps -a -q | wc -l)
+    running=$(docker ps -q | wc -l)
+    bad=$(docker ps -a --format '{{ '{{' }}.Names{{ '}}' }} {{ '{{' }}.Status{{ '}}' }}' | grep -E "unhealthy|starting|Restarting|Exited" | cut -d' ' -f1 | paste -sd, -)
+    if [[ -z "$bad" && "$running" -eq "$total" ]]; then
+      docker_line="✅ Services : $running/$total conteneurs sains"
+      docker_ok=1
+    else
+      docker_line="⚠️ Services : $running/$total conteneurs lancés, à vérifier : ${bad:-?}"
+    fi
+  else
+    docker_line="❌ Docker ne démarre pas : journalctl -u docker"
+  fi
+fi
+
+if (( pools_missing )) || ! systemctl is-active -q docker; then
+  title="🚨 CRITIQUE : $HOST a redémarré avec un problème"
+  color=15158332
+elif (( pools_degraded )) || (( ! docker_ok )); then
+  title="⚠️ WARNING : $HOST a redémarré, à surveiller"
+  color=15105570
+else
+  title="✅ RÉTABLI : $HOST a redémarré, tout est en ordre"
+  color=3066993
+fi
+
+description="### Pools ZFS"$'\n'"${pool_lines}"$'\n'"### Services"$'\n'"${docker_line}"$'\n\n'"---"$'\n'"*Envoyer avec* ❤️ *par Owl Alert* 🦉"
+payload=$(jq -n --arg t "$title" --arg d "$description" --argjson c "$color" \
+  '{embeds: [{title: $t, description: $d, color: $c}]}')
+
+# Le réseau peut mettre quelques secondes à être réellement disponible
+for attempt in 1 2 3 4 5 6; do
+  code=$(curl -s -o /dev/null -w '%{http_code}' -H "Content-Type: application/json" -d "$payload" "$WEBHOOK")
+  if [[ "$code" == 2* ]]; then
+    echo "Rapport envoyé (HTTP $code) : $title"
+    exit 0
+  fi
+  sleep 10
+done
+echo "Échec de l'envoi du rapport (HTTP $code)" >&2
+exit 1

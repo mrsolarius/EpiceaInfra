@@ -9,6 +9,33 @@
   loop:
     - "{{ storage.ansible.compose }}/jellyfin"
 
+# Transcodage matériel via Quick Sync, intégré au Xeon (pas de carte graphique).
+# Activé seulement si le noyau expose le périphérique (IGD activé dans le BIOS).
+- name: Détecter Quick Sync (iGPU du CPU)
+  ansible.builtin.stat:
+    path: /dev/dri/renderD128
+  register: jellyfin_render_node
+  when: jellyfin_quicksync | default(false) | bool
+
+- name: Récupérer le groupe render
+  ansible.builtin.getent:
+    database: group
+    key: render
+    fail_key: false
+  when: jellyfin_render_node.stat.exists | default(false)
+
+- name: Activer Quick Sync si disponible
+  ansible.builtin.set_fact:
+    jellyfin_hwaccel_enabled: "{{ (jellyfin_render_node.stat.exists | default(false)) and (ansible_facts.getent_group.render | default(none)) is not none }}"
+    jellyfin_render_gid: "{{ (ansible_facts.getent_group.render | default(['', '']))[1] }}"
+
+- name: Signaler l'absence de Quick Sync
+  ansible.builtin.debug:
+    msg: "Quick Sync demandé mais /dev/dri/renderD128 absent : activer l'IGD dans le BIOS. Jellyfin transcode en CPU."
+  when:
+    - jellyfin_quicksync | default(false) | bool
+    - not jellyfin_hwaccel_enabled | bool
+
 - name: Générer le fichier .env
   ansible.builtin.template:
     src: jellyfin.env.j2
@@ -28,14 +55,5 @@
     project_src: "{{ storage.ansible.compose }}/jellyfin"
     state: present
     pull: always
-
-- name: Attendre que Jellyfin soit prêt
-  ansible.builtin.shell:
-    cmd: docker compose ps --format json | jq -r '.Health' | grep -c healthy || true
-    chdir: "{{ storage.ansible.compose }}/jellyfin"
-  register: jellyfin_health
-  until: jellyfin_health.stdout | int > 0
-  retries: 12
-  delay: 5
-  changed_when: false
-
+    wait: true
+    wait_timeout: 600

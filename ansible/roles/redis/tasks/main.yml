@@ -1,10 +1,9 @@
 ---
-# Le rôle redis gère maintenant exclusivement Redis Stack.
-# Les instances PostgreSQL sont gérées directement par les applications (Nextcloud, Immich).
+# ========================================
+# Role: redis
+# Description: Redis partagé (cache Nextcloud, files de tâches Immich)
+# ========================================
 
-# ==============================================================================
-# Redis Stack
-# ==============================================================================
 - name: Créer les répertoires pour Redis (propriétaire user)
   ansible.builtin.file:
     path: "{{ item }}"
@@ -30,6 +29,26 @@
     dest: "{{ storage.ansible.compose }}/redis/.env"
     mode: '0600'
 
+# Un ancien déploiement montait redis.conf sans le générer : Docker avait créé
+# un dossier vide à sa place
+- name: Vérifier le fichier redis.conf
+  ansible.builtin.stat:
+    path: "{{ storage.ansible.compose }}/redis/redis.conf"
+  register: redis_conf
+
+- name: Supprimer le dossier redis.conf créé par erreur
+  ansible.builtin.file:
+    path: "{{ storage.ansible.compose }}/redis/redis.conf"
+    state: absent
+  when: redis_conf.stat.isdir | default(false)
+
+- name: Générer redis.conf
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ storage.ansible.compose }}/redis/redis.conf"
+    mode: '0644'
+  register: redis_conf_file
+
 - name: Copier le docker-compose pour Redis
   ansible.builtin.template:
     src: docker-compose.yml.j2
@@ -43,3 +62,6 @@
     project_src: "{{ storage.ansible.compose }}/redis"
     state: present
     pull: always
+    recreate: "{{ 'always' if redis_conf_file is changed else 'auto' }}"
+    wait: true
+    wait_timeout: 120

@@ -1,11 +1,11 @@
 # ========================================
 # Configuration Prometheus
-# Générée par Ansible pour {{ deploy_environment }}
+# Générée par Ansible
 # ========================================
 
 global:
-  scrape_interval: {{ monitoring_prometheus_scrape_interval | default('15s') }}
-  evaluation_interval: {{ monitoring_prometheus_evaluation_interval | default('15s') }}
+  scrape_interval: 15s
+  evaluation_interval: 15s
   external_labels:
     environment: '{{ deploy_environment }}'
     cluster: 'epicea'
@@ -57,6 +57,19 @@ scrape_configs:
           environment: '{{ deploy_environment }}'
           instance: '{{ ansible_facts["hostname"] }}'
 {% endif %}
+{% for node in monitoring_extra_node_targets | default([]) %}
+{% if loop.first %}
+
+  # Node exporters des autres machines du LAN (ex : srv-backup)
+  - job_name: 'node-exporter-lan'
+    static_configs:
+{% endif %}
+      - targets: ['{{ node.target }}']
+        labels:
+          service: 'node-exporter'
+          environment: '{{ deploy_environment }}'
+          instance: '{{ node.instance }}'
+{% endfor %}
 
   # ========================================
   # cAdvisor (Docker metrics)

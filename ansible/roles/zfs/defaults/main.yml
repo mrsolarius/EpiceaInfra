@@ -1,0 +1,41 @@
+---
+# ========================================
+# Role: zfs - valeurs par défaut
+# ========================================
+
+# Garde-fou : la création d'un pool efface les disques ciblés.
+# À n'activer qu'explicitement : -e zfs_allow_pool_creation=true
+zfs_allow_pool_creation: false
+
+# Empêche Docker de démarrer si un dataset ZFS n'est pas monté (serveur hébergeant les conteneurs)
+zfs_guard_docker: false
+
+# Rapport de démarrage envoyé sur Discord (nécessite discord_webhook_url dans le vault)
+zfs_boot_report: false
+zfs_boot_report_enabled: "{{ zfs_boot_report | bool and (discord_webhook_url | default('')) | length > 0 }}"
+
+# Taille max de l'ARC en octets (0 = valeur par défaut du noyau, 50% de la RAM)
+zfs_arc_max_bytes: 0
+
+# Options passées à "zpool create" (ashift 12 = secteurs 4K, propriétés héritées par les datasets)
+zfs_pool_create_args:
+  - "-o"
+  - "ashift=12"
+  - "-O"
+  - "compression=lz4"
+  - "-O"
+  - "atime=off"
+  - "-O"
+  - "xattr=sa"
+  - "-O"
+  - "acltype=posixacl"
+
+# Liste des pools : {name, vdev_type ("", "mirror", "raidz2"...), mountpoint, disks}
+zfs_pools: []
+
+# Liste des datasets : {name, properties?, owner?, group?, mode?}
+zfs_datasets: []
+
+# Snapshots automatiques (sanoid)
+sanoid_templates: {}
+sanoid_datasets: []

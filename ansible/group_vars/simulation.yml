@@ -1,0 +1,19 @@
+---
+# ========================================
+# Surcharges du banc de simulation (make sim-*)
+# ========================================
+# Chargé APRÈS production.yml : tout le reste (pools ZFS, datasets, sanoid,
+# services...) est strictement la configuration de production.
+
+# Pas de certificats Let's Encrypt pour des domaines locaux
+proxy_enable_letsencrypt: false
+
+# Domaines locaux (testés avec curl --resolve)
+base_domain: "epicea-sim.local"
+litopia_domain: "litopia-sim.local"
+
+# La VM a 6 Go de RAM au lieu de 64 Go
+zfs_arc_max_bytes: "{{ 1024 * 1024 * 1024 }}"
+
+# Les pools sont créés sur les disques simulés vierges
+zfs_allow_pool_creation: true

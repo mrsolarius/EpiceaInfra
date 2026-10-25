@@ -1,0 +1,22 @@
+#!/bin/bash
+# ========================================
+# Vérifie que tous les datasets ZFS sont montés - Géré par Ansible
+# ========================================
+# Appelé avant le démarrage de Docker : sans lui, un pool non importé laisserait
+# les conteneurs écrire dans les points de montage vides du disque système.
+set -u
+status=0
+for pool in {{ zfs_pools | map(attribute='name') | join(' ') }}; do
+  if ! zpool list -H "$pool" >/dev/null 2>&1; then
+    echo "Pool ZFS $pool absent" >&2
+    status=1
+    continue
+  fi
+  while read -r name canmount mounted; do
+    if [[ "$canmount" == "on" && "$mounted" != "yes" ]]; then
+      echo "Dataset ZFS $name non monté" >&2
+      status=1
+    fi
+  done < <(zfs list -H -r -t filesystem -o name,canmount,mounted "$pool")
+done
+exit "$status"

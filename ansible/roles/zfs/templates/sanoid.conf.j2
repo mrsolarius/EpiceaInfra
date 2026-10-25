@@ -1,0 +1,18 @@
+# ========================================
+# Sanoid - Géré par Ansible ({{ inventory_hostname }})
+# ========================================
+
+{% for ds in sanoid_datasets %}
+[{{ ds.name }}]
+  use_template = {{ ds.template }}
+  {# zfs : snapshot récursif atomique, même nom sur tous les datasets du pool #}
+  recursive = {{ 'zfs' if ds.recursive | default(false) else 'no' }}
+
+{% endfor %}
+{% for name, tpl in sanoid_templates.items() %}
+[template_{{ name }}]
+{% for key, value in tpl.items() %}
+  {{ key }} = {{ value }}
+{% endfor %}
+
+{% endfor %}

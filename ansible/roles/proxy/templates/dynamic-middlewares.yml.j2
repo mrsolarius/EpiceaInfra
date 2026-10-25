@@ -1,104 +1,26 @@
 # ========================================
-# Middlewares dynamiques Traefik
-# Générée par Ansible pour {{ deploy_environment }}
+# Configuration dynamique Traefik - Générée par Ansible
 # ========================================
+# Le port 80 redirige déjà tout vers HTTPS (traefik.yml) : seuls les routeurs
+# HTTPS sont nécessaires. Les middlewares des applications sont dans leurs labels.
 
 http:
   middlewares:
-    # ========================================
-    # Redirect HTTP → HTTPS
-    # ========================================
-    redirect-to-https:
-      redirectScheme:
-        scheme: https
-        permanent: true
-
-    # ========================================
-    # Auth Basic pour Traefik dashboard
-    # ========================================
+    # Authentification du dashboard Traefik (htpasswd du vault)
     traefik-auth:
       basicAuth:
         users:
           - '{{ traefik_auth }}'
         removeHeader: true
 
-    # ========================================
-    # Security Headers
-    # ========================================
-    security-headers:
-      headers:
-        frameDeny: true
-        browserXssFilter: true
-        contentTypeNosniff: true
-        forceSTSHeader: true
-        stsIncludeSubdomains: true
-        stsPreload: true
-        stsSeconds: 31536000
-        customFrameOptionsValue: "SAMEORIGIN"
-        customRequestHeaders:
-          X-Forwarded-Proto: "https"
-
-    # ========================================
-    # Rate Limiting (DDoS protection)
-    # ========================================
-    rate-limit:
-      rateLimit:
-        average: 100
-        burst: 50
-        period: 1m
-
-    # ========================================
-    # IP Whitelist (admin services)
-    # ========================================
-{% if deploy_environment == 'production' %}
-    admin-whitelist:
-      ipWhiteList:
-        sourceRange:
-          - "192.168.1.0/24"  # LAN local
-          - "127.0.0.1/32"    # Localhost
-{% endif %}
-
-    # ========================================
-    # Compression
-    # ========================================
+    # Compression (utilisée par les applications)
     compression:
       compress:
         excludedContentTypes:
           - text/event-stream
 
-    # ========================================
-    # CORS (pour APIs)
-    # ========================================
-    cors-headers:
-      headers:
-        accessControlAllowMethods:
-          - GET
-          - POST
-          - PUT
-          - DELETE
-          - OPTIONS
-        accessControlAllowOriginList:
-          - "https://{{ base_domain }}"
-{% for domain, subdomain in service_domains.items() %}
-          - "https://{{ subdomain }}"
-{% endfor %}
-        accessControlMaxAge: 100
-        addVaryHeader: true
-
-  # ========================================
-  # Routers (configuration file-based)
-  # ========================================
   routers:
-    # Dashboard Traefik HTTP
-    traefik-http:
-      entryPoints:
-        - web
-      rule: "Host(`{{ service_domains.traefik }}`)"
-      service: api@internal
-      middlewares:
-        - traefik-auth
-
-    # Dashboard Traefik HTTPS
+    # Dashboard Traefik
     traefik-https:
       entryPoints:
         - websecure
@@ -108,48 +30,3 @@ http:
         - traefik-auth
       tls:
         certResolver: "{{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
-
-    # Metrics Prometheus
-    traefik-metrics-http:
-      entryPoints:
-        - web
-      rule: "Host(`{{ service_domains.traefik }}`) && PathPrefix(`/metrics`)"
-      service: prometheus@internal
-      middlewares:
-        - traefik-auth
-
-    # Metrics Prometheus HTTPS
-    traefik-metrics-https:
-      entryPoints:
-        - websecure
-      rule: "Host(`{{ service_domains.traefik }}`) && PathPrefix(`/metrics`)"
-      service: prometheus@internal
-      middlewares:
-        - traefik-auth
-      tls:
-        certResolver: "{{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
-
-    # Ping Traefik HTTP
-    traefik-ping-http:
-      entryPoints:
-        - web
-      rule: "Host(`{{ service_domains.traefik }}`) && PathPrefix(`/ping`)"
-      service: ping@internal
-
-    # Ping Traefik HTTPS
-    traefik-ping-https:
-      entryPoints:
-        - websecure
-      rule: "Host(`{{ service_domains.traefik }}`) && PathPrefix(`/ping`)"
-      service: ping@internal
-      tls:
-        certResolver: "{{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
-
-  # ========================================
-  # Services (pour tests)
-  # ========================================
-  services:
-    noop:
-      loadBalancer:
-        servers:
-          - url: "http://127.0.0.1"

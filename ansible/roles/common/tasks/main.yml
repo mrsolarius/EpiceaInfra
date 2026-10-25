@@ -27,7 +27,6 @@
       - lsb-release
       - ufw
       - fail2ban
-      - nfs-common
       - prometheus-node-exporter
       - smartmontools
     state: present
@@ -53,6 +52,7 @@
     - {rule: 'allow', port: '80', comment: 'HTTP'}
     - {rule: 'allow', port: '443', comment: 'HTTPS'}
 
+# Node exporter (9100) : LAN et réseaux Docker uniquement. UFW refuse le reste par défaut.
 - name: Configuration UFW - autoriser Node Exporter depuis le réseau local et Docker
   community.general.ufw:
     rule: allow
@@ -64,18 +64,7 @@
     - '192.168.1.0/24'
     - '172.16.0.0/12'
 
-- name: Configuration UFW - bloquer accès externe PostgreSQL, Redis et Node Exporter
-  community.general.ufw:
-    rule: deny
-    port: "{{ item.port }}"
-    proto: tcp
-    comment: "{{ item.comment }}"
-  loop:
-    - {port: '5432', comment: 'Block external PostgreSQL'}
-    - {port: '6379', comment: 'Block external Redis'}
-    - {port: '9100', comment: 'Block external Node Exporter'}
-
-- name: Configuration UFW - règles additionnelles (production)
+- name: Configuration UFW - règles additionnelles
   community.general.ufw:
     rule: "{{ item.rule }}"
     port: "{{ item.port | default(omit) }}"
@@ -83,7 +72,6 @@
     from_ip: "{{ item.from | default(omit) }}"
     comment: "{{ item.comment | default('') }}"
   loop: "{{ ufw_additional_rules | default([]) }}"
-  when: deploy_environment == 'production'
 
 - name: Activation UFW
   community.general.ufw:
@@ -95,44 +83,3 @@
     state: started
     enabled: true
   when: fail2ban_enabled | default(true)
-
-- name: Configuration DNS local (test uniquement)
-  ansible.builtin.lineinfile:
-    path: /etc/hosts
-    line: "127.0.0.1 {{ item.value }}"
-    state: present
-  loop: "{{ service_domains | dict2items }}"
-  when: deploy_environment == 'test'
-
-- name: Installer drivers NVIDIA (production avec GPU)
-  ansible.builtin.apt:
-    name:
-      - nvidia-driver-{{ gpu_driver_version }}
-      - nvidia-container-toolkit
-    state: present
-    update_cache: true
-  when:
-    - deploy_environment == 'production'
-    - system_enable_gpu | bool
-  notify: Reboot system
-
-- name: Vérifier la présence de la clé privée SSH
-  ansible.builtin.stat:
-    path: "/home/{{ common_system_user }}/.ssh/id_rsa"
-  register: ssh_private_key
-
-- name: Vérifier les permissions des clés privées SSH (si existantes)
-  ansible.builtin.file:
-    path: "/home/{{ common_system_user }}/.ssh/id_rsa"
-    mode: '0600'
-    state: file
-  when: ssh_private_key.stat.exists | default(false)
-
-- name: Afficher résumé configuration
-  ansible.builtin.debug:
-    msg:
-      - "âœ… Paquets de base installés"
-      - "âœ… Firewall UFW configuré"
-      - "âœ… Fail2ban activé"
-      - "{% if deploy_environment == 'test' %}âœ… DNS local configuré{% endif %}"
-      - "{% if system_enable_gpu %}âœ… Drivers NVIDIA installés{% endif %}"

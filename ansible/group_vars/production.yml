@@ -1,14 +1,23 @@
 ---
 # ========================================
-# Variables environnement PRODUCTION
+# Variables environnement PRODUCTION (srv-main)
 # ========================================
+#
+# Matériel srv-main :
+#   - CPU   : Intel Xeon E3-1275 v6 @ 3.80GHz (4C/8T)
+#   - RAM   : 64 Go DDR4
+#   - NVMe  : Sabrent Rocket 4.0 1 To        -> OS + /opt/epicea (configs, monitoring, Docker)
+#   - SSD   : Crucial MX500 1 To             -> pool ZFS "ssd_tank" (bases de données)
+#   - SSD   : Samsung 850 PRO 256 Go         -> pool ZFS "scratch" (caches jetables)
+#   - HDD   : 8 x Seagate Exos 4 To          -> pool ZFS "tank" en RAIDZ2 (~21 Tio utiles)
+#
+# Sauvegarde : srv-backup tire les snapshots ZFS via syncoid (voir group_vars/backup.yml)
 
 deploy_environment: production
 
-# Features conditionnelles
-system_enable_gpu: true
+jellyfin_quicksync: true  # Transcodage matériel via l'iGPU du Xeon (HD P630)
 proxy_enable_letsencrypt: true
-storage_enable_zfs_snapshots: true
+traefik_acme_email: "admin@{{ base_domain }}"  # À MODIFIER
 
 # Domaine de base
 base_domain: "louisvolat.fr"
@@ -25,31 +34,6 @@ service_domains:
   litopia: "{{ litopia_domain }}"
   backpaking: "{{ backpaking_domain }}"
 
-# Racines physiques (Production)
-drive_nvme_path: "/opt/epicea"
-drive_ssd_path: "/mnt/ssd_tank"
-drive_nfs_root: "/mnt/nas"
-
-# Configuration NFS (Ubiquiti NAS Pro)
-nfs_server: "192.168.1.50"
-nfs_mounts:
-  - src: "{{ nfs_server }}:/volume1/media"
-    path: "{{ drive_nfs_root }}/media"
-    opts: "rw,hard,intr,nfsvers=4.1"
-  - src: "{{ nfs_server }}:/volume1/photos"
-    path: "{{ drive_nfs_root }}/photos"
-    opts: "rw,hard,intr,nfsvers=4.1"
-  - src: "{{ nfs_server }}:/volume1/cloud"
-    path: "{{ drive_nfs_root }}/cloud"
-    opts: "rw,hard,intr,nfsvers=4.1"
-
-# NFS Backup (Ubiquiti NAS Quad)
-nfs_backup_server: "192.168.1.51"
-nfs_backup_mount:
-  src: "{{ nfs_backup_server }}:/volume1/backups"
-  path: "{{ drive_nfs_root }}/backups"
-  opts: "rw,hard,intr,nfsvers=4.1"
-
 # Services activés
 enabled_services:
   - traefik
@@ -58,63 +42,127 @@ enabled_services:
   - jellyfin
   - nextcloud
   - monitoring
-  - games  # AMP
   - litopia
   - backpaking
 
-# Les chemins sont maintenant définis dans common.yml via l'objet storage
+# ========================================
+# ZFS
+# ========================================
+# Les disques sont référencés par /dev/disk/by-id (stable, contient le n° de série).
+# Vérifier les noms exacts sur le serveur avec : ls -l /dev/disk/by-id/ | grep -v part
+# La création des pools est destructive : elle n'est faite que si le pool n'existe pas
+# ET que l'on lance le playbook avec -e zfs_allow_pool_creation=true.
 
-# Configuration ZFS (SSD local 1To)
-zfs_pool_name: "tank"
+# Docker ne démarre que si tous les datasets sont montés
+zfs_guard_docker: true
+
+# Message Discord à chaque démarrage : état des pools et des services
+zfs_boot_report: true
+
+# ARC limité à 24 Gio sur 64 Go pour laisser de la marge aux conteneurs
+zfs_arc_max_bytes: "{{ 24 * 1024 * 1024 * 1024 }}"
+
+zfs_pools:
+  # 8 x 4 To en RAIDZ2 : tolère la perte de 2 disques
+  - name: "tank"
+    vdev_type: "raidz2"
+    mountpoint: "{{ drive_bulk_path }}"
+    disks:
+      - /dev/disk/by-id/ata-ST4000NM000A-2HZ100_WJG18L6P
+      - /dev/disk/by-id/ata-ST4000NM000A-2HZ100_WJG10EM1
+      - /dev/disk/by-id/ata-ST4000NM000A-2HZ100_WJG18KLM
+      - /dev/disk/by-id/ata-ST4000NM000A-2HZ100_WJG17J2C
+      - /dev/disk/by-id/ata-ST4000NM000A-2HZ100_WJG17WFW
+      - /dev/disk/by-id/ata-ST4000NM000A-2HZ100_WJG193FZ
+      - /dev/disk/by-id/ata-ST4000NM000A-2HZ100_WJG193LM
+      - /dev/disk/by-id/ata-ST4000NM000A-2HZ100_WJG18KM9
+
+  # Crucial MX500 1 To : bases de données (disque seul, protégé par la réplication)
+  - name: "ssd_tank"
+    vdev_type: ""
+    mountpoint: "{{ drive_ssd_path }}"
+    disks:
+      - /dev/disk/by-id/ata-CT1000MX500SSD1_2019E2A1579C
+
+  # Samsung 850 PRO 256 Go : caches jetables, jamais sauvegardés
+  - name: "scratch"
+    vdev_type: ""
+    mountpoint: "{{ drive_scratch_path }}"
+    disks:
+      - /dev/disk/by-id/ata-Samsung_SSD_850_PRO_256GB_S251NSAG902861D
+
 zfs_datasets:
-  - name: "{{ zfs_pool_name }}/docker"
-    mountpoint: "/var/lib/docker"
-  - name: "{{ zfs_pool_name }}/postgres"
-    mountpoint: "{{ storage.databases.immich }}"
-  - name: "{{ zfs_pool_name }}/redis"
-    mountpoint: "{{ storage.databases.redis }}"
+  # --- HDD (tank) ---
+  - name: "tank/media"
+    properties: {recordsize: "1M"}
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
+  - name: "tank/photos"
+    properties: {recordsize: "1M"}
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
+  - name: "tank/cloud"
+    owner: "33"  # www-data (Nextcloud)
+    group: "33"
+  - name: "tank/backups"
+    properties: {recordsize: "1M"}
 
-# Configuration GPU (RTX 5060 LP)
-gpu_driver_version: "550"  # Version driver NVIDIA (à adapter)
-gpu_docker_runtime: true
-gpu_monitoring: true
+  # --- SSD bases de données (ssd_tank) ---
+  # recordsize 16K : adapté aux pages PostgreSQL (8K) sans trop d'amplification
+  - name: "ssd_tank/immich-db"
+    properties: {recordsize: "16K", logbias: "latency"}
+  - name: "ssd_tank/nextcloud-db"
+    properties: {recordsize: "16K", logbias: "latency"}
+  - name: "ssd_tank/litopia-db"
+    properties: {recordsize: "16K", logbias: "latency"}
+  - name: "ssd_tank/backpaking-db"
+    properties: {recordsize: "16K", logbias: "latency"}
+  - name: "ssd_tank/redis"
 
-# Configuration Traefik (production)
-traefik_acme_enabled: true
-traefik_acme_email: "admin@{{ base_domain }}"  # À MODIFIER
-traefik_acme_storage: "{{ storage.ansible.configs }}/traefik/acme.json"
-traefik_dashboard_enabled: true
-traefik_log_level: "INFO"
+  # --- SSD cache (scratch) : pas de sync, données reconstructibles ---
+  - name: "scratch/jellyfin-cache"
+    properties: {sync: "disabled"}
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
+  - name: "scratch/immich-ml-cache"
+    properties: {sync: "disabled"}
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
 
-# Configuration Docker
-docker_daemon_log_max_size: "50m"
-docker_daemon_log_max_file: "5"
+# Snapshots automatiques (sanoid). "scratch" n'est volontairement pas snapshoté.
+sanoid_templates:
+  production:
+    frequently: 0
+    hourly: 24
+    daily: 30
+    weekly: 0
+    monthly: 6
+    yearly: 0
+    autosnap: "yes"
+    autoprune: "yes"
+
+sanoid_datasets:
+  - {name: "tank", template: "production", recursive: true}
+  - {name: "ssd_tank", template: "production", recursive: true}
+
+# La réplication vers srv-backup est décrite dans group_vars/replication.yml
 
 # Monitoring
 monitoring_prometheus_retention: "90d"
 monitoring_loki_retention: "30d"
-monitoring_grafana_root_url: "https://monitoring.louisvolat.fr"
-monitoring_grafana_install_plugins: true
-monitoring_prometheus_cadvisor_enabled: true
+monitoring_grafana_admin_user: "{{ grafana_admin_user }}"          # vault.yml
+monitoring_grafana_admin_password: "{{ grafana_admin_password }}"  # vault.yml
 monitoring_prometheus_node_exporter_enabled: true
+# Node exporters d'autres machines du LAN à superviser
+monitoring_extra_node_targets:
+  - {target: "192.168.1.101:9100", instance: "srv-backup"}  # À MODIFIER avec l'IP de srv-backup
 
 # Backup
+# Copie quotidienne de /opt/epicea (NVMe, non ZFS) vers tank/backups,
+# puis snapshot sanoid et réplication vers srv-backup.
 backup_system_enabled: true
-backup_system_retention_days: 30
 backup_system_schedule: "0 3 * * *"  # Tous les jours à 3h du matin
 
-# Notifications (Discord/Telegram)
-# discord_webhook_url: "{{ vault_discord_webhook }}"  # Dans vault.yml
-# telegram_bot_token: "{{ vault_telegram_token }}"    # Dans vault.yml
-# telegram_chat_id: "{{ vault_telegram_chat_id }}"    # Dans vault.yml
-
-# Fail2ban
-fail2ban_enabled: true
-fail2ban_bantime: "1h"
-fail2ban_maxretry: 5
-
-# UFW Rules additionnelles (production)
+# Pare-feu : en plus de SSH/HTTP/HTTPS, tout est ouvert depuis le LAN
 ufw_additional_rules:
-  - {rule: 'allow', port: '8080', proto: 'tcp', comment: 'Traefik dashboard'}
-  - {rule: 'allow', port: '9090', proto: 'tcp', comment: 'Prometheus (internal)'}
   - {rule: 'allow', from: '192.168.1.0/24', comment: 'LAN local'}

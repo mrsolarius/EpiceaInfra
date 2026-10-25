@@ -1,0 +1,21 @@
+#!/bin/bash
+# ========================================
+# Importe les pools attendus qui ne l'ont pas été - Géré par Ansible
+# ========================================
+# Ubuntu n'importe au démarrage que les pools listés dans /etc/zfs/zpool.cache.
+# Un pool absent lors d'un démarrage précédent (disque débranché, câble) peut
+# en avoir disparu : il ne reviendrait plus seul. Utile aussi après une
+# réinstallation du système sur des disques qui portent déjà les pools.
+# Import sans -f : un pool utilisé par une autre machine n'est jamais forcé.
+set -u
+status=0
+for pool in {{ zfs_pools | map(attribute='name') | join(' ') }}; do
+  zpool list -H "$pool" >/dev/null 2>&1 && continue
+  if zpool import -N -d /dev/disk/by-id "$pool"; then
+    echo "Pool $pool importé"
+  else
+    echo "Pool $pool introuvable ou non importable" >&2
+    status=1
+  fi
+done
+exit "$status"

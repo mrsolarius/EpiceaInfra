@@ -17,6 +17,13 @@ services:
       - ${JELLYFIN_CONFIG_PATH}:/config
       - ${JELLYFIN_CACHE_PATH}:/cache
       - ${JELLYFIN_MEDIA_PATH}:/media:ro
+{% if jellyfin_hwaccel_enabled | default(false) | bool %}
+    # Transcodage matériel Quick Sync (iGPU intégré au CPU)
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "{{ jellyfin_render_gid }}"
+{% endif %}
     ports:
       - 7359:7359/udp  # Auto-discovery
     networks:
@@ -30,9 +37,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ docker_proxy_network_name }}"
-      - "traefik.http.routers.jellyfin-http.rule=Host(`${JELLYFIN_DOMAIN}`)"
-      - "traefik.http.routers.jellyfin-http.entrypoints=web"
-      - "traefik.http.routers.jellyfin-http.service=jellyfin"
       - "traefik.http.routers.jellyfin-https.rule=Host(`${JELLYFIN_DOMAIN}`)"
       - "traefik.http.routers.jellyfin-https.entrypoints=websecure"
       - "traefik.http.routers.jellyfin-https.service=jellyfin"

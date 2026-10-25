@@ -1,0 +1,245 @@
+---
+# ========================================
+# Role: zfs
+# Description: Pools et datasets ZFS locaux, limite ARC, snapshots sanoid
+# ========================================
+
+- name: Installer ZFS et sanoid
+  ansible.builtin.apt:
+    name:
+      - zfsutils-linux
+      - sanoid
+      - mbuffer
+      - lzop
+      - pv
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# Sans ce dossier, chaque montage affiche "failed to lock /etc/exports.d/zfs.exports.lock"
+- name: Créer le dossier des exports NFS de ZFS
+  ansible.builtin.file:
+    path: /etc/exports.d
+    state: directory
+    mode: '0755'
+
+- name: Limiter la taille de l'ARC ZFS
+  ansible.builtin.copy:
+    content: "options zfs zfs_arc_max={{ zfs_arc_max_bytes }}\n"
+    dest: /etc/modprobe.d/zfs.conf
+    mode: '0644'
+  when: zfs_arc_max_bytes | int > 0
+
+# Tâche plutôt que handler : un handler est perdu si le play échoue plus loin
+- name: Lire la limite ARC active
+  ansible.builtin.slurp:
+    src: /sys/module/zfs/parameters/zfs_arc_max
+  register: zfs_arc_current
+  when: zfs_arc_max_bytes | int > 0
+
+- name: Appliquer la limite ARC sans redémarrage
+  ansible.builtin.shell:
+    cmd: "echo {{ zfs_arc_max_bytes }} > /sys/module/zfs/parameters/zfs_arc_max"
+  changed_when: true
+  when:
+    - zfs_arc_max_bytes | int > 0
+    - (zfs_arc_current.content | b64decode | trim) != (zfs_arc_max_bytes | string)
+
+# ----------------------------------------
+# Import des pools déjà présents sur les disques
+# ----------------------------------------
+- name: Déployer l'import des pools attendus
+  ansible.builtin.template:
+    src: zfs-import-expected.j2
+    dest: /usr/local/sbin/zfs-import-expected
+    mode: '0755'
+
+- name: Déployer l'unité systemd d'import des pools
+  ansible.builtin.template:
+    src: zfs-import-expected.service.j2
+    dest: /etc/systemd/system/zfs-import-expected.service
+    mode: '0644'
+  notify: Recharger systemd
+
+- name: Activer l'import des pools au démarrage
+  ansible.builtin.systemd:
+    name: zfs-import-expected.service
+    enabled: true
+    daemon_reload: true
+
+# Avant de conclure qu'un pool manque : il est peut-être sur les disques sans
+# être importé (réinstallation du système, absent du cache)
+- name: Importer les pools présents mais non importés
+  ansible.builtin.command: /usr/local/sbin/zfs-import-expected
+  register: zfs_import_result
+  changed_when: "'importé' in zfs_import_result.stdout"
+  failed_when: false
+
+- name: Monter les datasets des pools importés
+  ansible.builtin.command: zfs mount -a
+  when: zfs_import_result is changed
+  changed_when: true
+
+- name: Lister les pools existants
+  ansible.builtin.command: zpool list -H -o name
+  register: zfs_existing_pools
+  changed_when: false
+
+- name: Pools à créer
+  ansible.builtin.set_fact:
+    zfs_missing_pools: "{{ zfs_pools | rejectattr('name', 'in', zfs_existing_pools.stdout_lines) | list }}"
+
+- name: Refuser la création de pools sans autorisation explicite
+  ansible.builtin.fail:
+    msg:
+      - "Pools absents : {{ zfs_missing_pools | map(attribute='name') | join(', ') }}"
+      - "La création EFFACE les disques ciblés. Vérifier zfs_pools puis relancer avec -e zfs_allow_pool_creation=true"
+  when:
+    - zfs_missing_pools | length > 0
+    - not zfs_allow_pool_creation | bool
+
+- name: Vérifier la présence des disques des pools à créer
+  ansible.builtin.stat:
+    path: "{{ item.1 }}"
+  loop: "{{ zfs_missing_pools | subelements('disks') }}"
+  loop_control:
+    label: "{{ item.0.name }} -> {{ item.1 }}"
+  register: zfs_disk_check
+
+- name: Échouer si un disque est introuvable
+  ansible.builtin.fail:
+    msg: "Disque introuvable pour le pool {{ item.item.0.name }} : {{ item.item.1 }} (voir ls -l /dev/disk/by-id/)"
+  loop: "{{ zfs_disk_check.results }}"
+  loop_control:
+    label: "{{ item.item.1 }}"
+  when: not item.stat.exists
+
+- name: Créer les pools ZFS manquants
+  ansible.builtin.command:
+    argv: >-
+      {{ ['zpool', 'create'] + zfs_pool_create_args
+         + ['-O', 'mountpoint=' ~ item.mountpoint, item.name]
+         + ([item.vdev_type] if item.vdev_type | default('') else [])
+         + item.disks }}
+  loop: "{{ zfs_missing_pools }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.vdev_type | default('single', true) }}, {{ item.disks | length }} disque(s))"
+  changed_when: true
+
+- name: Créer les datasets ZFS
+  community.general.zfs:
+    name: "{{ item.name }}"
+    state: present
+    extra_zfs_properties: "{{ item.properties | default({}) }}"
+  loop: "{{ zfs_datasets }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Lire les points de montage des datasets
+  ansible.builtin.command: zfs get -H -o value mountpoint {{ item.name }}
+  loop: "{{ zfs_datasets }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: zfs_mountpoints
+  changed_when: false
+
+- name: Appliquer les permissions des datasets
+  ansible.builtin.file:
+    path: "{{ item.stdout }}"
+    state: directory
+    owner: "{{ item.item.owner | default(omit) }}"
+    group: "{{ item.item.group | default(omit) }}"
+    mode: "{{ item.item.mode | default(omit) }}"
+  loop: "{{ zfs_mountpoints.results }}"
+  loop_control:
+    label: "{{ item.item.name }} -> {{ item.stdout }}"
+  when: item.item.owner is defined or item.item.group is defined or item.item.mode is defined
+
+# Le paquet Ubuntu ne crée pas /etc/sanoid
+- name: Créer le dossier de configuration sanoid
+  ansible.builtin.file:
+    path: /etc/sanoid
+    state: directory
+    mode: '0755'
+  when: sanoid_datasets | length > 0
+
+# ----------------------------------------
+# Docker attend que tous les datasets soient montés
+# ----------------------------------------
+- name: Déployer le contrôle des montages ZFS
+  ansible.builtin.template:
+    src: zfs-check-mounts.j2
+    dest: /usr/local/sbin/zfs-check-mounts
+    mode: '0755'
+  when: zfs_guard_docker | bool
+
+- name: Créer le dossier de surcharge systemd de Docker
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    mode: '0755'
+  when: zfs_guard_docker | bool
+
+- name: Empêcher Docker de démarrer sans les pools ZFS
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      After=zfs-mount.service
+      Requires=zfs-mount.service
+
+      [Service]
+      ExecStartPre=/usr/local/sbin/zfs-check-mounts
+    dest: /etc/systemd/system/docker.service.d/zfs-mounts.conf
+    mode: '0644'
+  when: zfs_guard_docker | bool
+  notify: Recharger systemd
+
+# ----------------------------------------
+# Rapport de démarrage sur Discord
+# ----------------------------------------
+# Indépendant de Docker : prévient aussi quand un pool manque et que le
+# monitoring ne peut donc pas démarrer.
+- name: Déployer le rapport de démarrage
+  ansible.builtin.template:
+    src: boot-report.sh.j2
+    dest: /usr/local/sbin/boot-report
+    mode: '0700'  # contient l'URL du webhook
+  when: zfs_boot_report_enabled | bool
+
+- name: Déployer l'unité systemd du rapport de démarrage
+  ansible.builtin.template:
+    src: boot-report.service.j2
+    dest: /etc/systemd/system/boot-report.service
+    mode: '0644'
+  when: zfs_boot_report_enabled | bool
+  notify: Recharger systemd
+
+- name: Activer le rapport au démarrage (sans l'envoyer maintenant)
+  ansible.builtin.systemd:
+    name: boot-report.service
+    enabled: true
+    daemon_reload: true
+  when: zfs_boot_report_enabled | bool
+
+- name: Configurer sanoid
+  ansible.builtin.template:
+    src: sanoid.conf.j2
+    dest: /etc/sanoid/sanoid.conf
+    mode: '0644'
+  when: sanoid_datasets | length > 0
+
+- name: Activer le timer sanoid
+  ansible.builtin.systemd:
+    name: sanoid.timer
+    enabled: true
+    state: started
+  when: sanoid_datasets | length > 0
+
+- name: État des pools
+  ansible.builtin.command: zpool list -o name,size,alloc,free,health
+  register: zfs_status
+  changed_when: false
+
+- name: Afficher résumé ZFS
+  ansible.builtin.debug:
+    msg: "{{ zfs_status.stdout_lines }}"

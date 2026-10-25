@@ -14,31 +14,38 @@ Ce dépôt contient l'ensemble de la configuration de mon infrastructure personn
 
 ### Architecture Matérielle & Réseau
 
-Le **Dream Machine** agit comme routeur/pare-feu. Le **Switch d'agrégation** est le cœur du réseau local, connectant le serveur et les unités de stockage à 10 Gbit/s.
+Le **Dream Machine** agit comme routeur/pare-feu. Deux serveurs Ubuntu bare-metal : **srv-main** héberge les services et toutes les données sur des disques locaux en ZFS, **srv-backup** tire chaque nuit une copie des snapshots ZFS.
 
 ```mermaid
 graph TD
     Internet((Internet)) --> UDM["Dream Machine (Routeur/Firewall)"]
-    UDM --> Switch_10G["Switch d'agrégation 10 Gbit/s"]
+    UDM --> Switch["Switch LAN"]
 
-    subgraph "Serveur Rackable"
-        Srv[Ubuntu Bare-metal]
-        GPU[RTX 5060 LP]
-        Srv --> GPU
+    subgraph main ["srv-main : Xeon E3-1275 v6, 64 Go DDR4"]
+        NVMe_M["NVMe Sabrent 1 To<br/>OS + /opt/epicea"]
+        SSD_DB["SSD Crucial MX500 1 To<br/>pool ssd_tank : bases de données"]
+        SSD_Cache["SSD Samsung 850 PRO 256 Go<br/>pool scratch : caches"]
+        Tank["8 x HDD Seagate 4 To<br/>pool tank : RAIDZ2 (~21 Tio)"]
     end
 
-    subgraph "Stockage"
-        NAS_Pro["NAS Principal (8-baies)"]
-        NAS_Quad["NAS Sauvegarde (4-baies)"]
+    subgraph backup ["srv-backup : i7-6800K, 16 Go DDR3"]
+        NVMe_B["NVMe Crucial E100 480 Go<br/>OS"]
+        Vault["2 x HDD 26 To<br/>pool vault : miroir (~23,6 Tio)"]
     end
 
-    Switch_10G -- "10 Gbit/s" --> Srv
-    Switch_10G -- "10 Gbit/s" --> NAS_Pro
-    Switch_10G -- "1 Gbit/s" --> NAS_Quad
-
-    UDM -. "Port Forwarding (80/443)" .-> Srv
-    NAS_Pro -- "Réplication" --> NAS_Quad
+    Switch --> main
+    Switch --> backup
+    UDM -. "Port Forwarding (80/443)" .-> main
+    Vault -- "syncoid (pull), chaque nuit" --> Tank
+    Vault -- "syncoid (pull), chaque nuit" --> SSD_DB
 ```
+
+| Pool | Disques | Topologie | Contenu | Sauvegardé |
+|------|---------|-----------|---------|------------|
+| `tank` (srv-main) | 8 x 4 To HDD | RAIDZ2 | Médias, photos, Nextcloud, copie de `/opt/epicea` | ✅ |
+| `ssd_tank` (srv-main) | Crucial MX500 1 To | Disque seul | PostgreSQL, Redis | ✅ |
+| `scratch` (srv-main) | Samsung 850 PRO 256 Go | Disque seul | Cache Jellyfin, modèles ML Immich | ❌ (reconstructible) |
+| `vault` (srv-backup) | 2 x 26 To HDD | Miroir | Réplique de `tank` et `ssd_tank` | — |
 
 ### Architecture Applicative (Conteneurs Docker)
 
@@ -49,9 +56,9 @@ graph TD
     subgraph "Serveur Ubuntu"
         direction LR
         subgraph "Stockage & Points de Montage"
-            NVME["Disque NVMe"]
-            SSD["Disque SSD (Bases de données)"]
-            NAS["Montage NFS (Données volumineuses)"]
+            NVME["NVMe (OS + configs)"]
+            SSD["Pool ssd_tank (Bases de données)"]
+            NAS["Pool tank RAIDZ2 (Données volumineuses)"]
         end
 
         subgraph "Conteneurs Docker"
@@ -116,6 +123,8 @@ graph TD
 
 ## 🚀 Guide du Développeur
 
+> 📖 **Nouveau sur le projet ?** Commencez par le [guide simplifié](docs/GUIDE.md) : déploiement, sauvegardes, ajout d'un service. Référence technique : [DOC_TECHNIQUE.md](DOC_TECHNIQUE.md).
+
 Cette section explique comment utiliser ce dépôt pour tester et déployer l'infrastructure.
 
 ### 1. Prérequis
@@ -129,23 +138,26 @@ Assurez-vous d'avoir installé les outils suivants sur votre poste de travail :
 
 Voici les étapes pour développer et tester des changements sur l'infrastructure :
 
-1.  **Initialiser l'environnement de test** : Une seule fois, lancez la commande suivante pour créer les machines virtuelles locales.
+Les changements se testent sur un **banc de simulation** : deux VMs Multipass qui reproduisent srv-main et srv-backup, avec des disques simulés sous les mêmes noms `/dev/disk/by-id` que les vrais (tailles réduites). Le déploiement applique la configuration de **production**, pas une variante de test. Détails dans [scripts/simulation/README.md](scripts/simulation/README.md).
+
+1.  **Tout tester depuis zéro** (environ 15 minutes) :
     ```bash
-    make vm-up
+    make sim-all
+    ```
+    Cette commande crée les VMs, déploie srv-main et srv-backup, puis lance les tests de bout en bout : stockage, services, Traefik, monitoring, réplication, panne de disque et redémarrage.
+
+2.  **Itérer** : après une modification du code Ansible, redéployer puis relancer les tests :
+    ```bash
+    make sim-deploy
+    ```
+    ```bash
+    make sim-test
     ```
 
-2.  **Développer et Tester** : Après avoir modifié le code Ansible, appliquez vos changements sur l'environnement de test avec :
+3.  **Inspecter une VM** :
     ```bash
-    make test-deploy
+    multipass shell srv-main-sim
     ```
-    Vous pouvez lancer cette commande autant de fois que nécessaire pour valider votre travail.
-
-3.  **Accéder au shell de la VM (si besoin)** : Pour inspecter l'état de la machine de test ou pour débugger, vous pouvez ouvrir un shell interactif :
-    ```bash
-    multipass exec epicea-test -- bash
-    ```
-
-> **Note importante** : L'environnement de test basé sur Multipass n'est **pas iso-production**. Il ne réplique pas l'architecture matérielle (disques spécifiques, GPU, etc.). Cependant, il offre un environnement suffisamment proche pour valider la logique des playbooks Ansible et le déploiement des services Docker.
 
 ### 3. Commandes du `Makefile`
 
@@ -153,17 +165,20 @@ Le `Makefile` est le point d'entrée unique pour toutes les opérations.
 
 | Commande                | Description                                                                                             |
 | ----------------------- | ------------------------------------------------------------------------------------------------------- |
-| **Tests (Multipass)**   |                                                                                                         |
-| `make vm-up`      | Crée les machines virtuelles de test via le script `scripts/multipass/setup-vms.sh`.                    |
-| `make vm-down`    | Détruit les machines virtuelles de test.                                                                |
-| `make test-init`        | Crée un fichier `vault.yml` non chiffré pour les tests, s'il n'existe pas.                              |
-| `make test-deploy`      | Déploie la configuration Ansible sur l'environnement de test.                                           |
-| `make test-status`      | Affiche le statut des conteneurs Docker sur l'environnement de test.                                    |
+| **Simulation**          |                                                                                                         |
+| `make sim-all`          | Crée le banc, déploie les deux serveurs et lance tous les tests.                                        |
+| `make sim-up`           | Crée les VMs `srv-main-sim` / `srv-backup-sim` et simule leurs disques.                                 |
+| `make sim-deploy`       | Déploie srv-main (configuration de production + `group_vars/simulation.yml`).                           |
+| `make sim-deploy-backup`| Déploie srv-backup et la réplication.                                                                   |
+| `make sim-test`         | Lance les tests de bout en bout (`scripts/simulation/test-sim.sh`).                                     |
+| `make sim-status`       | Affiche les conteneurs et les pools ZFS des VMs.                                                        |
+| `make sim-down`         | Détruit les VMs de simulation.                                                                          |
 | **Production**          |                                                                                                         |
 | `make init`             | Crée et chiffre un nouveau fichier `vault.yml` pour la production, s'il n'existe pas.                   |
 | `make secrets`          | Ouvre le fichier `vault.yml` chiffré pour l'édition.                                                    |
-| `make deploy`           | **(Action critique)** Déploie la configuration sur la production (demande le mot de passe du vault).    |
-| `make status`           | Affiche le statut des conteneurs Docker en production.                                                  |
+| `make deploy`           | **(Action critique)** Déploie la configuration sur srv-main (demande le mot de passe du vault).         |
+| `make deploy-backup`    | Déploie srv-backup et autorise la réplication ZFS depuis srv-main.                                      |
+| `ZFS_CREATE=1`          | À ajouter à `deploy` / `deploy-backup` au **premier** déploiement pour créer les pools (efface les disques). |
 | **Validation**          |                                                                                                         |
 | `make validate`         | Vérifie la syntaxe des playbooks Ansible.                                                               |
 
@@ -172,4 +187,5 @@ Le `Makefile` est le point d'entrée unique pour toutes les opérations.
 ## 📜 Contexte de l'Évolution
 
 *   **Point de Départ** : Serveur unique sous Proxmox avec stockage ZFS local. La gestion des VMs et du stockage était devenue trop complexe et rigide.
-*   **Cible** : Passer à un serveur **Ubuntu Bare-metal** pour la simplicité, avec le stockage entièrement externalisé sur des **NAS Ubiquiti** et un réseau unifié à **10 Gbit/s** pour des performances optimales entre le calcul et les données. Une **GPU NVIDIA** est ajoutée pour les besoins en IA et transcodage.
+*   **Piste abandonnée** : Externaliser le stockage sur des NAS Ubiquiti en NFS, avec une carte graphique NVIDIA dédiée.
+*   **Infrastructure définitive** : Un serveur **Ubuntu Bare-metal** (Xeon E3-1275 v6, 64 Go) qui porte lui-même ses disques en **ZFS** (RAIDZ2 sur 8 HDD, SSD dédiés aux bases et aux caches), sans carte graphique : le transcodage Jellyfin passe par **Quick Sync**, intégré au Xeon. Un second serveur Ubuntu (**srv-backup**, miroir 2 x 26 To) reçoit chaque nuit les snapshots ZFS par **syncoid**, en mode *pull*.

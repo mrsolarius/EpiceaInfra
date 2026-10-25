@@ -1,0 +1,14 @@
+[Unit]
+Description=Import des pools ZFS attendus absents du cache
+DefaultDependencies=no
+Requires=zfs-load-module.service
+After=zfs-import-cache.service zfs-import-scan.service systemd-udev-settle.service
+Before=zfs-import.target zfs-mount.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/zfs-import-expected
+
+[Install]
+WantedBy=zfs-import.target

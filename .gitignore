@@ -1,43 +1,22 @@
-# IDE
-.idea
-
 # Secrets
-**/.env
 ansible/secrets/vault.yml
+ansible/.vault_pass
+**/.env
 *.key
 *.pem
 
-# Docker volumes
-**/data/
-**/postgres/
-**/redis/
-**/cache/
-**/library/
-**/letsencrypt/
-docker/traefik/logs/
+# Banc de simulation (généré par scripts/simulation/setup-sim.sh)
+ansible/inventory/simulation.yml
+ansible/group_vars/simulation-network.yml
 
-# Exceptions for configuration folders
-!docker/stateful/postgres/
-!docker/stateful/redis/
-
-# Pyton
+# Python / Ansible
 /.venv/
-
-# Ansible
 *.retry
-ansible/.vault_pass
 
-# IDE
+# IDE / OS
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# OS
 .DS_Store
 Thumbs.db
-
-# Terraform
-**/.terraform/
-*.tfstate
-*.tfstate.backup

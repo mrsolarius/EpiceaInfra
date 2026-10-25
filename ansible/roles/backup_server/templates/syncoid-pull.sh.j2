@@ -1,0 +1,33 @@
+#!/bin/bash
+# ========================================
+# Réplication ZFS en mode pull - Géré par Ansible
+# {{ backup_replication.source_host }} -> {{ inventory_hostname }}:{{ backup_replication.target_root }}
+# ========================================
+set -u
+
+SOURCE="{{ backup_replication.source_user }}@{{ hostvars[backup_replication.source_host].ansible_host }}"
+METRICS="{{ backup_textfile_dir }}/syncoid.prom"
+status=0
+tmp=$(mktemp)
+
+for pool in {{ backup_replication.pools | join(' ') }}; do
+  echo "=== Réplication de ${pool} ==="
+  # --skip-parent : la racine du pool ne contient pas de données. La répliquer
+  # bloquerait la réplication après une restauration (racine recréée sans
+  # snapshot commun avec srv-backup).
+  if syncoid --recursive --skip-parent --no-sync-snap --no-privilege-elevation \
+       --sshkey "{{ backup_replication.ssh_key }}" \
+       "${SOURCE}:${pool}" "{{ backup_replication.target_root }}/${pool}"; then
+    echo "syncoid_last_success_timestamp_seconds{pool=\"${pool}\"} $(date +%s)" >> "$tmp"
+  else
+    echo "Échec de la réplication de ${pool}" >&2
+    status=1
+    # Conserver la dernière date de succès connue
+    grep "pool=\"${pool}\"" "$METRICS" >> "$tmp" 2>/dev/null || true
+  fi
+done
+
+echo "syncoid_last_run_status ${status}" >> "$tmp"
+chmod 0644 "$tmp"
+mv "$tmp" "$METRICS"
+exit "$status"

@@ -11,7 +11,7 @@ groups:
           component: litopia
           subsystem: container
         annotations:
-          summary: "Conteneur Litopia critique indisponible ðŸ”´"
+          summary: "Conteneur Litopia critique indisponible 🔴"
           description: "Le conteneur {{ $labels.name }} ne répond plus depuis plus de 5 minutes."
 
       - alert: LitopiaContainerDown
@@ -22,7 +22,7 @@ groups:
           component: litopia
           subsystem: container
         annotations:
-          summary: "Conteneur Litopia indisponible ðŸŸ "
+          summary: "Conteneur Litopia indisponible 🟠"
           description: "Le conteneur {{ $labels.name }} ne répond plus depuis plus de 5 minutes."
 
       - alert: LitopiaHighCPU
@@ -33,7 +33,7 @@ groups:
           component: litopia
           subsystem: container
         annotations:
-          summary: "CPU élevé sur Litopia ðŸ”¥"
+          summary: "CPU élevé sur Litopia 🔥"
           description: "Le conteneur {{ $labels.name }} dépasse 80% CPU depuis plus de 10 minutes."
 
       - alert: LitopiaHighMemory
@@ -47,7 +47,7 @@ groups:
           component: litopia
           subsystem: container
         annotations:
-          summary: "Mémoire élevée sur Litopia ðŸ’¾"
+          summary: "Mémoire élevée sur Litopia 💾"
           description: "Le conteneur {{ $labels.name }} dépasse 90% de mémoire allouée depuis plus de 10 minutes."
 
   - name: backpaking_container_alerts

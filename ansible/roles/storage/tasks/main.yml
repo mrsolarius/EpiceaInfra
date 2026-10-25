@@ -1,8 +1,9 @@
 ---
 # ========================================
 # Role: storage
-# Description: Montages NFS + configuration stockage
+# Description: Arborescence de stockage et copie des configs
 # ========================================
+# Les pools/datasets ZFS sont créés au préalable par le rôle "zfs".
 
 - name: Créer les racines de stockage
   ansible.builtin.file:
@@ -14,11 +15,11 @@
   loop:
     - "{{ drive_nvme_path }}"
     - "{{ drive_ssd_path }}"
-    - "{{ drive_nfs_root }}"
+    - "{{ drive_scratch_path }}"
+    - "{{ drive_bulk_path }}"
     - "{{ storage.ansible.compose }}"
     - "{{ storage.ansible.configs }}"
     - "{{ storage.monitoring }}"
-
 
 - name: Créer les dossiers pour les bases de données (SSD)
   ansible.builtin.file:
@@ -27,40 +28,54 @@
     mode: '0700'
   loop: "{{ storage.databases | dict2items }}"
 
-- name: Créer les points de montage NFS
+- name: Créer les dossiers de cache (SSD scratch)
   ansible.builtin.file:
-    path: "{{ item.path }}"
+    path: "{{ item.value }}"
     state: directory
     mode: '0755'
-  loop: "{{ nfs_mounts }}"
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
+  loop: "{{ storage.cache | dict2items }}"
 
-- name: Monter les partages NFS
-  ansible.posix.mount:
-    src: "{{ item.src }}"
-    path: "{{ item.path }}"
-    fstype: nfs
-    opts: "{{ item.opts }}"
-    state: mounted
-  loop: "{{ nfs_mounts }}"
+# ----------------------------------------
+# Copie des configs (NVMe hors ZFS) vers le stockage de masse
+# ----------------------------------------
+# /opt/epicea n'est pas sur ZFS : on le recopie chaque nuit dans tank/backups
+# pour qu'il soit snapshoté par sanoid puis répliqué vers srv-backup.
+- name: Configurer la copie quotidienne des configs
+  when: backup_system_enabled | default(false) | bool
+  block:
+    - name: Installer rsync
+      ansible.builtin.apt:
+        name: rsync
+        state: present
 
-- name: Configurer les permissions après montage
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: directory
-    owner: "{{ item.owner | default(omit) }}"
-    group: "{{ item.group | default(omit) }}"
-    mode: "{{ item.mode | default(omit) }}"
-  loop: "{{ nfs_mounts }}"
-  when: item.owner is defined or item.group is defined or item.mode is defined
+    - name: Créer le dossier de copie des configs
+      ansible.builtin.file:
+        path: "{{ storage.media.configs_backup }}"
+        state: directory
+        mode: '0700'
 
-- name: Vérifier les montages
-  ansible.builtin.command: df -h {{ item.path }}
-  loop: "{{ nfs_mounts }}"
+    - name: Planifier la copie des configs
+      ansible.builtin.cron:
+        name: "epicea-configs-backup"
+        cron_file: epicea-configs-backup
+        user: root
+        minute: "{{ backup_system_schedule.split()[0] }}"
+        hour: "{{ backup_system_schedule.split()[1] }}"
+        day: "{{ backup_system_schedule.split()[2] }}"
+        month: "{{ backup_system_schedule.split()[3] }}"
+        weekday: "{{ backup_system_schedule.split()[4] }}"
+        job: >-
+          rsync -aHAX --delete
+          --exclude 'monitoring/prometheus/' --exclude 'monitoring/loki/'
+          {{ drive_nvme_path }}/ {{ storage.media.configs_backup }}/
+
+- name: Vérifier l'espace disponible
+  ansible.builtin.command: df -h {{ drive_ssd_path }} {{ drive_scratch_path }} {{ drive_bulk_path }}
   changed_when: false
-  register: nfs_check
+  register: storage_df
 
 - name: Afficher résumé stockage
   ansible.builtin.debug:
-    msg:
-      - "âœ… Montages NFS configurés :"
-      - "{% for mount in nfs_mounts %}  - {{ mount.path }} â†’ {{ mount.src }}{% endfor %}"
+    msg: "{{ storage_df.stdout_lines }}"

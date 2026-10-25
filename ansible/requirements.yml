@@ -3,6 +3,6 @@ collections:
   - name: ansible.posix
     version: ">=2.1.0"
   - name: community.docker
-    version: ">=3.4.0"
+    version: ">=3.8.0"  # docker_compose_v2 : option wait
   - name: community.general
     version: ">=9.0.0"

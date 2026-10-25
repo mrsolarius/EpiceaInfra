@@ -1,0 +1,10 @@
+[Unit]
+Description=Planification de la réplication ZFS (syncoid pull)
+
+[Timer]
+OnCalendar={{ backup_replication.schedule }}
+Persistent=true
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

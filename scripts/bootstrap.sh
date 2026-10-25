@@ -27,6 +27,11 @@ apt-get install -y -qq python3 python3-pip git curl
 echo "📦 Installation Ansible..."
 apt-get install -y -qq ansible
 
+# Collections du dépôt : celles livrées avec le paquet apt sont trop anciennes
+echo "📦 Installation des collections Ansible..."
+ansible-galaxy collection install --upgrade -p /usr/share/ansible/collections \
+    -r "$(dirname "$0")/../ansible/requirements.yml"
+
 echo ""
 echo "========================================"
 echo "  ✅ Bootstrap terminé !"

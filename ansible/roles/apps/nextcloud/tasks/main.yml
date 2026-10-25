@@ -14,9 +14,9 @@
     path: "{{ storage.databases.nextcloud }}"
     state: directory
     mode: '0700'
-    owner: "999"  # postgres
-    group: "999"
-    recurse: true
+    # Pas de owner : l'image PostgreSQL règle les droits au démarrage
+    # (UID 70 pour les images alpine, 999 pour Immich). Un chown ici casse
+    # l'accès d'une base déjà lancée jusqu'à son prochain redémarrage.
 
 - name: Générer le script d'initialisation PostgreSQL
   ansible.builtin.template:
@@ -49,16 +49,8 @@
     project_src: "{{ storage.ansible.compose }}/nextcloud"
     state: present
     pull: always
-
-- name: Attendre que Nextcloud soit prêt
-  ansible.builtin.shell:
-    cmd: docker compose ps --format json | jq -r '.Health' | grep -c healthy || true
-    chdir: "{{ storage.ansible.compose }}/nextcloud"
-  register: nextcloud_health
-  until: nextcloud_health.stdout | int > 0
-  retries: 24
-  delay: 5
-  changed_when: false
+    wait: true
+    wait_timeout: 600
 
 - name: Vérifier si Nextcloud est déjà configuré
   community.docker.docker_container_exec:

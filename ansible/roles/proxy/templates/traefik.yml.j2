@@ -1,6 +1,6 @@
 # ========================================
 # Configuration statique Traefik
-# Générée par Ansible pour {{ deploy_environment }}
+# Générée par Ansible
 # ========================================
 
 global:
@@ -28,8 +28,8 @@ accessLog:
 # ========================================
 api:
   dashboard: {{ traefik_dashboard_enabled | lower }}
-  # En production, on désactive le mode insecure pour ne pas exposer l'API sur 8080 sans auth
-  insecure: {{ 'false' if deploy_environment == 'production' else 'true' }}
+  # Dashboard accessible uniquement via son routeur HTTPS protégé (dynamic-middlewares.yml)
+  insecure: false
 
 # ========================================
 # Entry Points
@@ -37,14 +37,12 @@ api:
 entryPoints:
   web:
     address: ":80"
-{% if deploy_environment == 'production' or force_https_redirect | default(true) %}
     http:
       redirections:
         entryPoint:
           to: websecure
           scheme: https
           permanent: true
-{% endif %}
 
   websecure:
     address: ":443"
@@ -86,18 +84,9 @@ certificatesResolvers:
       email: {{ traefik_acme_email }}
       storage: /letsencrypt/acme.json
       keyType: EC384
-{% if traefik_acme_dns_challenge | default(false) %}
-      # DNS Challenge (Cloudflare, OVH, etc.)
-      dnsChallenge:
-        provider: {{ traefik_acme_dns_provider }}
-        delayBeforeCheck: 0
-{% else %}
-      # HTTP Challenge (par défaut)
       httpChallenge:
         entryPoint: web
-{% endif %}
-      # Staging pour tests (production: commenté)
-{% if traefik_acme_staging | default(false) %}
+{% if traefik_acme_staging | bool %}
       caServer: https://acme-staging-v02.api.letsencrypt.org/directory
 {% endif %}
 {% endif %}

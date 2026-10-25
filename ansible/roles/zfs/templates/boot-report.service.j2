@@ -1,0 +1,12 @@
+[Unit]
+Description=Rapport de démarrage sur Discord (pools ZFS et services)
+Wants=network-online.target
+After=network-online.target zfs-import.target zfs-mount.service
+
+[Service]
+# exec plutôt que oneshot : le rapport attend Docker sans retarder la fin du démarrage
+Type=exec
+ExecStart=/usr/local/sbin/boot-report
+
+[Install]
+WantedBy=multi-user.target

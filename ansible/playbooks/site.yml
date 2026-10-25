@@ -20,13 +20,16 @@
       ansible.builtin.debug:
         msg:
           - "Environnement : {{ deploy_environment }}"
-          - "GPU activé : {{ system_enable_gpu }}"
           - "Let's Encrypt : {{ proxy_enable_letsencrypt }}"
 
   roles:
     # Infrastructure de base
     - role: ../roles/common
       tags: [common, base]
+
+    # zfs avant docker : Docker ne démarre que si tous les pools sont importés
+    - role: ../roles/zfs
+      tags: [zfs, storage, base]
 
     - role: ../roles/docker
       tags: [docker, base]
@@ -47,7 +50,7 @@
     # Services partagés (Redis)
     - role: ../roles/redis
       tags: [redis, database, services]
-      when: "'redis' in enabled_services or 'shared-services' in enabled_services"
+      when: "'redis' in enabled_services"
 
     # Applications
     - role: ../roles/apps/nextcloud
@@ -70,49 +73,6 @@
       tags: [backpaking, services]
       when: "'backpaking' in enabled_services"
   post_tasks:
-    - name: Vérifier que tous les services sont up
-      ansible.builtin.command:
-        cmd: docker ps --filter "name={{ item }}" --format "{{ '{{' }}.Names{{ '}}' }}"
-      loop:
-        - traefik
-        - prometheus
-        - grafana
-        - nextcloud-db
-        - immich-db
-        - redis
-        - nextcloud
-        - immich-server
-        - jellyfin
-        - litopia-db
-        - litopia-back
-        - litopia-front
-        - backpaking-db
-        - backpaking-back
-        - backpaking-front
-      register: services_check
-      changed_when: false
-      failed_when: false
-
     - name: Résumé du déploiement
       ansible.builtin.debug:
-        msg:
-          - "================================================"
-          - "✅ Déploiement terminé avec succès !"
-          - "================================================"
-          - "Services déployés : {{ enabled_services | join(', ') }}"
-          - "Environnement : {{ deploy_environment }}"
-          - ""
-          - "🔧 Accès services :"
-          - "  Traefik   : {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.traefik }}"
-          - "  Grafana   : {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.grafana }}"
-          - "  Nextcloud : {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.nextcloud }}"
-          - "  Immich    : {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.immich }}"
-          - "  Jellyfin  : {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.jellyfin }}"
-          - "  Litopia   : {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.litopia }}"
-          - "  Backpaking: {{ 'https' if proxy_enable_letsencrypt else 'http' }}://{{ service_domains.backpaking }}"
-          - "🐳 Services actifs :"
-          - "{% for service in services_check.results %}  - {{ service.stdout | default('NOT RUNNING') }}{% endfor %}"
-          - ""
-          - "Prochaines étapes :"
-          - "  make status  # Vérifier les services"
-          - "  make logs    # Voir les logs"
+        msg: "{{ ['Services déployés :'] + (service_domains | dict2items | map(attribute='value') | map('regex_replace', '^', '  https://') | list) }}"

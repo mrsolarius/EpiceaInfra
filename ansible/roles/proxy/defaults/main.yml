@@ -3,25 +3,10 @@
 # Defaults: proxy (Traefik)
 # ========================================
 
-# Configuration Traefik
-traefik_image_version: "v3.0"
 traefik_dashboard_enabled: true
 traefik_log_level: "INFO"
 
-# Let's Encrypt
-traefik_acme_enabled: "{{ proxy_enable_letsencrypt | default(false) }}"
-traefik_acme_email: "admin@{{ base_domain }}"
-traefik_acme_staging: false  # true pour tests Let's Encrypt
-traefik_acme_dns_challenge: false
-traefik_acme_dns_provider: ""  # cloudflare, ovh, etc.
+# true : certificats de test Let's Encrypt (pas de limite de quota)
+traefik_acme_staging: false
 
-# Authentification dashboard (admin / admin)
-traefik_auth: "admin:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/"
-
-# Networks
-traefik_network_name: "{{ docker_proxy_network_name }}"
-
-# Chemins
-traefik_config_path: "{{ docker_config_path }}/traefik"
-traefik_data_path: "{{ storage.ansible.compose }}/traefik/letsencrypt"
-traefik_logs_path: "{{ storage.ansible.compose }}/traefik/logs"
+traefik_config_path: "{{ storage.ansible.configs }}/traefik"

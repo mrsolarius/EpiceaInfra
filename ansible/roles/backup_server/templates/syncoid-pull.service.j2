@@ -1,0 +1,12 @@
+[Unit]
+Description=Réplication ZFS depuis {{ backup_replication.source_host }} (syncoid pull)
+After=network-online.target zfs.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# mbuffer (utilisé par syncoid) cherche ses réglages dans $HOME
+Environment=HOME=/root
+ExecStart=/usr/local/sbin/syncoid-pull.sh
+Nice=10
+IOSchedulingClass=idle

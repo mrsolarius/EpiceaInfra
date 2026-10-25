@@ -4,17 +4,6 @@
 # Description: Installation + configuration Docker
 # ========================================
 
-- name: Vérifier si Docker est déjà installé
-  ansible.builtin.command: docker --version
-  register: docker_check
-  failed_when: false
-  changed_when: false
-
-- name: Afficher la version Docker actuelle (si installée)
-  ansible.builtin.debug:
-    msg: "Docker déjà installé : {{ docker_check.stdout }}"
-  when: docker_check.rc == 0
-
 - name: Supprimer les anciennes versions de Docker
   ansible.builtin.apt:
     name:
@@ -24,7 +13,6 @@
       - containerd
       - runc
     state: absent
-  when: docker_check.rc != 0
 
 - name: Installer les dépendances pour le repository Docker
   ansible.builtin.apt:
@@ -48,25 +36,21 @@
     dest: /etc/apt/keyrings/docker.asc
     mode: '0644'
     force: false
-  when: docker_check.rc != 0
 
 - name: Dearmor la clé GPG Docker
   ansible.builtin.command:
     cmd: gpg --dearmor -o /etc/apt/keyrings/docker.gpg /etc/apt/keyrings/docker.asc
     creates: /etc/apt/keyrings/docker.gpg
-  when: docker_check.rc != 0
 
 - name: Ajouter le repository Docker
   ansible.builtin.apt_repository:
     repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_facts['distribution_release'] }} stable"
     state: present
     filename: docker
-  when: docker_check.rc != 0
 
 - name: Mettre à jour le cache APT
   ansible.builtin.apt:
     update_cache: true
-  when: docker_check.rc != 0
 
 - name: Installer Docker Engine (dernière version)
   ansible.builtin.apt:
@@ -93,14 +77,7 @@
         "log-opts": {
           "max-size": "{{ docker_daemon_log_max_size }}",
           "max-file": "{{ docker_daemon_log_max_file }}"
-        }{% if system_enable_gpu | bool %},
-        "runtimes": {
-          "nvidia": {
-            "path": "nvidia-container-runtime",
-            "runtimeArgs": []
-          }
-        },
-        "default-runtime": "nvidia"{% endif %}
+        }
       }
     dest: /etc/docker/daemon.json
     mode: '0644'
@@ -111,6 +88,13 @@
     name: "{{ ansible_user }}"
     groups: docker
     append: true
+
+# Si Docker a échoué en boucle (pool ZFS absent au démarrage), systemd refuse de
+# le relancer tant que son compteur d'échecs n'est pas remis à zéro
+- name: Remettre à zéro les échecs de démarrage de Docker
+  ansible.builtin.command: systemctl reset-failed docker.service docker.socket
+  changed_when: false
+  failed_when: false
 
 - name: Démarrer et activer Docker
   ansible.builtin.systemd:
@@ -129,27 +113,3 @@
     name: "{{ docker_monitoring_network_name }}"
     driver: bridge
     state: present
-
-- name: Vérifier Docker fonctionne
-  ansible.builtin.command: docker ps
-  changed_when: false
-
-- name: Récupérer la version Docker installée
-  ansible.builtin.command: docker version --format '{{ "{{" }}.Server.Version{{ "}}" }}'
-  register: docker_version_installed
-  changed_when: false
-
-- name: Récupérer l'API version Docker
-  ansible.builtin.command: docker version --format '{{ "{{" }}.Server.APIVersion{{ "}}" }}'
-  register: docker_api_version
-  changed_when: false
-
-- name: Afficher résultat
-  ansible.builtin.debug:
-    msg:
-      - "âœ… Docker installé : {{ docker_version_installed.stdout }}"
-      - "âœ… Docker API version : {{ docker_api_version.stdout }}"
-      - "Réseau Proxy : {{ docker_proxy_network_name }}"
-      - "Réseau Monitoring : {{ docker_monitoring_network_name }}"
-      - "{% if docker_api_version.stdout is version('1.44', '>=') %}âœ… Compatible avec Traefik v3.3+{% else %}âš ï¸  API trop ancienne pour Traefik v3.3 (minimum 1.44){% endif %}"
-

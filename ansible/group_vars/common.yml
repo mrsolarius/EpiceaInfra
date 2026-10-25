@@ -4,7 +4,6 @@
 # ========================================
 
 timezone: "Europe/Paris"
-allow_automatic_reboot: false
 
 # Propriétés Docker communes
 docker_restart_policy: "always"
@@ -14,10 +13,10 @@ docker_proxy_network_name: "traefik-proxy"
 # ====================================================
 # 1. RACINES PHYSIQUES (Où sont les disques ?)
 # ====================================================
-# Valeurs par défaut (écrasées dans test/production)
-drive_nvme_path: "/opt/epicea"
-drive_ssd_path: "/mnt/ssd_tank"
-drive_nfs_root: "/mnt/nas"
+drive_nvme_path: "/opt/epicea"      # OS, configs, monitoring
+drive_ssd_path: "/mnt/ssd_tank"     # Bases de données
+drive_scratch_path: "/mnt/scratch"  # Caches jetables (transcodage, modèles ML)
+drive_bulk_path: "/mnt/tank"        # Stockage de masse (pool ZFS tank)
 
 # ====================================================
 # 2. CHEMINS LOGIQUES (Qui utilise quoi ?)
@@ -39,14 +38,20 @@ storage:
     litopia: "{{ drive_ssd_path }}/litopia-db"
     backpaking: "{{ drive_ssd_path }}/backpaking-db"
 
-  # Stockage de masse (NFS)
+  # Caches jetables (SSD scratch, non sauvegardés)
+  cache:
+    jellyfin: "{{ drive_scratch_path }}/jellyfin-cache"
+    immich_ml: "{{ drive_scratch_path }}/immich-ml-cache"
+
+  # Stockage de masse (HDD)
   media:
-    jellyfin_movies: "{{ drive_nfs_root }}/media/movies"
-    jellyfin_shows: "{{ drive_nfs_root }}/media/shows"
-    jellyfin_root: "{{ drive_nfs_root }}/media"
-    immich_photos: "{{ drive_nfs_root }}/photos/immich"
-    nextcloud_data: "{{ drive_nfs_root }}/cloud/data"
-    backups: "{{ drive_nfs_root }}/backups"
+    jellyfin_movies: "{{ drive_bulk_path }}/media/movies"
+    jellyfin_shows: "{{ drive_bulk_path }}/media/shows"
+    jellyfin_root: "{{ drive_bulk_path }}/media"
+    immich_photos: "{{ drive_bulk_path }}/photos/immich"
+    nextcloud_data: "{{ drive_bulk_path }}/cloud/data"
+    backups: "{{ drive_bulk_path }}/backups"
+    configs_backup: "{{ drive_bulk_path }}/backups/epicea-configs"
 
 # ====================================================
 # 3. PERMISSIONS (PUID/PGID)

@@ -53,9 +53,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ docker_proxy_network_name }}"
-      - "traefik.http.routers.immich-http.rule=Host(`${IMMICH_DOMAIN}`)"
-      - "traefik.http.routers.immich-http.entrypoints=web"
-      - "traefik.http.routers.immich-http.service=immich"
       - "traefik.http.routers.immich-https.rule=Host(`${IMMICH_DOMAIN}`)"
       - "traefik.http.routers.immich-https.entrypoints=websecure"
       - "traefik.http.routers.immich-https.service=immich"

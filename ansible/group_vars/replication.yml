@@ -1,0 +1,20 @@
+---
+# ========================================
+# Réplication ZFS srv-main -> srv-backup
+# ========================================
+# Partagé par les deux plays de playbooks/backup.yml.
+# Mode "pull" : c'est srv-backup qui se connecte à srv-main et tire les snapshots.
+# Un srv-main compromis ne peut donc ni lire ni détruire les sauvegardes.
+
+backup_replication:
+  source_host: "srv-main"           # Nom d'inventaire
+  source_user: "syncoid"            # Utilisateur dédié sur srv-main (droits ZFS limités)
+  target_host: "srv-backup"         # Nom d'inventaire
+  target_root: "vault/srv-main"     # Dataset parent de réception sur srv-backup
+  ssh_key: "/root/.ssh/id_syncoid"
+  # Pools répliqués récursivement ("scratch" ne contient que des caches)
+  pools:
+    - tank
+    - ssd_tank
+  # Après la copie des configs (3h) et les snapshots sanoid horaires
+  schedule: "*-*-* 04:30:00"

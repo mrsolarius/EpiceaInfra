@@ -8,10 +8,3 @@
     project_src: "{{ storage.ansible.compose }}/traefik"
     state: restarted
   listen: Restart traefik
-
-- name: Reload traefik config
-  ansible.builtin.command:
-    cmd: docker exec traefik traefik healthcheck --ping
-  changed_when: false
-  failed_when: false
-  listen: Reload traefik config

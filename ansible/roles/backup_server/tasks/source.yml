@@ -1,0 +1,36 @@
+---
+# ========================================
+# Role: backup_server (côté source, exécuté sur srv-main)
+# Description: Utilisateur dédié aux envois ZFS vers srv-backup
+# ========================================
+
+- name: Créer l'utilisateur de réplication
+  ansible.builtin.user:
+    name: "{{ backup_replication.source_user }}"
+    system: true
+    shell: /bin/bash
+    home: "/var/lib/{{ backup_replication.source_user }}"
+    create_home: true
+
+- name: Autoriser la clé de srv-backup (depuis son IP uniquement)
+  ansible.posix.authorized_key:
+    user: "{{ backup_replication.source_user }}"
+    key: "{{ hostvars[backup_replication.target_host].backup_syncoid_pubkey }}"
+    key_options: >-
+      from="{{ hostvars[backup_replication.target_host].ansible_host }}",no-pty,no-agent-forwarding,no-port-forwarding,no-X11-forwarding
+    exclusive: true
+
+- name: Lire les délégations ZFS existantes
+  ansible.builtin.command: zfs allow {{ item }}
+  loop: "{{ backup_replication.pools }}"
+  register: backup_zfs_allow
+  changed_when: false
+
+# Lecture seule : envoi de snapshots, aucun droit de création/destruction
+- name: Déléguer les droits d'envoi ZFS
+  ansible.builtin.command: zfs allow -u {{ backup_replication.source_user }} send,hold,release {{ item.item }}
+  loop: "{{ backup_zfs_allow.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: ("user " ~ backup_replication.source_user) not in item.stdout
+  changed_when: true

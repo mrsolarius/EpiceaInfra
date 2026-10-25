@@ -1,0 +1,42 @@
+---
+# ========================================
+# Serveur de sauvegarde (srv-backup) + autorisation côté srv-main
+# Usage : make deploy-backup
+# ========================================
+
+- name: Serveur de sauvegarde
+  hosts: backup
+  become: true
+
+  vars_files:
+    - ../group_vars/common.yml
+    - ../group_vars/backup.yml
+    - ../group_vars/replication.yml
+
+  pre_tasks:
+    - name: Vérification des prérequis
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['distribution'] == "Ubuntu"
+          - ansible_facts['distribution_major_version'] | int >= 22
+        fail_msg: "Ce playbook nécessite Ubuntu 22.04 ou supérieur"
+
+  roles:
+    - role: ../roles/zfs
+      tags: [zfs]
+    - role: ../roles/backup_server
+      tags: [backup]
+
+- name: Autoriser la réplication sur srv-main
+  hosts: production
+  become: true
+
+  vars_files:
+    - ../group_vars/common.yml
+    - ../group_vars/replication.yml
+
+  tasks:
+    - name: Configurer l'utilisateur de réplication
+      ansible.builtin.include_role:
+        name: ../roles/backup_server
+        tasks_from: source.yml
