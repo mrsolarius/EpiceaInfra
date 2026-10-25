@@ -78,6 +78,15 @@
     group: "{{ common_system_group }}"
   notify: Restart monitoring
 
+- name: Déployer règles d'alerting AMP (serveurs de jeu)
+  ansible.builtin.copy:
+    src: amp-alerts.yml
+    dest: "{{ storage.ansible.compose }}/monitoring/prometheus/rules/amp-alerts.yml"
+    mode: '0644'
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
+  notify: Restart monitoring
+
 - name: Déployer configuration Loki
   ansible.builtin.template:
     src: loki-config.yml.j2

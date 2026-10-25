@@ -51,7 +51,7 @@ services:
     # pendant un redémarrage reste "déjà notifiée" et sa prochaine occurrence est
     # muette pendant repeat_interval (12h).
     tmpfs:
-      - /alertmanager
+      - /alertmanager:uid=65534,gid=65534  # Alertmanager tourne en nobody
     networks:
       - monitoring
     command:
@@ -88,6 +88,14 @@ services:
     networks:
       - monitoring
       - docker-socket
+    # cAdvisor n'essaie qu'une fois de joindre Docker : s'il démarre avant le proxy (redémarrage
+    # de l'hôte ou de la stack, où depends_on n'est pas respecté), il ne voit plus aucun conteneur
+    # et toutes les alertes « conteneur arrêté » partent. On attend donc que Docker réponde.
+    entrypoint:
+      - sh
+      - -c
+      - until wget -qO- http://docker-socket-proxy:2375/_ping >/dev/null 2>&1; do sleep 2; done; exec /usr/bin/cadvisor -logtostderr "$$@"
+      - cadvisor
     command:
       - '--housekeeping_interval=10s'
       - '--store_container_labels=true'
