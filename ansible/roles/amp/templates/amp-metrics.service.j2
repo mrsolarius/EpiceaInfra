@@ -1,0 +1,8 @@
+[Unit]
+Description=Métriques AMP (instances, ports, processus) pour le node exporter
+
+[Service]
+Type=oneshot
+Environment=AMP_HOME={{ amp_home }}
+ExecStart=/usr/local/sbin/amp-metrics
+Nice=10

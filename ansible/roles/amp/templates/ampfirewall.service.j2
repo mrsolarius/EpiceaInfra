@@ -1,0 +1,10 @@
+[Unit]
+Description=AMP Instance Manager Firewall (ouvre dans UFW les ports des instances)
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor={{ amp_home }}
+
+[Service]
+Type=oneshot
+ExecStart=/opt/cubecoders/amp/ampinstmgr --silent updatefirewall amp
+TimeoutSec=60

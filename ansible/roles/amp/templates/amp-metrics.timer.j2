@@ -1,0 +1,10 @@
+[Unit]
+Description=Métriques AMP toutes les minutes
+
+[Timer]
+OnBootSec=1m
+OnUnitActiveSec=1m
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

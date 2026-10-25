@@ -1,0 +1,13 @@
+[Unit]
+Description=AMP Instance Manager Pending Tasks
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor={{ amp_home }}
+
+[Service]
+Type=oneshot
+KillMode=none
+User=amp
+Group=amp
+ExecStart=/opt/cubecoders/amp/ampinstmgr ProcessPendingTasks
+TimeoutSec=60

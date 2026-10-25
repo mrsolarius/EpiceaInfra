@@ -1,0 +1,39 @@
+---
+# Métriques produites par /usr/local/sbin/amp-metrics (rôle amp), relues chaque minute
+groups:
+  - name: amp_alerts
+    interval: 1m
+    rules:
+      # Le panneau de l'instance tourne mais le jeu n'écoute plus sur son port : serveur planté,
+      # bloqué, ou arrêté depuis le panneau. Un démarrage normal tient dans les 5 minutes.
+      - alert: AmpGamePortDown
+        expr: amp_port_listening{kind="game"} == 0 and on(amp_instance) amp_instance_up == 1
+        for: 5m
+        labels:
+          severity: critical
+          component: games
+        annotations:
+          summary: "{{ $labels.amp_instance }} : port {{ $labels.port }}/{{ $labels.protocol }} fermé"
+          description: "Le serveur de jeu {{ $labels.amp_instance }} ne répond plus sur son port {{ $labels.port }} ({{ $labels.name }}). Vérifier sa console sur le panneau AMP."
+
+      # Instance démarrée avec AMP mais processus absent : instance arrêtée ou AMP en panne
+      - alert: AmpInstanceDown
+        expr: amp_instance_up == 0 and on(amp_instance) amp_instance_autostart == 1
+        for: 5m
+        labels:
+          severity: warning
+          component: games
+        annotations:
+          summary: "Instance AMP {{ $labels.amp_instance }} arrêtée"
+          description: "L'instance {{ $labels.amp_instance }} devrait tourner (démarrage automatique) mais son processus AMP est absent. Voir : sudo -u amp ampinstmgr status"
+
+      # Sans métriques à jour, les deux alertes ci-dessus ne peuvent plus se déclencher
+      - alert: AmpMetricsStale
+        expr: time() - amp_state_last_run_timestamp_seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+          component: games
+        annotations:
+          summary: "Supervision d'AMP interrompue"
+          description: "Les métriques AMP de {{ $labels.instance }} ne sont plus mises à jour. Voir : systemctl status amp-metrics.timer"

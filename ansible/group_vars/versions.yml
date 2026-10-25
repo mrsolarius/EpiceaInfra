@@ -29,8 +29,10 @@ docker_versions:
     postgres: "16-vectorchord0.3.0-pgvectors0.3.0"
 
   # Autres Applications
-  nextcloud: "32.0.5"
+  nextcloud: "35.0.2"  # >= version de l'ancien serveur (pas de retour en arrière possible)
   jellyfin: "10.11.6"
+  amp:
+    mysql: "8.0"  # même version majeure que l'ancien serveur de jeu
   litopia:
     frontend: "v1.1.0"
     backend: "v1.1.0"

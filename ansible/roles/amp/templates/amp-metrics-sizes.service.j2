@@ -1,0 +1,9 @@
+[Unit]
+Description=Taille des instances AMP et de leurs sauvegardes pour le node exporter
+
+[Service]
+Type=oneshot
+Environment=AMP_HOME={{ amp_home }}
+ExecStart=/usr/local/sbin/amp-metrics sizes
+Nice=19
+IOSchedulingClass=idle

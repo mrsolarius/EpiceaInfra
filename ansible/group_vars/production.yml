@@ -44,6 +44,12 @@ enabled_services:
   - monitoring
   - litopia
   - backpaking
+  - amp
+
+# AMP (serveurs de jeu) : sites web publiés par Traefik
+amp_web_routes:
+  - {name: amp, domain: "dashboard.{{ litopia_domain }}", port: 8080}
+  - {name: bluemap, domain: "bluemap.{{ litopia_domain }}", port: 8100}
 
 # ========================================
 # ZFS
@@ -60,7 +66,8 @@ zfs_guard_docker: true
 zfs_boot_report: true
 
 # ARC limité à 24 Gio sur 64 Go pour laisser de la marge aux conteneurs
-zfs_arc_max_bytes: "{{ 24 * 1024 * 1024 * 1024 }}"
+# 12 Gio : laisse la RAM aux serveurs de jeu AMP (Java), aux applications et à Immich ML
+zfs_arc_max_bytes: "{{ 12 * 1024 * 1024 * 1024 }}"
 
 zfs_pools:
   # 8 x 4 To en RAIDZ2 : tolère la perte de 2 disques
@@ -106,6 +113,7 @@ zfs_datasets:
     group: "33"
   - name: "tank/backups"
     properties: {recordsize: "1M"}
+  - name: "tank/apps"  # Fichiers déposés dans les applications (uploads Backpaking)
 
   # --- SSD bases de données (ssd_tank) ---
   # recordsize 16K : adapté aux pages PostgreSQL (8K) sans trop d'amplification
@@ -118,6 +126,11 @@ zfs_datasets:
   - name: "ssd_tank/backpaking-db"
     properties: {recordsize: "16K", logbias: "latency"}
   - name: "ssd_tank/redis"
+  # AMP : monté sur /home/amp, chemin écrit en dur dans les instances
+  - name: "ssd_tank/amp"
+    properties: {mountpoint: "/home/amp"}
+  - name: "ssd_tank/amp-db"
+    properties: {recordsize: "16K", logbias: "latency"}
 
   # --- SSD cache (scratch) : pas de sync, données reconstructibles ---
   - name: "scratch/jellyfin-cache"

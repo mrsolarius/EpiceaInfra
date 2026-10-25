@@ -75,6 +75,7 @@ Les chemins des services sont centralisés dans l'objet `storage` de `common.yml
 | `monitoring` | Prometheus, Alertmanager (Discord), Grafana (dashboards provisionnés), Loki + Promtail, cAdvisor, redis-exporter |
 | `redis` | Redis partagé : AOF, `maxmemory 400mb`, `noeviction` (requis par la file de tâches d'Immich) |
 | `apps/*` | Nextcloud, Immich, Jellyfin, Litopia, Backpaking, activés via `enabled_services` |
+| `amp` | Serveurs de jeu AMP (CubeCoders), installés en natif (non dockerisable) : dépôt CubeCoders, Java Temurin, services systemd, `/home/amp` sur `ssd_tank/amp`. MySQL des plugins dans Docker (`127.0.0.1:3306`). Panneau et Bluemap publiés par Traefik (`amp_web_routes`). AMP ouvre lui-même les ports de jeu dans UFW. |
 | `backup_server` | srv-backup : socle système, réplication syncoid en mode pull (`tasks/source.yml` s'exécute sur srv-main) |
 
 Chaque application suit le même schéma :
@@ -91,7 +92,7 @@ Les applications avec une base de données ont leur propre PostgreSQL et un post
 | `zfs_pools` | Pools : `name`, `vdev_type`, `mountpoint`, `disks` (chemins `/dev/disk/by-id`) | tank, ssd_tank, scratch |
 | `zfs_datasets` | Datasets : `name`, `properties`, `owner`, `group` | voir `production.yml` |
 | `zfs_allow_pool_creation` | Autorise la création des pools absents (**efface les disques**). Make : `ZFS_CREATE=1` | `false` |
-| `zfs_arc_max_bytes` | Limite de l'ARC | 24 Gio |
+| `zfs_arc_max_bytes` | Limite de l'ARC | 12 Gio (RAM laissée aux serveurs de jeu) |
 | `sanoid_templates` / `sanoid_datasets` | Rétention des snapshots | 24 h / 30 j / 6 mois |
 | `zfs_guard_docker` | Docker ne démarre que si tous les datasets sont montés | `true` |
 | `zfs_boot_report` | Rapport Discord à chaque démarrage | `true` |
@@ -141,6 +142,15 @@ Restauration : voir le [guide, §5](docs/GUIDE.md#5-restaurer-une-sauvegarde) et
 | `redis-alerts.yml` | 16 | 2 |
 | `container-alerts.yml` | 8 | 2 |
 | `zfs-alerts.yml` (pool dégradé, réplication en retard ou en échec) | 3 | 2 |
+| `amp-alerts.yml` (port de jeu fermé, instance arrêtée, supervision interrompue) | 3 | 1 |
+
+**Serveurs de jeu (AMP) :**
+- **Collecteur :** `/usr/local/sbin/amp-metrics` (rôle `amp`) relit à chaque passage `instances.json` et la configuration de chaque instance. Une nouvelle instance est donc suivie sans rien configurer.
+- **Fréquence :** l'état, les ports et le CPU/RAM par processus (java, steamcmd, serveurs Steam, AMP) sont relus chaque minute ; la taille des instances et de leurs sauvegardes, toutes les 15 min.
+- **Lecture :** les métriques passent par le collecteur textfile du node exporter. Tableau de bord : « Serveurs de jeu (AMP) ».
+- **Alertes sur les ports :** seuls les ports de jeu en déclenchent. Les ports ajoutés à la main dans AMP (Dynmap, chat vocal) sont affichés sans alerte.
+- **Arrêt volontaire :** arrêter un serveur depuis le panneau déclenche aussi `AmpGamePortDown`, car AMP n'expose pas son état sans compte d'API.
+- **Tests des règles :** `amp-alerts.test.yml`, avec `promtool test rules`.
 
 Les fichiers de règles, dans `ansible/roles/monitoring/files/`, font foi.
 
@@ -166,4 +176,4 @@ Les fichiers de règles, dans `ansible/roles/monitoring/files/`, font foi.
 
 `.github/workflows/ci.yml` exécute `ansible-lint` puis `ansible-playbook --syntax-check` sur les deux playbooks. Dependabot met à jour les GitHub Actions ; les versions des images Docker se changent dans `ansible/group_vars/versions.yml`.
 
-Les tests fonctionnels se font sur le banc de simulation : `make sim-all` et `make sim-test-restore`.
+Les tests fonctionnels se font sur le banc de simulation : `make sim-all`, `make sim-test-restore` et `make sim-test-migration`.

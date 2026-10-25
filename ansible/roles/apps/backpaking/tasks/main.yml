@@ -9,6 +9,15 @@
   loop:
     - "{{ storage.ansible.compose }}/backpaking"
 
+# L'image tourne en appuser (10001:999) et écrit dans /app/uploads
+- name: Creer le repertoire des uploads Backpaking
+  ansible.builtin.file:
+    path: "{{ storage.media.backpaking_uploads }}"
+    state: directory
+    mode: '0755'
+    owner: "10001"
+    group: "999"
+
 - name: Creer les repertoires de donnees PostgreSQL Backpaking
   ansible.builtin.file:
     path: "{{ storage.databases.backpaking }}"

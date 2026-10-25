@@ -1,0 +1,19 @@
+services:
+  amp-mysql:
+    image: mysql:{{ docker_versions.amp.mysql }}
+    container_name: amp-mysql
+    restart: {{ docker_restart_policy }}
+    environment:
+      MYSQL_ROOT_PASSWORD: "{{ amp_mysql_root_password }}"
+      TZ: "{{ timezone }}"
+    # Joignable par les serveurs de jeu (processus de l'hôte) uniquement
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - {{ storage.databases.amp }}:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s

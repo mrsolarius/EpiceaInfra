@@ -1,0 +1,195 @@
+---
+# ========================================
+# Role: amp
+# Description: AMP (CubeCoders) en natif : serveurs de jeu Minecraft, Hytale, Steam…
+# ========================================
+# Le coeur d'AMP n'est pas dockerisable : il est installé depuis le dépôt CubeCoders,
+# avec Java (Adoptium). Seul son MySQL tourne dans Docker.
+
+# acl : nécessaire à Ansible pour exécuter des tâches en tant qu'amp (become_user non root)
+- name: Installer les dépendances d'AMP
+  ansible.builtin.apt:
+    name: [acl, gnupg, lib32gcc-s1, lib32stdc++6, screen, tmux, unzip, jq, socat]
+    state: present
+
+- name: Ajouter les clés des dépôts CubeCoders et Adoptium
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "/etc/apt/keyrings/{{ item.file }}"
+    mode: '0644'
+  loop:
+    # clé CubeCoders binaire (.gpg), clé Adoptium en texte (.asc) : apt choisit le format à l'extension
+    - {file: cubecoders.gpg, url: "https://repo.cubecoders.com/archive.key"}
+    - {file: adoptium.asc, url: "https://packages.adoptium.net/artifactory/api/gpg/key/public"}
+
+- name: Ajouter les dépôts CubeCoders et Adoptium
+  ansible.builtin.apt_repository:
+    repo: "{{ item }}"
+    state: present
+    filename: "{{ item | regex_search('cubecoders|adoptium') }}"
+  loop:
+    - "deb [signed-by=/etc/apt/keyrings/cubecoders.gpg] https://repo.cubecoders.com/ debian/"
+    - "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb {{ ansible_facts['distribution_release'] }} main"
+
+- name: Installer AMP et Java
+  ansible.builtin.apt:
+    name: "{{ ['ampinstmgr'] + amp_java_versions | map('regex_replace', '^(.*)$', 'temurin-\\1-jdk') | list }}"
+    state: present
+
+- name: Créer l'utilisateur amp
+  ansible.builtin.user:
+    name: amp
+    home: "{{ amp_home }}"
+    create_home: false
+    shell: /bin/bash
+
+- name: Donner le dossier d'AMP à l'utilisateur amp
+  ansible.builtin.file:
+    path: "{{ amp_home }}"
+    state: directory
+    owner: amp
+    group: amp
+    mode: '0750'
+
+# Unités identiques à celles créées par l'installeur d'AMP, plus l'attente de ZFS et Docker (MySQL)
+- name: Installer les services systemd d'AMP
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    mode: '0644'
+  loop:
+    - ampinstmgr.service
+    - amptasks.service
+    - amptasks.timer
+    - ampfirewall.service
+    - ampfirewall.timer
+  notify: Recharger systemd
+
+- name: Appliquer les changements systemd
+  ansible.builtin.meta: flush_handlers
+
+# ---------- MySQL (plugins des serveurs) ----------
+- name: Déployer MySQL pour AMP
+  when: amp_mysql_enabled | bool
+  block:
+    - name: Créer les répertoires MySQL
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ storage.ansible.compose }}/amp"
+        - "{{ storage.databases.amp }}"
+
+    - name: Générer le docker-compose de MySQL
+      ansible.builtin.template:
+        src: docker-compose.yml.j2
+        dest: "{{ storage.ansible.compose }}/amp/docker-compose.yml"
+        mode: '0600'
+
+    - name: Démarrer MySQL
+      community.docker.docker_compose_v2:
+        project_src: "{{ storage.ansible.compose }}/amp"
+        state: present
+        wait: true
+        wait_timeout: 180
+
+# ---------- Accès web (Traefik) ----------
+- name: Publier les sites d'AMP via Traefik
+  ansible.builtin.template:
+    src: amp-routes.yml.j2
+    dest: "{{ traefik_config_path }}/dynamic/amp.yml"
+    mode: '0644'
+  when: amp_web_routes | length > 0
+
+# Traefik (conteneur) joint les ports de l'hôte via le réseau Docker
+- name: Autoriser Docker à joindre les sites d'AMP
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port | string }}"
+    proto: tcp
+    from_ip: 172.16.0.0/12
+    comment: "AMP {{ item.name }} (Traefik)"
+  loop: "{{ amp_web_routes }}"
+
+# ---------- Instances ----------
+- name: Vérifier la présence d'instances AMP
+  ansible.builtin.stat:
+    path: "{{ amp_home }}/.ampdata/instances.json"
+  register: amp_instances
+
+# quickstart crée l'instance, la démarre, puis attend que la configuration (licence) soit
+# terminée dans le navigateur : lancé en arrière-plan, on n'attend que l'ouverture du panneau
+- name: Créer et démarrer l'instance principale ADS01
+  when:
+    - not amp_instances.stat.exists
+    - amp_quickstart | bool
+  block:
+    - name: Lancer ampinstmgr quickstart
+      ansible.builtin.command:
+        cmd: "ampinstmgr quickstart {{ amp_admin_user }} {{ amp_admin_password }} 0.0.0.0 {{ amp_ads_port }}"
+        chdir: "{{ amp_home }}"
+      become: true
+      become_user: amp
+      no_log: true
+      async: 3600
+      poll: 0
+      changed_when: true
+
+    - name: Attendre le panneau AMP
+      ansible.builtin.wait_for:
+        port: "{{ amp_ads_port }}"
+        timeout: 600
+
+    - name: Terminer la configuration d'AMP
+      ansible.builtin.debug:
+        msg: "Ouvrir http://{{ ansible_facts['default_ipv4']['address'] }}:{{ amp_ads_port }} pour saisir la licence."
+
+- name: Activer les services d'AMP
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: "{{ 'started' if item.endswith('.timer') or amp_instances.stat.exists else omit }}"
+  loop:
+    - ampinstmgr.service
+    - amptasks.timer
+    - ampfirewall.timer
+
+# ---------- Supervision (Prometheus via le node exporter) ----------
+# Instances, ports et processus redécouverts à chaque passage : rien à déclarer par instance
+- name: Installer le collecteur de métriques AMP
+  ansible.builtin.copy:
+    src: amp-metrics.py
+    dest: /usr/local/sbin/amp-metrics
+    mode: '0755'
+
+- name: Installer les minuteries des métriques AMP
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    mode: '0644'
+  loop:
+    - amp-metrics.service
+    - amp-metrics.timer
+    - amp-metrics-sizes.service
+    - amp-metrics-sizes.timer
+  notify: Recharger systemd
+
+- name: Appliquer les changements systemd des métriques
+  ansible.builtin.meta: flush_handlers
+
+- name: Activer les métriques AMP
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - amp-metrics.timer
+    - amp-metrics-sizes.timer
+
+- name: Prévenir s'il n'y a aucune instance
+  ansible.builtin.debug:
+    msg: >-
+      Aucune instance AMP dans {{ amp_home }}/.ampdata : restaurer les données
+      (docs/MIGRATION.md) ou relancer avec -e amp_quickstart=true.
+  when: not amp_instances.stat.exists and not amp_quickstart | bool
