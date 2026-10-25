@@ -1,3 +1,4 @@
+{% import 'postgres.j2' as pg with context %}
 services:
   backpaking-front:
     image: ghcr.io/mrsolarius/backpacking-front:{{ docker_versions.backpaking.frontend }}
@@ -72,54 +73,9 @@ services:
       - "traefik.http.routers.backpaking-back-https.middlewares=backpaking-back-headers"
 
 
-  backpaking-db:
-    image: postgres:{{ docker_versions.common.postgres }}
-    container_name: backpaking-db
-    restart: {{ docker_restart_policy }}
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 1G
-        reservations:
-          cpus: '0.1'
-          memory: 256M
-    env_file: ./backpaking-back.env
-    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
-    volumes:
-      - ${BACKPAKING_DB_DATA_PATH}:/var/lib/postgresql/data
-    networks:
-      - default
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+{{ pg.database('backpaking', env_file='./backpaking-back.env') }}
 
-  backpaking-postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:{{ docker_versions.common.postgres_exporter }}
-    container_name: backpaking-postgres-exporter
-    restart: {{ docker_restart_policy }}
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: 128M
-    environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@backpaking-db:5432/${POSTGRES_DB}?sslmode=disable"
-      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
-      PG_EXPORTER_CONSTANT_LABELS: "instance=backpaking"
-      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
-    volumes:
-      - ./postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
-    networks:
-      - default
-      - monitoring
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+{{ pg.exporter('backpaking') }}
 
 networks:
   default:

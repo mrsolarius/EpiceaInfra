@@ -1,0 +1,72 @@
+{#
+  Services PostgreSQL d'une application, à importer dans son docker-compose :
+    {% import 'postgres.j2' as pg with context %}
+    services:
+    {{ pg.database('monapp') }}
+    {{ pg.exporter('monapp') }}
+  Conteneurs <app>-db et <app>-postgres-exporter. Les identifiants sont lus par Docker
+  Compose dans le fichier .env de l'application (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB).
+#}
+{% macro database(app, memory='1G', memory_reserved='256M', env_file='.env', image=none,
+                  preload='pg_stat_statements', init_sql=none, shm_size=none,
+                  user_var='POSTGRES_USER', db_var='POSTGRES_DB') %}
+{# Variables Compose du .env, laissées telles quelles dans le fichier généré #}
+{% set user, db = '${' ~ user_var ~ '}', '${' ~ db_var ~ '}' %}
+  {{ app }}-db:
+    image: {{ image or 'postgres:' ~ docker_versions.common.postgres }}
+    container_name: {{ app }}-db
+    restart: {{ docker_restart_policy }}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: {{ memory }}
+        reservations:
+          cpus: '0.1'
+          memory: {{ memory_reserved }}
+    env_file: {{ env_file }}
+    command: ["postgres", "-c", "shared_preload_libraries={{ preload }}"]
+    volumes:
+      - {{ storage.databases[app] }}:/var/lib/postgresql/data
+{% if init_sql %}
+      - {{ init_sql }}:/docker-entrypoint-initdb.d/init.sql
+{% endif %}
+{% if shm_size %}
+    shm_size: {{ shm_size }}
+{% endif %}
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ user }} -d {{ db }}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+{% endmacro %}
+
+{% macro exporter(app, user_var='POSTGRES_USER', password_var='POSTGRES_PASSWORD', db_var='POSTGRES_DB') %}
+{% set user, password, db = '${' ~ user_var ~ '}', '${' ~ password_var ~ '}', '${' ~ db_var ~ '}' %}
+  {{ app }}-postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:{{ docker_versions.common.postgres_exporter }}
+    container_name: {{ app }}-postgres-exporter
+    restart: {{ docker_restart_policy }}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    environment:
+      DATA_SOURCE_NAME: "postgresql://{{ user }}:{{ password }}@{{ app }}-db:5432/{{ db }}?sslmode=disable"
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      PG_EXPORTER_CONSTANT_LABELS: "instance={{ app }}"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
+    volumes:
+      - ./postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    networks:
+      - default
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+{% endmacro %}

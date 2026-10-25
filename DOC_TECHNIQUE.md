@@ -19,26 +19,29 @@ Pas de carte graphique : Jellyfin utilise Quick Sync, l'accélération vidéo in
 
 ```
 ansible/
-├── inventory/hosts.yml        IPs de srv-main (groupe production) et srv-backup (groupe backup)
-├── group_vars/
-│   ├── common.yml             Chemins de stockage (objet storage), réseaux Docker
-│   ├── production.yml         srv-main : domaines, services, pools ZFS, monitoring
-│   ├── backup.yml             srv-backup : pool vault, rétention
-│   ├── replication.yml        Réplication srv-main -> srv-backup (lu par les deux)
-│   ├── versions.yml           Versions des images Docker
-│   └── simulation.yml         Surcharges du banc de simulation
+├── inventory/
+│   ├── hosts.yml              IPs de srv-main (groupe production) et srv-backup (groupe backup)
+│   ├── simulation.yml         Inventaire du banc, généré par setup-sim.sh (non versionné)
+│   └── group_vars/            Chargés seuls par Ansible selon le groupe de chaque serveur
+│       ├── all/common.yml     Chemins de stockage (objet storage), réseaux Docker
+│       ├── all/versions.yml   Versions des images Docker
+│       ├── all/replication.yml  Réplication srv-main -> srv-backup (lue par les deux)
+│       ├── production.yml     srv-main : domaines, services, pools ZFS, monitoring
+│       ├── backup.yml         srv-backup : pool vault, rétention
+│       └── simulation.yml     Surcharges du banc (groupe prioritaire de simulation.yml)
 ├── playbooks/
 │   ├── site.yml               srv-main (make deploy)
 │   └── backup.yml             srv-backup + droits de réplication sur srv-main (make deploy-backup)
 ├── roles/                     Voir « Rôles » ci-dessous
 └── secrets/vault.yml.example  Liste exacte des secrets attendus
 scripts/
+├── ansible.sh                 Lanceur des commandes Ansible du Makefile (relance dans WSL sous Windows)
 ├── bootstrap.sh               Installe Ansible sur une machine Ubuntu
 ├── restore-from-backup.sh     Restaure un pool de srv-main depuis srv-backup
 └── simulation/                Banc de test (VMs Multipass)
 ```
 
-Les variables de `production.yml` sont passées en `-e` par le Makefile : elles priment sur tout le reste.
+Ordre de priorité : `all/`, puis le groupe du serveur (`production.yml` ou `backup.yml`), puis `simulation.yml` sur le banc (`ansible_group_priority`), puis les variables d'hôte de l'inventaire (IPs de la simulation). Seuls les secrets passent par `vars_files` dans `site.yml`.
 
 ---
 
@@ -75,15 +78,18 @@ Les chemins des services sont centralisés dans l'objet `storage` de `common.yml
 | `monitoring` | Prometheus, Alertmanager (Discord), Grafana (dashboards provisionnés), Loki + Promtail, cAdvisor, redis-exporter |
 | `redis` | Redis partagé : AOF, `maxmemory 400mb`, `noeviction` (requis par la file de tâches d'Immich) |
 | `apps/*` | Nextcloud, Immich, Jellyfin, Litopia, Backpaking, activés via `enabled_services` |
+| `app_stack` | Rôle partagé des applications : dossier, base PostgreSQL, fichiers générés, `docker compose up` |
 | `amp` | Serveurs de jeu AMP (CubeCoders), installés en natif (non dockerisable) : dépôt CubeCoders, Java Temurin, services systemd, `/home/amp` sur `ssd_tank/amp`. MySQL des plugins dans Docker (`127.0.0.1:3306`). Panneau et Bluemap publiés par Traefik (`amp_web_routes`). AMP ouvre lui-même les ports de jeu dans UFW. |
 | `backup_server` | srv-backup : socle système, réplication syncoid en mode pull (`tasks/source.yml` s'exécute sur srv-main) |
 
-Chaque application suit le même schéma :
-1. dossier `/opt/epicea/docker/<app>/` ;
-2. `.env` et `docker-compose.yml` générés depuis les templates ;
-3. `docker compose up` avec attente de la bonne santé des conteneurs (`wait: true`).
+Chaque application délègue son déploiement au rôle partagé **`app_stack`** (`import_role`), en lui déclarant `app_name`, ses fichiers (`app_files`), sa base (`app_database`) et ses images privées (`app_ghcr_login`). `app_stack` :
+1. crée le dossier `/opt/epicea/docker/<app>/` et, si besoin, celui de la base ;
+2. génère les fichiers depuis les modèles du rôle de l'application ;
+3. lance `docker compose up` et attend la bonne santé des conteneurs (`wait: true`).
 
-Les applications avec une base de données ont leur propre PostgreSQL et un postgres-exporter.
+Le rôle de l'application ne garde que ce qui lui est propre : détection de Quick Sync (Jellyfin), configuration `occ` (Nextcloud), dossier des uploads (Backpaking).
+
+Les applications avec une base de données ont leur propre PostgreSQL et un postgres-exporter, écrits une seule fois dans les macros `app_stack/templates/postgres.j2` (`pg.database`, `pg.exporter`).
 
 ### `zfs` en détail
 
@@ -169,11 +175,13 @@ Les fichiers de règles, dans `ansible/roles/monitoring/files/`, font foi.
   - dashboard uniquement en HTTPS, derrière une authentification basique (`traefik_auth`) ;
   - accès à Docker via `docker-socket-proxy`, jamais au socket directement.
 - **Secrets :** chiffrés dans `ansible/secrets/vault.yml` (Ansible Vault). La liste des clés attendues est dans `vault.yml.example`.
+  - Mot de passe du vault : lu dans `ansible/.vault_pass` (non versionné) s'il existe, sinon demandé à chaque commande. La simulation exige ce fichier quand le vault est chiffré.
+  - Mots de passe générés : 32 caractères alphanumériques. Pas de `@ : / #`, qui casseraient les URL de connexion PostgreSQL des exporters.
 
 ---
 
 ## CI
 
-`.github/workflows/ci.yml` exécute `ansible-lint` puis `ansible-playbook --syntax-check` sur les deux playbooks. Dependabot met à jour les GitHub Actions ; les versions des images Docker se changent dans `ansible/group_vars/versions.yml`.
+`.github/workflows/ci.yml` exécute `ansible-lint` puis `ansible-playbook --syntax-check` sur les deux playbooks. Dependabot met à jour les GitHub Actions ; les versions des images Docker se changent dans `ansible/inventory/group_vars/all/versions.yml`.
 
 Les tests fonctionnels se font sur le banc de simulation : `make sim-all`, `make sim-test-restore` et `make sim-test-migration`.

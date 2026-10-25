@@ -1,0 +1,27 @@
+---
+# ========================================
+# Rôle partagé : déploie la stack Docker Compose d'une application de roles/apps/
+# ========================================
+# Appelé par le rôle de l'application avec import_role (statique : les tags du rôle
+# s'appliquent, ex. make deploy TAGS=litopia). Exemple : roles/apps/litopia.
+# Les fichiers de app_files sont des modèles du rôle de l'application ; ses docker-compose
+# peuvent importer les macros PostgreSQL de ce rôle : {% import 'postgres.j2' as pg with context %}
+
+# Nom de l'application : dossier /opt/epicea/docker/<app_name> et préfixe des conteneurs
+app_name: ""
+
+# Propriétaire du dossier de l'application
+app_owner: "{{ common_system_user }}"
+app_group: "{{ common_system_group }}"
+
+# Base PostgreSQL dédiée dans storage.databases[app_name] (macros database/exporter)
+app_database: false
+
+# Fichiers générés dans le dossier : [{src: modèle, dest: nom, mode: droits}]
+app_files: []
+
+# Images privées sur GHCR (identifiants ghcr_* du vault)
+app_ghcr_login: false
+
+# Délai pour que tous les conteneurs soient en bonne santé
+app_wait_timeout: 600

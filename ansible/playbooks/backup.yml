@@ -8,11 +8,6 @@
   hosts: backup
   become: true
 
-  vars_files:
-    - ../group_vars/common.yml
-    - ../group_vars/backup.yml
-    - ../group_vars/replication.yml
-
   pre_tasks:
     - name: Vérification des prérequis
       ansible.builtin.assert:
@@ -30,10 +25,6 @@
 - name: Autoriser la réplication sur srv-main
   hosts: production
   become: true
-
-  vars_files:
-    - ../group_vars/common.yml
-    - ../group_vars/replication.yml
 
   tasks:
     - name: Configurer l'utilisateur de réplication

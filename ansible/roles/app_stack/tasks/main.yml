@@ -1,0 +1,67 @@
+---
+- name: Vérifier les paramètres de la stack
+  ansible.builtin.assert:
+    that: app_name | length > 0
+    fail_msg: "app_stack : app_name est obligatoire"
+    quiet: true
+
+- name: Créer le répertoire de {{ app_name }}
+  ansible.builtin.file:
+    path: "{{ storage.ansible.compose }}/{{ app_name }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ app_owner }}"
+    group: "{{ app_group }}"
+
+- name: Préparer la base PostgreSQL de {{ app_name }}
+  when: app_database | bool
+  block:
+    - name: Créer le répertoire de données PostgreSQL
+      ansible.builtin.file:
+        path: "{{ storage.databases[app_name] }}"
+        state: directory
+        mode: '0700'
+        # Pas de owner : l'image PostgreSQL règle les droits au démarrage
+        # (UID 70 pour les images alpine, 999 pour Immich). Un chown ici casse
+        # l'accès d'une base déjà lancée jusqu'à son prochain redémarrage.
+
+    - name: Copier les requêtes personnalisées postgres-exporter
+      ansible.builtin.copy:
+        src: ../../monitoring/files/postgres-exporter-queries.yaml
+        dest: "{{ storage.ansible.compose }}/{{ app_name }}/postgres-exporter-queries.yaml"
+        mode: '0644'
+
+# Modèles pris dans le rôle de l'application (le rôle qui a inclus celui-ci)
+- name: Générer les fichiers de {{ app_name }}
+  ansible.builtin.template:
+    src: "{{ ansible_parent_role_paths[0] }}/templates/{{ item.src }}"
+    dest: "{{ storage.ansible.compose }}/{{ app_name }}/{{ item.dest }}"
+    mode: "{{ item.mode | default('0644') }}"
+    trim_blocks: true
+    lstrip_blocks: true
+  loop: "{{ app_files }}"
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Connexion à GHCR
+  community.docker.docker_login:
+    registry_url: ghcr.io
+    username: "{{ ghcr_username }}"
+    password: "{{ ghcr_token }}"
+    reauthorize: true
+  no_log: true
+  when: app_ghcr_login | bool
+
+- name: Démarrer {{ app_name }}
+  community.docker.docker_compose_v2:
+    project_src: "{{ storage.ansible.compose }}/{{ app_name }}"
+    state: present
+    pull: always
+    wait: true
+    wait_timeout: "{{ app_wait_timeout }}"
+
+- name: Déconnexion de GHCR
+  community.docker.docker_login:
+    registry_url: ghcr.io
+    state: absent
+  when: app_ghcr_login | bool

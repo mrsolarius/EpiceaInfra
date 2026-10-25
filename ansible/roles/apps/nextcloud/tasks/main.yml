@@ -1,56 +1,16 @@
 ---
-- name: Créer les répertoires de données Nextcloud
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0755'
-    owner: "33"  # www-data
-    group: "33"
-  loop:
-    - "{{ storage.ansible.compose }}/nextcloud"
-
-- name: Créer les répertoires de données PostgreSQL Nextcloud
-  ansible.builtin.file:
-    path: "{{ storage.databases.nextcloud }}"
-    state: directory
-    mode: '0700'
-    # Pas de owner : l'image PostgreSQL règle les droits au démarrage
-    # (UID 70 pour les images alpine, 999 pour Immich). Un chown ici casse
-    # l'accès d'une base déjà lancée jusqu'à son prochain redémarrage.
-
-- name: Générer le script d'initialisation PostgreSQL
-  ansible.builtin.template:
-    src: init-db.sql.j2
-    dest: "{{ storage.ansible.compose }}/nextcloud/init-db.sql"
-    mode: '0644'
-
-- name: Générer le fichier .env
-  ansible.builtin.template:
-    src: nextcloud.env.j2
-    dest: "{{ storage.ansible.compose }}/nextcloud/.env"
-    mode: '0600'
-
-- name: Copier les requêtes personnalisées postgres-exporter
-  ansible.builtin.copy:
-    src: ../../../monitoring/files/postgres-exporter-queries.yaml
-    dest: "{{ storage.ansible.compose }}/nextcloud/postgres-exporter-queries.yaml"
-    mode: '0644'
-
-- name: Générer le fichier docker-compose
-  ansible.builtin.template:
-    src: docker-compose.yml.j2
-    dest: "{{ storage.ansible.compose }}/nextcloud/docker-compose.yml"
-    mode: '0644'
-    trim_blocks: true
-    lstrip_blocks: true
-
-- name: Démarrer Nextcloud
-  community.docker.docker_compose_v2:
-    project_src: "{{ storage.ansible.compose }}/nextcloud"
-    state: present
-    pull: always
-    wait: true
-    wait_timeout: 600
+- name: Déployer Nextcloud
+  ansible.builtin.import_role:
+    name: app_stack
+  vars:
+    app_name: nextcloud
+    app_owner: "33"  # www-data
+    app_group: "33"
+    app_database: true
+    app_files:
+      - {src: init-db.sql.j2, dest: init-db.sql}
+      - {src: nextcloud.env.j2, dest: .env, mode: '0600'}
+      - {src: docker-compose.yml.j2, dest: docker-compose.yml}
 
 - name: Vérifier si Nextcloud est déjà configuré
   community.docker.docker_container_exec:

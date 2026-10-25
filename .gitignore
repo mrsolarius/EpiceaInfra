@@ -7,7 +7,6 @@ ansible/.vault_pass
 
 # Banc de simulation (généré par scripts/simulation/setup-sim.sh)
 ansible/inventory/simulation.yml
-ansible/group_vars/simulation-network.yml
 
 # Python / Ansible
 /.venv/

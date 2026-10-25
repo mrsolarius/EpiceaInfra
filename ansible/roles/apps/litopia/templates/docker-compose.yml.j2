@@ -1,3 +1,4 @@
+{% import 'postgres.j2' as pg with context %}
 services:
   litopia-front:
     image: ghcr.io/litopiacommunity/litopia-front:{{ docker_versions.litopia.frontend }}
@@ -71,54 +72,9 @@ services:
       - "traefik.http.routers.litopia-back-https.priority=1000"
       - "traefik.http.services.litopia-back.loadbalancer.server.port=3000"
 
-  litopia-db:
-    image: postgres:{{ docker_versions.common.postgres }}
-    container_name: litopia-db
-    restart: {{ docker_restart_policy }}
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 1G
-        reservations:
-          cpus: '0.1'
-          memory: 256M
-    env_file: .env
-    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
-    volumes:
-      - ${LITOPIA_DB_DATA_PATH}:/var/lib/postgresql/data
-    networks:
-      - default
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+{{ pg.database('litopia') }}
 
-  litopia-postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:{{ docker_versions.common.postgres_exporter }}
-    container_name: litopia-postgres-exporter
-    restart: {{ docker_restart_policy }}
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: 128M
-    environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@litopia-db:5432/${POSTGRES_DB}?sslmode=disable"
-      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
-      PG_EXPORTER_CONSTANT_LABELS: "instance=litopia"
-      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
-    volumes:
-      - ./postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
-    networks:
-      - default
-      - monitoring
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+{{ pg.exporter('litopia') }}
 
 networks:
   default:

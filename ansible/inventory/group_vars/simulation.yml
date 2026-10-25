@@ -2,8 +2,9 @@
 # ========================================
 # Surcharges du banc de simulation (make sim-*)
 # ========================================
-# Chargé APRÈS production.yml : tout le reste (pools ZFS, datasets, sanoid,
-# services...) est strictement la configuration de production.
+# Groupe « simulation » de l'inventaire généré par setup-sim.sh. Sa priorité
+# (ansible_group_priority) le fait passer après production.yml et backup.yml :
+# tout le reste (pools ZFS, datasets, sanoid, services...) est la configuration de production.
 
 # Pas de certificats Let's Encrypt pour des domaines locaux
 proxy_enable_letsencrypt: false

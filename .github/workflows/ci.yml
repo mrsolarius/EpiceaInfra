@@ -11,6 +11,8 @@ jobs:
   quality:
     name: Lint & Validate
     runs-on: ubuntu-latest
+    env:
+      ANSIBLE_ROLES_PATH: ${{ github.workspace }}/ansible/roles  # rôle partagé app_stack
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7

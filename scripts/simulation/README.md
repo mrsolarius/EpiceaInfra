@@ -24,13 +24,13 @@ Durée d'un `make sim-all` depuis zéro : environ 15 minutes (surtout le téléc
 
 Les disques sont des fichiers creux attachés en loop device. Une règle udev leur donne **exactement les mêmes noms `/dev/disk/by-id`** que les vrais disques (modèle + numéro de série, partitions `-partN` comprises). Les variables `zfs_pools` de production s'appliquent donc sans modification (`simulate-disks.sh`).
 
-Le déploiement utilise `production.yml` tel quel, plus quelques surcharges dans [`group_vars/simulation.yml`](../../ansible/group_vars/simulation.yml) :
+Le déploiement utilise `production.yml` tel quel, plus quelques surcharges dans [`inventory/group_vars/simulation.yml`](../../ansible/inventory/group_vars/simulation.yml), appliquées par le groupe `simulation` de l'inventaire généré :
 - domaines `*.epicea-sim.local` ;
 - pas de Let's Encrypt ;
 - ARC limité à 1 Gio ;
 - création des pools autorisée.
 
-Les IPs des VMs sont générées dans `inventory/simulation.yml` et `group_vars/simulation-network.yml` (non versionnés).
+Les IPs des VMs sont générées dans `inventory/simulation.yml` (non versionné), en variables d'hôte.
 
 Non simulé :
 - **Quick Sync :** pas d'iGPU dans une VM, ce qui permet de tester le repli de Jellyfin en transcodage CPU.

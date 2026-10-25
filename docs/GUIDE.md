@@ -50,7 +50,7 @@ srv-main a 4 types de disques, chacun avec un usage précis :
 
 Le rapport de démarrage part directement sur Discord, sans passer par le monitoring : on est prévenu même quand un pool manque et que Docker ne peut pas démarrer.
 
-Les chemins sont centralisés dans [`ansible/group_vars/common.yml`](../ansible/group_vars/common.yml), dans l'objet `storage`. Les services n'écrivent jamais un chemin en dur : ils utilisent par exemple `{{ storage.databases.immich }}`.
+Les chemins sont centralisés dans [`ansible/inventory/group_vars/all/common.yml`](../ansible/inventory/group_vars/all/common.yml), dans l'objet `storage`. Les services n'écrivent jamais un chemin en dur : ils utilisent par exemple `{{ storage.databases.immich }}`.
 
 ---
 
@@ -87,11 +87,20 @@ Pour chaque application, le rôle fait toujours la même chose :
 | Fichier | Contenu |
 |---|---|
 | `ansible/inventory/hosts.yml` | Les IPs des serveurs |
-| `ansible/group_vars/common.yml` | Ce qui est commun (chemins de stockage) |
-| `ansible/group_vars/production.yml` | srv-main : disques ZFS, domaines, **liste des services activés** (`enabled_services`) |
-| `ansible/group_vars/versions.yml` | Les versions des images Docker |
+| `ansible/inventory/group_vars/all/common.yml` | Ce qui est commun (chemins de stockage) |
+| `ansible/inventory/group_vars/all/versions.yml` | Les versions des images Docker |
+| `ansible/inventory/group_vars/production.yml` | srv-main : disques ZFS, domaines, **liste des services activés** (`enabled_services`) |
+| `ansible/inventory/group_vars/backup.yml` + `all/replication.yml` | srv-backup et la réplication |
 | `ansible/secrets/vault.yml` | Les mots de passe (chiffré) |
-| `ansible/group_vars/backup.yml` + `replication.yml` | srv-backup et la réplication |
+
+Ansible charge ces fichiers seul, selon le groupe de chaque serveur dans l'inventaire : `all/` pour tous, puis `production.yml` ou `backup.yml`.
+
+> **Depuis Windows :** Ansible ne fonctionne pas sous Windows. Les commandes `make` qui l'utilisent (`deploy`, `secrets`, `vault-*`, `validate`, `lint`) le lancent donc dans **WSL**, via `scripts/ansible.sh`. Pour préparer WSL une fois :
+> - installer Ansible et ses collections : `sudo bash scripts/bootstrap.sh` ;
+> - pour `make lint` : `pipx install ansible-lint` ;
+> - pour déployer : copier sa clé SSH dans `~/.ssh` de WSL.
+>
+> Pour ne pas retaper le mot de passe du vault, l'écrire dans `ansible/.vault_pass` (non versionné). Les commandes `sim-*`, elles, tournent dans la VM.
 
 > **Avant de déployer en vrai**, toujours tester sur le banc de simulation : `make sim-all` (voir [scripts/simulation/README.md](../scripts/simulation/README.md)).
 
@@ -194,7 +203,7 @@ Quels datasets pour quelle application :
 ### Cas 3 : un disque ou un pool entier est perdu
 Exemple : le SSD des bases de données (`ssd_tank`, un seul disque) meurt. Les données sont sur srv-backup.
 
-1. **Remplacer le disque**, puis mettre son nouvel identifiant dans `zfs_pools` de [`production.yml`](../ansible/group_vars/production.yml). L'identifiant s'obtient avec :
+1. **Remplacer le disque**, puis mettre son nouvel identifiant dans `zfs_pools` de [`production.yml`](../ansible/inventory/group_vars/production.yml). L'identifiant s'obtient avec :
    ```bash
    ls -l /dev/disk/by-id/
    ```
@@ -257,14 +266,36 @@ Les configs de `/opt/epicea` sont restaurées avec `tank`, dans `tank/backups/ep
 
 ## 6. Ajouter un nouveau service
 
-Exemple : on ajoute un service `monapp`, joignable sur `monapp.louisvolat.fr`, avec sa propre base PostgreSQL. Le plus simple est de **copier un rôle existant qui ressemble** (`apps/backpaking` est un bon modèle : un front, un back et une base).
+Exemple : on ajoute un service `monapp`, joignable sur `monapp.louisvolat.fr`, avec sa propre base PostgreSQL. Le plus simple est de **copier un rôle existant qui ressemble** (`apps/litopia` est un bon modèle : un front, un back et une base).
 
 ### Étape 1 : le rôle
 Créer `ansible/roles/apps/monapp/` avec :
 ```
-tasks/main.yml                    # crée le dossier, génère .env + compose, lance docker compose
+tasks/main.yml                    # déclare ses fichiers, le rôle partagé app_stack fait le reste
 templates/docker-compose.yml.j2   # les conteneurs
 templates/monapp.env.j2           # variables d'environnement (mots de passe via le vault)
+```
+
+`tasks/main.yml` tient en quelques lignes. Le rôle partagé `app_stack` crée le dossier et la base, génère les fichiers et lance `docker compose` en attendant que tout soit en bonne santé :
+```yaml
+- name: Déployer Monapp
+  ansible.builtin.import_role:
+    name: app_stack
+  vars:
+    app_name: monapp
+    app_database: true          # base PostgreSQL dans storage.databases.monapp
+    app_files:
+      - {src: monapp.env.j2, dest: .env, mode: '0600'}
+      - {src: docker-compose.yml.j2, dest: docker-compose.yml}
+```
+
+Dans le `docker-compose.yml.j2`, la base et son exporter Prometheus s'écrivent en deux lignes. Le `.env` doit définir `POSTGRES_USER`, `POSTGRES_PASSWORD` et `POSTGRES_DB` :
+```jinja
+{% import 'postgres.j2' as pg with context %}
+services:
+  monapp: ...
+{{ pg.database('monapp') }}
+{{ pg.exporter('monapp') }}
 ```
 
 Dans le `docker-compose.yml.j2`, trois règles :
@@ -275,15 +306,13 @@ Dans le `docker-compose.yml.j2`, trois règles :
 - **Le conteneur web est exposé via Traefik :** réseau `proxy` + labels `traefik.*`, à copier depuis un autre service.
 - **La base ne va que sur le réseau `default`**, jamais sur `proxy`. Elle ne doit pas être joignable depuis Internet.
 
-⚠️ Ne pas mettre de `owner:` sur le dossier de la base dans `tasks/main.yml`. L'image PostgreSQL règle elle-même les droits au démarrage. Si Ansible les change, la base perd l'accès à ses propres fichiers.
-
 ### Étape 2 : déclarer le service
 | Fichier | À ajouter |
 |---|---|
-| `group_vars/production.yml` | `monapp` dans `enabled_services`, son domaine dans `service_domains` |
-| `group_vars/production.yml` | un dataset pour sa base dans `zfs_datasets` :<br>`- name: "ssd_tank/monapp-db"`<br>`  properties: {recordsize: "16K", logbias: "latency"}` |
-| `group_vars/common.yml` | le chemin de la base : `storage.databases.monapp: "{{ drive_ssd_path }}/monapp-db"` |
-| `group_vars/versions.yml` | la version de l'image Docker |
+| `inventory/group_vars/production.yml` | `monapp` dans `enabled_services`, son domaine dans `service_domains` |
+| `inventory/group_vars/production.yml` | un dataset pour sa base dans `zfs_datasets` :<br>`- name: "ssd_tank/monapp-db"`<br>`  properties: {recordsize: "16K", logbias: "latency"}` |
+| `inventory/group_vars/all/common.yml` | le chemin de la base : `storage.databases.monapp: "{{ drive_ssd_path }}/monapp-db"` |
+| `inventory/group_vars/all/versions.yml` | la version de l'image Docker |
 | `secrets/vault.yml` (+ `vault.yml.example`) | ses mots de passe |
 | `playbooks/site.yml` | le rôle, sur le modèle des autres : `when: "'monapp' in enabled_services"` |
 
@@ -314,7 +343,9 @@ Le seul piège : un service qui écrit ses données ailleurs, par exemple dans u
 | Déployer srv-main | `make deploy` |
 | Déployer srv-backup | `make deploy-backup` |
 | Voir les conteneurs (sur srv-main) | `docker ps` |
-| Éditer les mots de passe | `make secrets` |
+| Éditer les mots de passe (le fichier reste chiffré) | `make secrets` |
+| Lire les mots de passe | `make vault-view` |
+| Chiffrer / déchiffrer `vault.yml` | `make vault-encrypt` / `make vault-decrypt` |
 | Vérifier la syntaxe | `make validate` |
 | Restaurer un pool depuis srv-backup | `bash scripts/restore-from-backup.sh <pool>` |
 | Voir l'état des disques (sur un serveur) | `zpool status` |

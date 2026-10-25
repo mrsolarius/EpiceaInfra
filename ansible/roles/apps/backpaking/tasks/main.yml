@@ -1,16 +1,6 @@
 ---
-- name: Creer les repertoires Backpaking
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0755'
-    owner: "{{ common_system_user }}"
-    group: "{{ common_system_group }}"
-  loop:
-    - "{{ storage.ansible.compose }}/backpaking"
-
 # L'image tourne en appuser (10001:999) et écrit dans /app/uploads
-- name: Creer le repertoire des uploads Backpaking
+- name: Créer le répertoire des uploads Backpaking
   ansible.builtin.file:
     path: "{{ storage.media.backpaking_uploads }}"
     state: directory
@@ -18,62 +8,16 @@
     owner: "10001"
     group: "999"
 
-- name: Creer les repertoires de donnees PostgreSQL Backpaking
-  ansible.builtin.file:
-    path: "{{ storage.databases.backpaking }}"
-    state: directory
-    mode: '0700'
-    # Pas de owner : l'image PostgreSQL règle les droits au démarrage
-    # (UID 70 pour les images alpine, 999 pour Immich). Un chown ici casse
-    # l'accès d'une base déjà lancée jusqu'à son prochain redémarrage.
-
-- name: Generer les fichiers .env Backpaking (backend + DB)
-  ansible.builtin.template:
-    src: backpaking-back.env.j2
-    dest: "{{ item }}"
-    mode: '0600'
-  loop:
-    - "{{ storage.ansible.compose }}/backpaking/backpaking-back.env"
-    - "{{ storage.ansible.compose }}/backpaking/.env"
-
-- name: Generer le fichier .env Backpaking (frontend)
-  ansible.builtin.template:
-    src: backpaking-front.env.j2
-    dest: "{{ storage.ansible.compose }}/backpaking/backpaking-front.env"
-    mode: '0644'
-
-- name: Copier les requetes personnalisees postgres-exporter
-  ansible.builtin.copy:
-    src: ../../../monitoring/files/postgres-exporter-queries.yaml
-    dest: "{{ storage.ansible.compose }}/backpaking/postgres-exporter-queries.yaml"
-    mode: '0644'
-
-- name: Generer le fichier docker-compose Backpaking
-  ansible.builtin.template:
-    src: docker-compose.yml.j2
-    dest: "{{ storage.ansible.compose }}/backpaking/docker-compose.yml"
-    mode: '0644'
-    trim_blocks: true
-    lstrip_blocks: true
-
-# Les images Backpaking sont privées sur GHCR
-- name: Connexion à GHCR
-  community.docker.docker_login:
-    registry_url: ghcr.io
-    username: "{{ ghcr_username }}"
-    password: "{{ ghcr_token }}"
-    reauthorize: true
-  no_log: true
-
-- name: Demarrer Backpaking
-  community.docker.docker_compose_v2:
-    project_src: "{{ storage.ansible.compose }}/backpaking"
-    state: present
-    pull: always
-    wait: true
-    wait_timeout: 600
-
-- name: Déconnexion de GHCR
-  community.docker.docker_login:
-    registry_url: ghcr.io
-    state: absent
+# Le .env du backend sert aussi à Docker Compose (variables de la base) : généré deux fois
+- name: Déployer Backpaking
+  ansible.builtin.import_role:
+    name: app_stack
+  vars:
+    app_name: backpaking
+    app_database: true
+    app_ghcr_login: true
+    app_files:
+      - {src: backpaking-back.env.j2, dest: backpaking-back.env, mode: '0600'}
+      - {src: backpaking-back.env.j2, dest: .env, mode: '0600'}
+      - {src: backpaking-front.env.j2, dest: backpaking-front.env}
+      - {src: docker-compose.yml.j2, dest: docker-compose.yml}

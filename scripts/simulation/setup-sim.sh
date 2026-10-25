@@ -90,13 +90,13 @@ multipass exec "$BACKUP_VM" -- bash -c "grep -qF '$PUBKEY' ~/.ssh/authorized_key
 
 MAIN_IP=$(vm_ip "$MAIN_VM")
 BACKUP_IP=$(vm_ip "$BACKUP_VM")
-# Seul srv-main doit lire le node exporter de srv-backup
-SCRAPER="$MAIN_IP/32"
 
 step "Génération de l'inventaire de simulation"
 cat > "$ANSIBLE_DIR/inventory/simulation.yml" <<EOF
 ---
 # Généré par scripts/simulation/setup-sim.sh - ne pas versionner
+# Même dossier que hosts.yml : les group_vars de la production s'appliquent.
+# Le groupe « simulation » passe après eux (ansible_group_priority) avec ses surcharges.
 all:
   vars:
     ansible_become: true
@@ -108,20 +108,22 @@ all:
           ansible_host: $MAIN_IP
           ansible_connection: local
           ansible_user: ubuntu
+          monitoring_extra_node_targets:
+            - {target: "$BACKUP_IP:9100", instance: "srv-backup"}
     backup:
       hosts:
         srv-backup:
           ansible_host: $BACKUP_IP
           ansible_user: ubuntu
           ansible_ssh_common_args: "-o StrictHostKeyChecking=accept-new"
-EOF
-
-cat > "$ANSIBLE_DIR/group_vars/simulation-network.yml" <<EOF
----
-# Généré par scripts/simulation/setup-sim.sh - ne pas versionner
-monitoring_extra_node_targets:
-  - {target: "$BACKUP_IP:9100", instance: "srv-backup"}
-backup_lan_cidr: "$SCRAPER"
+          # Seul srv-main doit lire le node exporter de srv-backup
+          backup_lan_cidr: "$MAIN_IP/32"
+    simulation:
+      vars:
+        ansible_group_priority: 10
+      hosts:
+        srv-main:
+        srv-backup:
 EOF
 
 if [[ ! -f "$ANSIBLE_DIR/secrets/vault.yml" ]]; then

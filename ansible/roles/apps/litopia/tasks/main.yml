@@ -1,67 +1,12 @@
 ---
-- name: Creer les repertoires Litopia
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0755'
-    owner: "{{ common_system_user }}"
-    group: "{{ common_system_group }}"
-  loop:
-    - "{{ storage.ansible.compose }}/litopia"
-
-- name: Creer les repertoires de donnees PostgreSQL Litopia
-  ansible.builtin.file:
-    path: "{{ storage.databases.litopia }}"
-    state: directory
-    mode: '0700'
-    # Pas de owner : l'image PostgreSQL règle les droits au démarrage
-    # (UID 70 pour les images alpine, 999 pour Immich). Un chown ici casse
-    # l'accès d'une base déjà lancée jusqu'à son prochain redémarrage.
-
-- name: Generer le fichier .env Litopia (backend + DB)
-  ansible.builtin.template:
-    src: litopia-back.env.j2
-    dest: "{{ storage.ansible.compose }}/litopia/.env"
-    mode: '0600'
-
-- name: Generer le fichier .env Litopia (frontend)
-  ansible.builtin.template:
-    src: litopia-front.env.j2
-    dest: "{{ storage.ansible.compose }}/litopia/litopia-front.env"
-    mode: '0644'
-
-- name: Copier les requetes personnalisees postgres-exporter
-  ansible.builtin.copy:
-    src: ../../../monitoring/files/postgres-exporter-queries.yaml
-    dest: "{{ storage.ansible.compose }}/litopia/postgres-exporter-queries.yaml"
-    mode: '0644'
-
-- name: Generer le fichier docker-compose Litopia
-  ansible.builtin.template:
-    src: docker-compose.yml.j2
-    dest: "{{ storage.ansible.compose }}/litopia/docker-compose.yml"
-    mode: '0644'
-    trim_blocks: true
-    lstrip_blocks: true
-
-# Les images Litopia sont privées sur GHCR
-- name: Connexion à GHCR
-  community.docker.docker_login:
-    registry_url: ghcr.io
-    username: "{{ ghcr_username }}"
-    password: "{{ ghcr_token }}"
-    reauthorize: true
-  no_log: true
-
-- name: Demarrer Litopia
-  community.docker.docker_compose_v2:
-    project_src: "{{ storage.ansible.compose }}/litopia"
-    state: present
-    pull: always
-    wait: true
-    wait_timeout: 600
-
-- name: Déconnexion de GHCR
-  community.docker.docker_login:
-    registry_url: ghcr.io
-    state: absent
+- name: Déployer Litopia
+  ansible.builtin.import_role:
+    name: app_stack
+  vars:
+    app_name: litopia
+    app_database: true
+    app_ghcr_login: true
+    app_files:
+      - {src: litopia-back.env.j2, dest: .env, mode: '0600'}
+      - {src: litopia-front.env.j2, dest: litopia-front.env}
+      - {src: docker-compose.yml.j2, dest: docker-compose.yml}

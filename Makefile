@@ -1,13 +1,21 @@
-﻿.PHONY: help init secrets sim-up sim-deploy sim-deploy-backup sim-test sim-test-restore sim-all sim-status sim-down deploy deploy-backup validate lint
+.PHONY: help init secrets vault-encrypt vault-decrypt vault-view sim-up sim-deploy sim-deploy-backup sim-test sim-test-restore sim-all sim-status sim-down deploy deploy-backup validate lint
 
 # ========================================
 # Makefile Epicea Infrastructure
 # Point d'entrée unique pour tout
 # ========================================
 
-ANSIBLE_PLAYBOOK := ansible-playbook
+# Ansible passe par scripts/ansible.sh : sous Windows (Git Bash), il est relancé dans WSL
+ANSIBLE := bash scripts/ansible.sh
+ANSIBLE_PLAYBOOK := $(ANSIBLE) ansible-playbook
 ANSIBLE_INVENTORY := ansible/inventory/hosts.yml
-ANSIBLE_VAULT := ansible-vault
+ANSIBLE_VAULT := $(ANSIBLE) ansible-vault
+VAULT_FILE := ansible/secrets/vault.yml
+# Mot de passe du vault : lu dans ce fichier s'il existe (non versionné, utilisé par
+# scripts/ansible.sh), sinon demandé
+VAULT_PASS_FILE := ansible/.vault_pass
+VAULT_ARGS = $(if $(wildcard $(VAULT_PASS_FILE)),,--ask-vault-pass)
+VAULT_IS_ENCRYPTED = head -1 $(VAULT_FILE) | grep -q '^\$$ANSIBLE_VAULT'
 
 # ========================================
 # HELP
@@ -30,7 +38,10 @@ help:
 	@echo ""
 	@echo "Production :"
 	@echo "  make init               # Initialiser secrets"
-	@echo "  make secrets            # Éditer les secrets"
+	@echo "  make secrets            # Éditer les secrets (reste chiffré)"
+	@echo "  make vault-encrypt      # Chiffrer vault.yml"
+	@echo "  make vault-decrypt      # Déchiffrer vault.yml (le laisse en clair)"
+	@echo "  make vault-view         # Afficher les secrets sans déchiffrer le fichier"
 	@echo "  make deploy             # Déployer srv-main"
 	@echo "  make deploy-backup      # Déployer srv-backup + réplication ZFS"
 	@echo ""
@@ -43,16 +54,35 @@ help:
 # SECRETS
 # ========================================
 init:
-	@if [ ! -f ansible/secrets/vault.yml ]; then \
-		cp ansible/secrets/vault.yml.example ansible/secrets/vault.yml; \
-		$(ANSIBLE_VAULT) encrypt ansible/secrets/vault.yml; \
+	@if [ ! -f $(VAULT_FILE) ]; then \
+		cp ansible/secrets/vault.yml.example $(VAULT_FILE); \
+		$(ANSIBLE_VAULT) encrypt $(VAULT_ARGS) $(VAULT_FILE); \
 		echo "✅ vault.yml créé et chiffré. Éditez-le avec : make secrets"; \
 	else \
 		echo "✅ vault.yml existe déjà"; \
 	fi
 
+# Éditer sans jamais laisser le fichier en clair sur le disque
 secrets:
-	$(ANSIBLE_VAULT) edit ansible/secrets/vault.yml
+	$(ANSIBLE_VAULT) edit $(VAULT_ARGS) $(VAULT_FILE)
+
+vault-encrypt:
+	@if $(VAULT_IS_ENCRYPTED); then \
+		echo "✅ vault.yml est déjà chiffré"; \
+	else \
+		$(ANSIBLE_VAULT) encrypt $(VAULT_ARGS) $(VAULT_FILE) && echo "🔒 vault.yml chiffré"; \
+	fi
+
+# Laisse le fichier en clair : penser à make vault-encrypt ensuite
+vault-decrypt:
+	@if $(VAULT_IS_ENCRYPTED); then \
+		$(ANSIBLE_VAULT) decrypt $(VAULT_ARGS) $(VAULT_FILE) && echo "🔓 vault.yml en clair : make vault-encrypt une fois fini"; \
+	else \
+		echo "✅ vault.yml est déjà en clair"; \
+	fi
+
+vault-view:
+	$(ANSIBLE_VAULT) view $(VAULT_ARGS) $(VAULT_FILE)
 
 # ========================================
 # SIMULATION (VMs reproduisant srv-main et srv-backup)
@@ -60,19 +90,29 @@ secrets:
 # Voir scripts/simulation/README.md
 SIM_MAIN := srv-main-sim
 SIM_BACKUP := srv-backup-sim
-# ANSIBLE_CONFIG explicite : Ansible ignore le ansible.cfg d'un dossier monté (droits trop ouverts)
+# ANSIBLE_CONFIG explicite : Ansible ignore le ansible.cfg d'un dossier monté (droits trop ouverts).
+# Les surcharges de la simulation viennent du groupe « simulation » de cet inventaire.
 SIM_ANSIBLE := MSYS_NO_PATHCONV=1 multipass exec $(SIM_MAIN) -- bash -c "cd /home/ubuntu/infra && ANSIBLE_CONFIG=/home/ubuntu/infra/ansible.cfg ansible-playbook -i ansible/inventory/simulation.yml $(if $(TAGS),--tags $(TAGS))
 
 sim-up:
 	bash ./scripts/simulation/setup-sim.sh
 
+# Vault chiffré : le mot de passe (ansible/.vault_pass) est recopié dans la VM en 0600. Lu depuis
+# le dossier monté, il paraîtrait exécutable et Ansible le lancerait comme un script.
+SIM_VAULT_PASS := /home/ubuntu/.vault_pass
+
 sim-deploy:
 	@bash ./scripts/simulation/ensure-mount.sh
-	$(SIM_ANSIBLE) --limit production ansible/playbooks/site.yml -e @ansible/group_vars/production.yml -e @ansible/group_vars/simulation.yml -e @ansible/group_vars/simulation-network.yml"
+	@if [ -f $(VAULT_PASS_FILE) ]; then \
+		MSYS_NO_PATHCONV=1 multipass exec $(SIM_MAIN) -- bash -c "echo $$(base64 -w0 $(VAULT_PASS_FILE)) | base64 -d > $(SIM_VAULT_PASS) && chmod 600 $(SIM_VAULT_PASS)"; \
+	elif $(VAULT_IS_ENCRYPTED); then \
+		echo "❌ vault.yml est chiffré : mettre son mot de passe dans $(VAULT_PASS_FILE) pour la simulation"; exit 1; \
+	fi
+	$(SIM_ANSIBLE) $(if $(wildcard $(VAULT_PASS_FILE)),--vault-password-file $(SIM_VAULT_PASS)) ansible/playbooks/site.yml"
 
 sim-deploy-backup:
 	@bash ./scripts/simulation/ensure-mount.sh
-	$(SIM_ANSIBLE) ansible/playbooks/backup.yml -e @ansible/group_vars/simulation-network.yml -e zfs_allow_pool_creation=true"
+	$(SIM_ANSIBLE) ansible/playbooks/backup.yml"
 
 sim-test:
 	bash ./scripts/simulation/test-sim.sh
@@ -93,7 +133,7 @@ sim-status:
 sim-down:
 	-MSYS_NO_PATHCONV=1 multipass delete --purge $(SIM_MAIN) $(SIM_BACKUP)
 	-MSYS_NO_PATHCONV=1 multipass delete --purge gameserver-sim 2>/dev/null
-	rm -f ansible/inventory/simulation.yml ansible/group_vars/simulation-network.yml
+	rm -f ansible/inventory/simulation.yml
 
 # ========================================
 # DÉPLOIEMENT
@@ -104,9 +144,7 @@ sim-down:
 deploy:
 	$(ANSIBLE_PLAYBOOK) \
 		-i $(ANSIBLE_INVENTORY) \
-		--limit production \
-		--ask-vault-pass \
-		-e @ansible/group_vars/production.yml \
+		$(VAULT_ARGS) \
 		$(if $(ZFS_CREATE),-e zfs_allow_pool_creation=true) \
 		$(if $(TAGS),--tags $(TAGS)) \
 		ansible/playbooks/site.yml
@@ -127,4 +165,4 @@ validate:
 	$(ANSIBLE_PLAYBOOK) --syntax-check ansible/playbooks/backup.yml
 
 lint:
-	ansible-lint
+	$(ANSIBLE) ansible-lint ansible/

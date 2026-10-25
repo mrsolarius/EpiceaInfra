@@ -1,16 +1,4 @@
 ---
-- name: Créer les répertoires de données
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0755'
-    owner: "{{ common_system_user }}"
-    group: "{{ common_system_group }}"
-  loop:
-    - "{{ storage.ansible.compose }}/jellyfin"
-
-# Transcodage matériel via Quick Sync, intégré au Xeon (pas de carte graphique).
-# Activé seulement si le noyau expose le périphérique (IGD activé dans le BIOS).
 - name: Détecter Quick Sync (iGPU du CPU)
   ansible.builtin.stat:
     path: /dev/dri/renderD128
@@ -36,24 +24,11 @@
     - jellyfin_quicksync | default(false) | bool
     - not jellyfin_hwaccel_enabled | bool
 
-- name: Générer le fichier .env
-  ansible.builtin.template:
-    src: jellyfin.env.j2
-    dest: "{{ storage.ansible.compose }}/jellyfin/.env"
-    mode: '0600'
-
-- name: Générer le fichier docker-compose
-  ansible.builtin.template:
-    src: docker-compose.yml.j2
-    dest: "{{ storage.ansible.compose }}/jellyfin/docker-compose.yml"
-    mode: '0644'
-    trim_blocks: true
-    lstrip_blocks: true
-
-- name: Démarrer Jellyfin
-  community.docker.docker_compose_v2:
-    project_src: "{{ storage.ansible.compose }}/jellyfin"
-    state: present
-    pull: always
-    wait: true
-    wait_timeout: 600
+- name: Déployer Jellyfin
+  ansible.builtin.import_role:
+    name: app_stack
+  vars:
+    app_name: jellyfin
+    app_files:
+      - {src: jellyfin.env.j2, dest: .env, mode: '0600'}
+      - {src: docker-compose.yml.j2, dest: docker-compose.yml}

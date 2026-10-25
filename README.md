@@ -168,7 +168,7 @@ Le `Makefile` est le point d'entrée unique pour toutes les opérations.
 | **Simulation**          |                                                                                                         |
 | `make sim-all`          | Crée le banc, déploie les deux serveurs et lance tous les tests.                                        |
 | `make sim-up`           | Crée les VMs `srv-main-sim` / `srv-backup-sim` et simule leurs disques.                                 |
-| `make sim-deploy`       | Déploie srv-main (configuration de production + `group_vars/simulation.yml`).                           |
+| `make sim-deploy`       | Déploie srv-main (configuration de production + surcharges de `inventory/group_vars/simulation.yml`).   |
 | `make sim-deploy-backup`| Déploie srv-backup et la réplication.                                                                   |
 | `make sim-test`         | Lance les tests de bout en bout (`scripts/simulation/test-sim.sh`).                                     |
 | `make sim-status`       | Affiche les conteneurs et les pools ZFS des VMs.                                                        |
@@ -176,6 +176,9 @@ Le `Makefile` est le point d'entrée unique pour toutes les opérations.
 | **Production**          |                                                                                                         |
 | `make init`             | Crée et chiffre un nouveau fichier `vault.yml` pour la production, s'il n'existe pas.                   |
 | `make secrets`          | Ouvre le fichier `vault.yml` chiffré pour l'édition.                                                    |
+| `make vault-encrypt`    | Chiffre `vault.yml` (sans effet s'il l'est déjà).                                                        |
+| `make vault-decrypt`    | Déchiffre `vault.yml` et le laisse en clair : le rechiffrer ensuite.                                     |
+| `make vault-view`       | Affiche les secrets sans déchiffrer le fichier.                                                          |
 | `make deploy`           | **(Action critique)** Déploie la configuration sur srv-main (demande le mot de passe du vault).         |
 | `make deploy-backup`    | Déploie srv-backup et autorise la réplication ZFS depuis srv-main.                                      |
 | `ZFS_CREATE=1`          | À ajouter à `deploy` / `deploy-backup` au **premier** déploiement pour créer les pools (efface les disques). |

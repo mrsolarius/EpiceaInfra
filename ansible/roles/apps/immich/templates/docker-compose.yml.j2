@@ -1,29 +1,8 @@
+{% import 'postgres.j2' as pg with context %}
 services:
-  immich-db:
-    container_name: immich-db
-    image: ghcr.io/immich-app/postgres:{{ docker_versions.immich.postgres }}
-    restart: {{ docker_restart_policy }}
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 1G
-        reservations:
-          cpus: '0.1'
-          memory: 256M
-    env_file: .env
-    command: ["postgres", "-c", "shared_preload_libraries=vchord,pg_stat_statements"]
-    volumes:
-      - ${IMMICH_DB_DATA_PATH}:/var/lib/postgresql/data
-      - ./init-immich-db.sql:/docker-entrypoint-initdb.d/init.sql
-    shm_size: 128mb
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE_NAME}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - default
+{{ pg.database('immich', image='ghcr.io/immich-app/postgres:' ~ docker_versions.immich.postgres,
+               preload='vchord,pg_stat_statements', init_sql='./init-immich-db.sql', shm_size='128mb',
+               user_var='DB_USERNAME', db_var='DB_DATABASE_NAME') }}
 
   immich-server:
     container_name: immich-server
@@ -78,30 +57,7 @@ services:
     networks:
       - default
 
-  immich-postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:{{ docker_versions.common.postgres_exporter }}
-    container_name: immich-postgres-exporter
-    restart: {{ docker_restart_policy }}
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: 128M
-    environment:
-      DATA_SOURCE_NAME: "postgresql://${DB_USERNAME}:${DB_PASSWORD}@immich-db:5432/${DB_DATABASE_NAME}?sslmode=disable"
-      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
-      PG_EXPORTER_CONSTANT_LABELS: "instance=immich"
-      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
-    volumes:
-      - ./postgres-exporter-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
-    networks:
-      - default
-      - monitoring
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+{{ pg.exporter('immich', user_var='DB_USERNAME', password_var='DB_PASSWORD', db_var='DB_DATABASE_NAME') }}
 
 networks:
   default:

@@ -1,11 +1,10 @@
 ---
 - name: Epicea Infrastructure Deployment
-  hosts: all
+  hosts: production
   become: true
 
+  # Les variables viennent de inventory/group_vars (all/, puis production.yml)
   vars_files:
-    - ../group_vars/common.yml
-    - ../group_vars/versions.yml
     - ../secrets/vault.yml
 
   pre_tasks:
