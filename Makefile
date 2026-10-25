@@ -53,7 +53,9 @@ help:
 # ========================================
 # SECRETS
 # ========================================
+# Active aussi le hook qui refuse de committer vault.yml en clair
 init:
+	@git config core.hooksPath .githooks
 	@if [ ! -f $(VAULT_FILE) ]; then \
 		cp ansible/secrets/vault.yml.example $(VAULT_FILE); \
 		$(ANSIBLE_VAULT) encrypt $(VAULT_ARGS) $(VAULT_FILE); \

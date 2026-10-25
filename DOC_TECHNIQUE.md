@@ -176,6 +176,7 @@ Les fichiers de règles, dans `ansible/roles/monitoring/files/`, font foi.
   - accès à Docker via `docker-socket-proxy`, jamais au socket directement.
 - **Secrets :** chiffrés dans `ansible/secrets/vault.yml` (Ansible Vault). La liste des clés attendues est dans `vault.yml.example`.
   - Mot de passe du vault : lu dans `ansible/.vault_pass` (non versionné) s'il existe, sinon demandé à chaque commande. La simulation exige ce fichier quand le vault est chiffré.
+  - `vault.yml` est versionné **chiffré**. Le hook `.githooks/pre-commit` (activé par `make init`) refuse un commit où il serait en clair, et la CI le vérifie aussi.
   - Mots de passe générés : 32 caractères alphanumériques. Pas de `@ : / #`, qui casseraient les URL de connexion PostgreSQL des exporters.
 
 ---

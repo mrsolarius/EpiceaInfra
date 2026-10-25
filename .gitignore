@@ -1,5 +1,5 @@
-# Secrets
-ansible/secrets/vault.yml
+# Secrets : vault.yml est versionné CHIFFRÉ (le hook .githooks/pre-commit refuse un vault en
+# clair), seul son mot de passe reste hors de Git
 ansible/.vault_pass
 **/.env
 *.key
@@ -11,6 +11,7 @@ ansible/inventory/simulation.yml
 # Python / Ansible
 /.venv/
 *.retry
+__pycache__/
 
 # IDE / OS
 .idea/
