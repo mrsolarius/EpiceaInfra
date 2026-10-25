@@ -1,0 +1,11 @@
+#!/bin/bash
+# Refuse un commit qui contiendrait les secrets en clair.
+# Activé par : make init (ou git config core.hooksPath .githooks)
+VAULT=ansible/secrets/vault.yml
+
+if git diff --cached --name-only | grep -qx "$VAULT"; then
+  if ! git show ":$VAULT" | head -1 | grep -q '^\$ANSIBLE_VAULT'; then
+    echo "❌ $VAULT est en clair : make vault-encrypt, puis git add $VAULT" >&2
+    exit 1
+  fi
+fi
