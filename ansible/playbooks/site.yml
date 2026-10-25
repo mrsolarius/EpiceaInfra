@@ -72,6 +72,11 @@
     - role: ../roles/apps/backpaking
       tags: [backpaking, services]
       when: "'backpaking' in enabled_services"
+
+    # Serveurs de jeu (AMP, natif)
+    - role: ../roles/amp
+      tags: [amp, services]
+      when: "'amp' in enabled_services"
   post_tasks:
     - name: Résumé du déploiement
       ansible.builtin.debug:

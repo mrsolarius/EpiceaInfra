@@ -132,6 +132,7 @@
     state: present
     extra_zfs_properties: "{{ item.properties | default({}) }}"
   loop: "{{ zfs_datasets }}"
+  register: zfs_datasets_result
   loop_control:
     label: "{{ item.name }}"
 
@@ -234,6 +235,18 @@
     enabled: true
     state: started
   when: sanoid_datasets | length > 0
+
+# Un dataset neuf n'a aucun snapshot jusqu'au prochain snapshot horaire de son pool : syncoid
+# (--no-sync-snap) le refuse et fait échouer la réplication de tout le pool. On prend donc tout
+# de suite un snapshot récursif du pool, nommé comme ceux de sanoid pour qu'il le purge normalement
+# (sanoid lui-même ne le ferait pas : avec recursive = zfs, il attend que le snapshot du pool soit dû).
+- name: Snapshoter tout de suite les pools qui ont de nouveaux datasets
+  ansible.builtin.shell: zfs snapshot -r "{{ item }}@autosnap_$(date +%Y-%m-%d_%H:%M:%S)_hourly"
+  loop: >-
+    {{ zfs_datasets_result.results | selectattr('changed') | map(attribute='item.name')
+       | map('regex_replace', '/.*$', '') | unique
+       | intersect(sanoid_datasets | map(attribute='name') | list) }}
+  changed_when: true
 
 - name: État des pools
   ansible.builtin.command: zpool list -o name,size,alloc,free,health

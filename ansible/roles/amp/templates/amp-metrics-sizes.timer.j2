@@ -1,0 +1,9 @@
+[Unit]
+Description=Taille des instances AMP toutes les 15 minutes
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=15m
+
+[Install]
+WantedBy=timers.target

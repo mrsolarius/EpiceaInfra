@@ -12,8 +12,10 @@ export MSYS_NO_PATHCONV=1
 
 MAIN_VM="srv-main-sim"
 BACKUP_VM="srv-backup-sim"
-MAIN_CPUS=4; MAIN_MEM="6G"; MAIN_DISK="40G"
-BACKUP_CPUS=2; BACKUP_MEM="2G"; BACKUP_DISK="15G"
+# Tailles surchargeables, ex. pour un test avec de vraies données :
+#   MAIN_DISK=200G BACKUP_DISK=320G SSD_SIZE=180G VAULT_SIZE=180G make sim-up
+MAIN_CPUS=4; MAIN_MEM="6G"; MAIN_DISK="${MAIN_DISK:-40G}"
+BACKUP_CPUS=2; BACKUP_MEM="${BACKUP_MEM:-2G}"; BACKUP_DISK="${BACKUP_DISK:-15G}"
 UBUNTU="24.04"
 
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
@@ -45,7 +47,7 @@ step "Simulation des disques"
 # de multipass exec et la lecture d'un script sur le dossier monté sont peu fiables
 run_sim_disks() {
   multipass exec "$1" -- bash -c "echo $(base64 -w0 "$SIM_DIR/simulate-disks.sh") | base64 -d > /tmp/simulate-disks.sh"
-  multipass exec "$1" -- sudo bash /tmp/simulate-disks.sh "$2"
+  multipass exec "$1" -- sudo SSD_SIZE="${SSD_SIZE:-2G}" VAULT_SIZE="${VAULT_SIZE:-33G}" bash /tmp/simulate-disks.sh "$2"
 }
 run_sim_disks "$MAIN_VM" srv-main
 run_sim_disks "$BACKUP_VM" srv-backup

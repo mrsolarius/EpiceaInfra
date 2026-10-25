@@ -24,6 +24,7 @@ help:
 	@echo "  make sim-deploy-backup  # Déployer srv-backup + réplication"
 	@echo "  make sim-test           # Tests de bout en bout"
 	@echo "  make sim-test-restore   # Tester les procédures de restauration"
+	@echo "  make sim-test-migration # Tester la migration AMP (ancien gameserver -> srv-main)"
 	@echo "  make sim-status         # Conteneurs et pools des VMs"
 	@echo "  make sim-down           # Détruire les VMs"
 	@echo ""
@@ -79,6 +80,9 @@ sim-test:
 sim-test-restore:
 	bash ./scripts/simulation/test-restore.sh
 
+sim-test-migration:
+	bash ./scripts/simulation/test-migration-amp.sh
+
 sim-all: sim-up sim-deploy sim-deploy-backup sim-test
 
 sim-status:
@@ -88,6 +92,7 @@ sim-status:
 
 sim-down:
 	-MSYS_NO_PATHCONV=1 multipass delete --purge $(SIM_MAIN) $(SIM_BACKUP)
+	-MSYS_NO_PATHCONV=1 multipass delete --purge gameserver-sim 2>/dev/null
 	rm -f ansible/inventory/simulation.yml ansible/group_vars/simulation-network.yml
 
 # ========================================
@@ -106,10 +111,12 @@ deploy:
 		$(if $(TAGS),--tags $(TAGS)) \
 		ansible/playbooks/site.yml
 
+# LIMIT=backup : srv-backup seul (srv-main pas encore installé, ex. pendant la migration)
 deploy-backup:
 	$(ANSIBLE_PLAYBOOK) \
 		-i $(ANSIBLE_INVENTORY) \
 		$(if $(ZFS_CREATE),-e zfs_allow_pool_creation=true) \
+		$(if $(LIMIT),--limit $(LIMIT)) \
 		ansible/playbooks/backup.yml
 
 # ========================================

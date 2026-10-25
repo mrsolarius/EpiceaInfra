@@ -1,0 +1,19 @@
+[Unit]
+Description=AMP Instance Manager
+Documentation=https://github.com/CubeCoders/AMP/wiki/AMP-systemd-script-(Linux)
+After=network-online.target zfs-mount.service{{ ' docker.service' if amp_mysql_enabled | bool else '' }}
+Wants=network-online.target
+RequiresMountsFor={{ amp_home }}
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=amp
+Group=amp
+ExecStart=/opt/cubecoders/amp/ampinstmgr startboot true
+TimeoutSec=180
+ExecStop=/opt/cubecoders/amp/ampinstmgr stopall
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target

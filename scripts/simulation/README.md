@@ -5,6 +5,7 @@ Deux VMs Multipass reproduisent **srv-main** et **srv-backup** pour tester la co
 ```bash
 make sim-all            # VMs + disques simulés, déploiement des deux serveurs, tests de bout en bout
 make sim-test-restore   # tester les procédures de restauration (docs/GUIDE.md §5)
+make sim-test-migration # tester la migration AMP : ancien gameserver -> srv-backup -> srv-main (docs/MIGRATION.md)
 make sim-down           # tout détruire
 ```
 
@@ -82,3 +83,13 @@ multipass exec srv-main-sim -- ps -eo etime,cmd --sort=-etime
 
 - **Fichiers vers une VM :** les scripts passent les fichiers et les commandes en base64. Sous Windows, `multipass transfer`, l'entrée standard de `multipass exec` et les guillemets imbriqués sont peu fiables.
 - **Scripts du dossier monté :** un script n'est jamais exécuté directement depuis le dossier du projet monté dans la VM. Si le fichier est modifié côté Windows pendant la lecture, bash reste bloqué.
+
+## Le test de migration AMP (`make sim-test-migration`)
+
+Crée une VM `gameserver-sim` qui reproduit l'ancien serveur de jeu : Ubuntu 20.04, AMP installé depuis le dépôt CubeCoders, MySQL 8.0 natif avec une base de plugin.
+
+1. **Copie à chaud** : `pull-old-servers.sh sync` tourne pendant qu'un faux serveur de jeu écrit dans son monde et qu'un faux plugin écrit dans MySQL.
+2. **Passe finale** : `final` arrête AMP, exporte MySQL et prend le snapshot ; `verify` doit trouver 0 différence.
+3. **Restauration** : `restore-on-srv-main.sh amp` sur srv-main. Le test vérifie que c'est la même instance AMP, que le monde est identique, qu'AMP redémarre et que le plugin se reconnecte avec son ancien compte.
+
+`make sim-down` supprime aussi `gameserver-sim`.

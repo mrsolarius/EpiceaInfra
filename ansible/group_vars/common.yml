@@ -37,6 +37,7 @@ storage:
     redis: "{{ drive_ssd_path }}/redis"
     litopia: "{{ drive_ssd_path }}/litopia-db"
     backpaking: "{{ drive_ssd_path }}/backpaking-db"
+    amp: "{{ drive_ssd_path }}/amp-db"
 
   # Caches jetables (SSD scratch, non sauvegardés)
   cache:
@@ -52,6 +53,7 @@ storage:
     nextcloud_data: "{{ drive_bulk_path }}/cloud/data"
     backups: "{{ drive_bulk_path }}/backups"
     configs_backup: "{{ drive_bulk_path }}/backups/epicea-configs"
+    backpaking_uploads: "{{ drive_bulk_path }}/apps/backpaking-uploads"
 
 # ====================================================
 # 3. PERMISSIONS (PUID/PGID)

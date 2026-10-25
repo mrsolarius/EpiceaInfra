@@ -110,7 +110,7 @@ toutes les heures   srv-main prend un "snapshot" de tank et ssd_tank (photo inst
 C'est **srv-backup qui vient chercher** les données. srv-main ne peut que les lui donner : il n'a aucun droit sur les sauvegardes. Un pirate qui prendrait srv-main ne pourrait donc pas effacer les backups.
 
 ### Ce qui EST sauvegardé
-- Tout `tank` : films/séries, photos Immich, fichiers Nextcloud, `tank/backups`.
+- Tout `tank` : films/séries, photos Immich, fichiers Nextcloud, uploads Backpaking (`tank/apps`), `tank/backups`.
 - Tout `ssd_tank` : **toutes les bases de données** et Redis.
 - `/opt/epicea` (configs des services, données Grafana…), grâce à la copie de 3h.
 
@@ -187,7 +187,8 @@ Quels datasets pour quelle application :
 | Nextcloud | `ssd_tank/nextcloud-db` | `tank/cloud` |
 | Immich | `ssd_tank/immich-db` | `tank/photos` |
 | Litopia | `ssd_tank/litopia-db` | — |
-| Backpaking | `ssd_tank/backpaking-db` | — |
+| Backpaking | `ssd_tank/backpaking-db` | `tank/apps` (photos envoyées) |
+| Serveurs de jeu (AMP) | `ssd_tank/amp-db` (MySQL) | `ssd_tank/amp` (instances et mondes, `/home/amp`) |
 | Jellyfin | — | `tank/media` (sa config est dans `/opt/epicea`, voir cas 1 avec `tank/backups/epicea-configs`) |
 
 ### Cas 3 : un disque ou un pool entier est perdu

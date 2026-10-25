@@ -47,6 +47,8 @@ services:
           cpus: '0.25'
           memory: 256M
     env_file: ./backpaking-back.env
+    volumes:
+      - {{ storage.media.backpaking_uploads }}:/app/uploads
     networks:
       - default
       - proxy

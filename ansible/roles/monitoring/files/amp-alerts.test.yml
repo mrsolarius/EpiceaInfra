@@ -1,0 +1,65 @@
+---
+# Tests des alertes AMP (non déployé : Prometheus chargerait ce fichier comme des règles).
+# Copier ce fichier et amp-alerts.yml dans un même dossier du conteneur Prometheus, puis :
+#   promtool test rules amp-alerts.test.yml
+rule_files:
+  - amp-alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  # Serveur planté : instance en marche, port de jeu fermé pendant 10 min puis rouvert
+  - interval: 1m
+    input_series:
+      - series: 'amp_instance_up{amp_instance="Tuturu01"}'
+        values: '1x20'
+      - series: 'amp_port_listening{amp_instance="Tuturu01",port="25569",protocol="tcp",name="Game Port",kind="game"}'
+        values: '1 1 0x10 1x8'
+      # Port ajouté à la main (Dynmap) fermé en permanence : jamais d'alerte
+      - series: 'amp_port_listening{amp_instance="Tuturu01",port="8123",protocol="tcp",name="Dynmap",kind="custom"}'
+        values: '0x20'
+    alert_rule_test:
+      - eval_time: 5m   # fermé depuis 3 min : encore en attente
+        alertname: AmpGamePortDown
+        exp_alerts: []
+      - eval_time: 8m   # fermé depuis plus de 5 min : alerte
+        alertname: AmpGamePortDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              component: games
+              amp_instance: Tuturu01
+              port: "25569"
+              protocol: tcp
+              name: Game Port
+              kind: game
+            exp_annotations:
+              summary: "Tuturu01 : port 25569/tcp fermé"
+              description: "Le serveur de jeu Tuturu01 ne répond plus sur son port 25569 (Game Port). Vérifier sa console sur le panneau AMP."
+      - eval_time: 14m  # port rouvert : alerte résolue
+        alertname: AmpGamePortDown
+        exp_alerts: []
+
+  # Instance entièrement arrêtée : pas d'alerte de port, mais AmpInstanceDown si démarrage automatique
+  - interval: 1m
+    input_series:
+      - series: 'amp_instance_up{amp_instance="LitopiaCrea"}'
+        values: '0x10'
+      - series: 'amp_instance_autostart{amp_instance="LitopiaCrea"}'
+        values: '1x10'
+      - series: 'amp_port_listening{amp_instance="LitopiaCrea",port="25566",protocol="tcp",name="Game Port",kind="game"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: AmpGamePortDown
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: AmpInstanceDown
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              component: games
+              amp_instance: LitopiaCrea
+            exp_annotations:
+              summary: "Instance AMP LitopiaCrea arrêtée"
+              description: "L'instance LitopiaCrea devrait tourner (démarrage automatique) mais son processus AMP est absent. Voir : sudo -u amp ampinstmgr status"

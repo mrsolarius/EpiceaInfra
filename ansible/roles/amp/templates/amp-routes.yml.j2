@@ -1,0 +1,22 @@
+# ========================================
+# Sites d'AMP (processus de l'hôte) publiés par Traefik - Généré par Ansible
+# ========================================
+http:
+  routers:
+{% for r in amp_web_routes %}
+    {{ r.name }}:
+      entryPoints:
+        - websecure
+      rule: "Host(`{{ r.domain }}`)"
+      service: {{ r.name }}
+      tls:
+        certResolver: "{{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
+{% endfor %}
+
+  services:
+{% for r in amp_web_routes %}
+    {{ r.name }}:
+      loadBalancer:
+        servers:
+          - url: "http://{{ ansible_facts['default_ipv4']['address'] }}:{{ r.port }}"
+{% endfor %}

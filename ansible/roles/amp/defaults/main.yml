@@ -1,0 +1,20 @@
+---
+# Dossier de l'utilisateur amp : les chemins /home/amp/.ampdata sont écrits en dur dans
+# instances.json, on garde donc le même emplacement (dataset ZFS monté ici, voir production.yml)
+amp_home: /home/amp
+
+# Versions de Java proposées aux instances (paquets temurin-<N>-jdk)
+amp_java_versions: [8, 17, 21, 25]
+
+# Port du panneau ADS (instance principale d'AMP)
+amp_ads_port: 8080
+
+# Sites web publiés par Traefik vers des ports de l'hôte : panneau AMP, Bluemap…
+amp_web_routes: []
+#  - {name: amp, domain: dashboard.example.fr, port: 8080}
+
+# Premier lancement sans données migrées : crée l'instance ADS01 (identifiants du vault)
+amp_quickstart: false
+
+# MySQL pour les plugins des serveurs (127.0.0.1:3306 sur l'hôte)
+amp_mysql_enabled: true
