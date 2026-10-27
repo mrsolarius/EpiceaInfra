@@ -11,6 +11,12 @@ exclude_paths:
   - "*.txt"
   - "inventory/"
   - ".venv/"
+  # Chiffré : ce n'est pas du YAML lisible
+  - ansible/secrets/vault.yml
+
+# Le syntax-check lancé par ansible-lint ne peut pas déchiffrer le vault : il lit le modèle
+extra_vars:
+  epicea_vault_file: ../secrets/vault.yml.example
 
 skip_list:
   - role-name
