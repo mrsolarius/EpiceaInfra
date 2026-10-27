@@ -4,8 +4,10 @@
   become: true
 
   # Les variables viennent de inventory/group_vars (all/, puis production.yml)
+  # epicea_vault_file : le lint et la CI, sans mot de passe du vault, passent
+  # vault.yml.example (mêmes clés, en clair)
   vars_files:
-    - ../secrets/vault.yml
+    - "{{ epicea_vault_file | default('../secrets/vault.yml') }}"
 
   pre_tasks:
     - name: Vérification des prérequis
