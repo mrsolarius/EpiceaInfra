@@ -40,9 +40,9 @@ docker_versions:
   # Stack Immich (serveur et ML regroupés dans une même PR : ils doivent avoir la même version)
   immich:
     # renovate: datasource=docker depName=ghcr.io/immich-app/immich-server
-    server: "v2.7.5"
+    server: "v3.3.5"
     # renovate: datasource=docker depName=ghcr.io/immich-app/immich-machine-learning
-    machine_learning: "v1.144.1"
+    machine_learning: "v3.3.5"
     # Non suivi : format de tag que Renovate ne sait pas comparer, à aligner sur la doc d'Immich
     postgres: "16-vectorchord0.3.0-pgvectors0.3.0"
 
