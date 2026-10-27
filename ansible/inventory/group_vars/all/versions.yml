@@ -31,7 +31,7 @@ docker_versions:
     # renovate: datasource=docker depName=gcr.io/cadvisor/cadvisor
     cadvisor: "v0.55.1"
     # renovate: datasource=docker depName=grafana/grafana
-    grafana: "12.3.1"
+    grafana: "13.3.0"
     # renovate: datasource=docker depName=grafana/loki
     loki: "3.3.2"
     # renovate: datasource=docker depName=grafana/promtail
