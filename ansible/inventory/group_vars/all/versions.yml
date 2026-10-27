@@ -18,24 +18,24 @@ docker_versions:
     # renovate: datasource=docker depName=redis
     redis: "8-alpine"
     # renovate: datasource=docker depName=prometheuscommunity/postgres-exporter
-    postgres_exporter: "v0.15.0"
+    postgres_exporter: "v0.20.1"
     # renovate: datasource=docker depName=oliver006/redis_exporter
-    redis_exporter: "v1.55.0"
+    redis_exporter: "v1.96.0"
 
   # Stack Monitoring
   monitoring:
     # renovate: datasource=docker depName=prom/prometheus
-    prometheus: "v3.9.1"
+    prometheus: "v3.15.1"
     # renovate: datasource=docker depName=prom/alertmanager
-    alertmanager: "v0.26.0"
+    alertmanager: "v0.34.1"
     # renovate: datasource=docker depName=gcr.io/cadvisor/cadvisor
     cadvisor: "v0.55.1"
     # renovate: datasource=docker depName=grafana/grafana
     grafana: "13.3.0"
     # renovate: datasource=docker depName=grafana/loki
-    loki: "3.3.2"
+    loki: "3.7.9"
     # renovate: datasource=docker depName=grafana/promtail
-    promtail: "3.3.2"
+    promtail: "3.6.11"
 
   # Stack Immich (serveur et ML regroupés dans une même PR : ils doivent avoir la même version)
   immich:
