@@ -27,5 +27,9 @@ jobs:
           ansible-galaxy collection install -r ansible/requirements.yml
       - name: Ansible Lint
         run: ansible-lint ansible/
+      # Pas de mot de passe du vault en CI : le modèle (mêmes clés, en clair) le remplace
       - name: Ansible Syntax Check
-        run: ansible-playbook --syntax-check ansible/playbooks/site.yml ansible/playbooks/backup.yml
+        run: >-
+          ansible-playbook --syntax-check
+          -e epicea_vault_file=../secrets/vault.yml.example
+          ansible/playbooks/site.yml ansible/playbooks/backup.yml
