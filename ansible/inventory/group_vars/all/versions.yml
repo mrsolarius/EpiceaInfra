@@ -53,7 +53,7 @@ docker_versions:
   jellyfin: "10.11.11"
   amp:
     # renovate: datasource=docker depName=mysql
-    mysql: "8.0"  # même version majeure que l'ancien serveur de jeu
+    mysql: "8.4"  # même version majeure que l'ancien serveur de jeu
   # Images privées GHCR : non suivies (Renovate aurait besoin d'un token read:packages)
   litopia:
     frontend: "v1.1.0"
