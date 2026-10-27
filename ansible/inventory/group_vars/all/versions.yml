@@ -12,7 +12,7 @@ docker_versions:
     # renovate: datasource=docker depName=tecnativa/docker-socket-proxy
     docker_socket_proxy: "v0.4.2"
     # renovate: datasource=docker depName=traefik
-    traefik: "v3.6.6"
+    traefik: "v3.7.16"
     # renovate: datasource=docker depName=postgres
     postgres: "16-alpine"
     # renovate: datasource=docker depName=redis
@@ -50,7 +50,7 @@ docker_versions:
   # renovate: datasource=docker depName=nextcloud
   nextcloud: "35.0.2"  # >= version de l'ancien serveur (pas de retour en arrière possible)
   # renovate: datasource=docker depName=jellyfin/jellyfin
-  jellyfin: "10.11.6"
+  jellyfin: "10.11.11"
   amp:
     # renovate: datasource=docker depName=mysql
     mysql: "8.0"  # même version majeure que l'ancien serveur de jeu
