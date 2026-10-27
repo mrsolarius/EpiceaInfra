@@ -185,6 +185,6 @@ Les fichiers de règles, dans `ansible/roles/monitoring/files/`, font foi.
 
 ## CI
 
-`.github/workflows/ci.yml` exécute `ansible-lint` puis `ansible-playbook --syntax-check` sur les deux playbooks. Dependabot met à jour les GitHub Actions ; les versions des images Docker se changent dans `ansible/inventory/group_vars/all/versions.yml`.
+`.github/workflows/ci.yml` exécute `ansible-lint` puis `ansible-playbook --syntax-check` sur les deux playbooks. Renovate (`renovate.json`, app GitHub Mend Renovate) ouvre chaque lundi les PR de mise à jour des GitHub Actions et des images Docker de `ansible/inventory/group_vars/all/versions.yml`. Seules les versions précédées d'un commentaire `# renovate: datasource=docker depName=<image>` sont suivies. Le serveur et le ML d'Immich sont regroupés dans une seule PR, comme la stack de monitoring. Les montées majeures de PostgreSQL, MySQL et Redis sont ignorées (migration manuelle), et celles de Nextcloud attendent une validation dans le *Dependency Dashboard*. Une fois la PR mergée, le déploiement reste manuel : `make deploy TAGS=<rôle>`.
 
 Les tests fonctionnels se font sur le banc de simulation : `make sim-all`, `make sim-test-restore` et `make sim-test-migration`.

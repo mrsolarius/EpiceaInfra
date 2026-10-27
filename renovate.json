@@ -1,0 +1,45 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Europe/Paris",
+  "schedule": ["before 6am on monday"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Images Docker de versions.yml, annotées par « # renovate: »",
+      "managerFilePatterns": ["/^ansible/inventory/group_vars/all/versions\\.yml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+\\w+: \"(?<currentValue>[^\"]+)\""
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Serveur et ML Immich doivent toujours avoir la même version",
+      "matchPackageNames": ["/^ghcr\\.io/immich-app//"],
+      "groupName": "immich"
+    },
+    {
+      "description": "Stack de monitoring : une seule PR",
+      "matchPackageNames": ["/^prom//", "/^grafana//", "/cadvisor/", "/exporter/"],
+      "groupName": "monitoring"
+    },
+    {
+      "description": "Montée majeure des bases : migration manuelle (pg_upgrade, dump/restore)",
+      "matchPackageNames": ["postgres", "mysql", "redis"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Nextcloud : pas de retour en arrière possible, une majeure à la fois, sur validation",
+      "matchPackageNames": ["nextcloud"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Actions GitHub de la CI (remplace Dependabot)",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions"
+    }
+  ]
+}

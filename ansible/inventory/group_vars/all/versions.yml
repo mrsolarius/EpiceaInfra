@@ -2,37 +2,59 @@
 # ========================================
 # Versions des images Docker (Dictionnaire structuré)
 # ========================================
+# Renovate (renovate.json) propose les mises à jour en PR grâce aux commentaires
+# « # renovate: » placés au-dessus de chaque version. Une version sans ce commentaire
+# n'est pas suivie et se met à jour à la main.
 
 docker_versions:
   # Infrastructure partagée
   common:
+    # renovate: datasource=docker depName=tecnativa/docker-socket-proxy
     docker_socket_proxy: "v0.4.2"
+    # renovate: datasource=docker depName=traefik
     traefik: "v3.6.6"
+    # renovate: datasource=docker depName=postgres
     postgres: "16-alpine"
+    # renovate: datasource=docker depName=redis
     redis: "8-alpine"
+    # renovate: datasource=docker depName=prometheuscommunity/postgres-exporter
     postgres_exporter: "v0.15.0"
+    # renovate: datasource=docker depName=oliver006/redis_exporter
     redis_exporter: "v1.55.0"
 
   # Stack Monitoring
   monitoring:
+    # renovate: datasource=docker depName=prom/prometheus
     prometheus: "v3.9.1"
+    # renovate: datasource=docker depName=prom/alertmanager
     alertmanager: "v0.26.0"
+    # renovate: datasource=docker depName=gcr.io/cadvisor/cadvisor
     cadvisor: "v0.55.1"
+    # renovate: datasource=docker depName=grafana/grafana
     grafana: "12.3.1"
+    # renovate: datasource=docker depName=grafana/loki
     loki: "3.3.2"
+    # renovate: datasource=docker depName=grafana/promtail
     promtail: "3.3.2"
 
-  # Stack Immich
+  # Stack Immich (serveur et ML regroupés dans une même PR : ils doivent avoir la même version)
   immich:
+    # renovate: datasource=docker depName=ghcr.io/immich-app/immich-server
     server: "v2.4.1"
+    # renovate: datasource=docker depName=ghcr.io/immich-app/immich-machine-learning
     machine_learning: "v1.130.2"
+    # Non suivi : format de tag que Renovate ne sait pas comparer, à aligner sur la doc d'Immich
     postgres: "16-vectorchord0.3.0-pgvectors0.3.0"
 
   # Autres Applications
+  # renovate: datasource=docker depName=nextcloud
   nextcloud: "35.0.2"  # >= version de l'ancien serveur (pas de retour en arrière possible)
+  # renovate: datasource=docker depName=jellyfin/jellyfin
   jellyfin: "10.11.6"
   amp:
+    # renovate: datasource=docker depName=mysql
     mysql: "8.0"  # même version majeure que l'ancien serveur de jeu
+  # Images privées GHCR : non suivies (Renovate aurait besoin d'un token read:packages)
   litopia:
     frontend: "v1.1.0"
     backend: "v1.1.0"
