@@ -10,7 +10,7 @@ docker_versions:
   # Infrastructure partagée
   common:
     # renovate: datasource=docker depName=tecnativa/docker-socket-proxy
-    docker_socket_proxy: "v0.4.2"
+    docker_socket_proxy: "v0.5.0"
     # renovate: datasource=docker depName=traefik
     traefik: "v3.7.16"
     # renovate: datasource=docker depName=postgres
