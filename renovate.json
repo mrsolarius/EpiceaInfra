@@ -40,6 +40,12 @@
       "description": "Actions GitHub de la CI (remplace Dependabot)",
       "matchManagers": ["github-actions"],
       "groupName": "github-actions"
+    },
+    {
+      "description": "Python de la CI : 3.15 bloqué tant que les dépendances d'ansible-lint (PyYAML, ruamel.yaml.clib...) n'ont pas de wheels 3.15. Relever la borne ensuite.",
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["python"],
+      "allowedVersions": "<3.15"
     }
   ]
 }
