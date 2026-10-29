@@ -1,4 +1,4 @@
-.PHONY: help init secrets vault-encrypt vault-decrypt vault-view sim-up sim-deploy sim-deploy-backup sim-test sim-test-restore sim-all sim-status sim-down deploy deploy-backup validate lint
+.PHONY: help init secrets vault-encrypt vault-decrypt vault-view traefik-pass sim-up sim-deploy sim-deploy-backup sim-test sim-test-restore sim-all sim-status sim-down deploy deploy-backup validate lint
 
 # ========================================
 # Makefile Epicea Infrastructure
@@ -42,6 +42,7 @@ help:
 	@echo "  make vault-encrypt      # Chiffrer vault.yml"
 	@echo "  make vault-decrypt      # Déchiffrer vault.yml (le laisse en clair)"
 	@echo "  make vault-view         # Afficher les secrets sans déchiffrer le fichier"
+	@echo "  make traefik-pass       # Changer le mot de passe du dashboard Traefik"
 	@echo "  make deploy             # Déployer srv-main"
 	@echo "  make deploy-backup      # Déployer srv-backup + réplication ZFS"
 	@echo ""
@@ -85,6 +86,14 @@ vault-decrypt:
 
 vault-view:
 	$(ANSIBLE_VAULT) view $(VAULT_ARGS) $(VAULT_FILE)
+
+# Déchiffre le vault si besoin, y écrit le hash du mot de passe, puis le rechiffre s'il l'était
+traefik-pass:
+	@was_encrypted=0; \
+	if $(VAULT_IS_ENCRYPTED); then was_encrypted=1; $(MAKE) --no-print-directory vault-decrypt || exit 1; fi; \
+	bash scripts/traefik-pass.sh $(VAULT_FILE); status=$$?; \
+	if [ $$was_encrypted = 1 ]; then $(MAKE) --no-print-directory vault-encrypt; fi; \
+	exit $$status
 
 # ========================================
 # SIMULATION (VMs reproduisant srv-main et srv-backup)
