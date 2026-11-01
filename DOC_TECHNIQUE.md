@@ -8,10 +8,14 @@ Référence technique du dépôt. Pour l'utilisation au quotidien (déployer, re
 
 | Serveur | CPU / RAM | Disques | Rôle |
 |---------|-----------|---------|------|
-| **srv-main** | Intel Xeon E3-1275 v6 (Quick Sync), 64 Go DDR4 | NVMe Sabrent Rocket 4.0 1 To (OS) · SSD Crucial MX500 1 To (`ssd_tank`) · SSD Samsung 850 PRO 256 Go (`scratch`) · 8 x HDD Seagate ST4000NM000A 4 To (`tank`, RAIDZ2) | Services Docker + données |
-| **srv-backup** | Intel Core i7-6800K, 16 Go DDR3 | NVMe Crucial E100 480 Go (OS) · 2 x HDD Seagate ST26000NM000C 26 To (`vault`, miroir) | Réception des snapshots ZFS |
+| **srv-main** | Intel Xeon E3-1275 v6 (Quick Sync), 64 Go DDR4 non-ECC (4 x 16 Go G.Skill Aegis, 2133 MHz CL15) | NVMe Sabrent Rocket 4.0 1 To (OS) · SSD Crucial MX500 1 To (`ssd_tank`) · SSD Samsung 850 PRO 256 Go (`scratch`) · 8 x HDD Seagate ST4000NM000A 4 To (`tank`, RAIDZ2) | Services Docker + données |
+| **srv-backup** | Intel Core i7-6800K, 16 Go DDR4 (Corsair Dominator Platinum, 3000 MHz) | NVMe Crucial E100 480 Go (OS) · 2 x HDD Seagate ST26000NM000C 26 To (`vault`, miroir) | Réception des snapshots ZFS |
 
 Carte mère de srv-main : ASUS P10S-M WS (micro-ATX, chipset C236). Ses 10 ports SATA sont tous occupés : 8 ports Intel et 2 ports d'un contrôleur ASMedia ASM1062. Son unique slot M.2 est pris par le NVMe système. Pour ajouter un disque, il faut une carte SATA ou un adaptateur NVMe en PCIe.
+
+Boîtier de srv-main : Antec, ventirad be quiet! et ventilateurs Noctua. Les 8 disques de `tank` sont dans des baies étiquetées DATA 1 à 8.
+
+Carte mère de srv-backup : ASUS X99-A II (ATX, 8 slots RAM, sans sortie vidéo intégrée). Le i7-6800K n'a pas de GPU intégré.
 
 Pas de carte graphique : Jellyfin utilise Quick Sync, l'accélération vidéo intégrée au Xeon. Pas de hotswap : un disque se change serveur éteint.
 

@@ -28,7 +28,7 @@ graph TD
         Tank["8 x HDD Seagate 4 To<br/>pool tank : RAIDZ2 (~21 Tio)"]
     end
 
-    subgraph backup ["srv-backup : i7-6800K, 16 Go DDR3"]
+    subgraph backup ["srv-backup : i7-6800K, 16 Go DDR4"]
         NVMe_B["NVMe Crucial E100 480 Go<br/>OS"]
         Vault["2 x HDD 26 To<br/>pool vault : miroir (~23,6 Tio)"]
     end
