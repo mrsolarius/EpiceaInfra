@@ -1,0 +1,26 @@
+---
+# ========================================
+# Seedbox : qBittorrent derrière un VPN (image binhex/arch-qbittorrentvpn)
+# ========================================
+# Reprise de l'ancienne seedbox du datastore (~/torent). La configuration OpenVPN
+# (config/openvpn/*.ovpn) et les torrents (BT_backup) arrivent avec restore-on-srv-main.sh files.
+
+# false : qBittorrent sort sans VPN (banc de simulation uniquement)
+seedbox_vpn_enabled: true
+seedbox_vpn_provider: "protonvpn"
+seedbox_vpn_client: "openvpn"
+seedbox_lan_network: "192.168.1.0/24"
+seedbox_name_servers: "1.1.1.1,1.0.0.1"
+
+seedbox_config_path: "{{ storage.ansible.compose }}/seedbox/config"
+
+# Réglages imposés à qBittorrent.conf. Le mot de passe unique est celui de Traefik
+# (middleware seedbox-auth, seedbox_auth du vault) : qBittorrent fait confiance aux
+# requêtes venant des réseaux Docker (Traefik) pour ne pas demander une 2e connexion.
+# La WebUI n'est publiée sur aucun port de l'hôte : seul Traefik y accède.
+# Section [WebUI] de qBittorrent 5 (il y migre seul les anciennes clés Preferences\WebUI\*)
+seedbox_qbittorrent_settings:
+  - {section: WebUI, option: AuthSubnetWhitelistEnabled, value: 'true'}
+  - {section: WebUI, option: AuthSubnetWhitelist, value: '172.16.0.0/12'}
+  - {section: WebUI, option: LocalHostAuth, value: 'false'}
+  - {section: WebUI, option: HostHeaderValidation, value: 'false'}

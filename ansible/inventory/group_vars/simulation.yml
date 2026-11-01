@@ -16,5 +16,8 @@ litopia_domain: "litopia-sim.local"
 # La VM a 6 Go de RAM au lieu de 64 Go
 zfs_arc_max_bytes: "{{ 1024 * 1024 * 1024 }}"
 
+# Pas de configuration OpenVPN sur le banc : la seedbox sort sans VPN (aucun torrent)
+seedbox_vpn_enabled: false
+
 # Les pools sont créés sur les disques simulés vierges
 zfs_allow_pool_creation: true

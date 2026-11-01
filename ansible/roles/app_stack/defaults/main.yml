@@ -23,5 +23,8 @@ app_files: []
 # Images privées sur GHCR (identifiants ghcr_* du vault)
 app_ghcr_login: false
 
+# false : fichiers générés mais stack non démarrée (ex. seedbox sans configuration VPN)
+app_start: true
+
 # Délai pour que tous les conteneurs soient en bonne santé
 app_wait_timeout: 600

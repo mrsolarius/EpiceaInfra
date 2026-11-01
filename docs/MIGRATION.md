@@ -13,6 +13,7 @@ Objectif : vider les VMs Proxmox vers **srv-backup**, réinstaller la machine en
 | datastore | .220 | `Mediatheque/` Films, Séries, Musiques | 7,5 To | `tank/media` (Jellyfin) |
 | | | `Data/` (fichiers perso, LitopiaS6, backups, photos d'appareil…) | 1,2 To | Nextcloud, dans le dossier `Data` de ton compte |
 | | | Jellyfin natif 10.10.7 (`/var/lib/jellyfin`) | 8 Go | Gardé en archive, bibliothèque recréée |
+| | | Seedbox Docker `~/torent` (qBittorrent + ProtonVPN) : 108 torrents en seed sur `Films/` et `Series/`, `.ovpn` | 350 Mo | Conteneur `seedbox` (rôle `apps/seedbox`), torrents repris tels quels |
 | nextcloud | .230 | Fichiers des utilisateurs (`/home/nextcloud/data`) | 1,1 To | `tank/cloud` |
 | | | Base MariaDB, Nextcloud **35.0.2** | < 1 Go | Convertie en PostgreSQL (étape 6) |
 | | | `/home/louis/export_maps` | 241 Go | Archive (à trier) |
@@ -48,7 +49,6 @@ Ces éléments sont **sauvegardés quand même** dans `vault/migration`, rien n'
 | PhotoPrism | Remplacé par Immich. On réimporte les photos ; les albums et les favoris PhotoPrism ne suivent pas. |
 | remina-survey (`survey.remina.fr`), reversi, laforge | Pas de rôle Ansible. |
 | Partages Samba (Mediatheque, DataStore, photos) | Remplacés par Nextcloud et Jellyfin. |
-| qBittorrent (datastore) | Configuration archivée. |
 | OnlyOffice (.235, éteint) | Non sauvegardé (VM injoignable). |
 
 ## 3. Déroulé
@@ -104,7 +104,7 @@ sudo ./migration/pull-old-servers.sh verify   # doit afficher 0 différence part
 `AMP_SKIP_DBS=DynmapLitopia` laisse de côté les 104 Go de tuiles Dynmap. Le retirer pour les garder.
 
 Ce que fait `final` :
-- arrête les services : Nextcloud en maintenance, Backpaking, Litopia, PhotoPrism, AMP, Jellyfin ;
+- arrête les services : Nextcloud en maintenance, Backpaking, Litopia, PhotoPrism, AMP, Jellyfin, la seedbox ;
 - exporte les bases : MariaDB Nextcloud, PostgreSQL Litopia et Backpaking, base remina, base PhotoPrism, MySQL du gameserver ;
 - fait la dernière copie et un snapshot ZFS `vault/migration@final-<date>`.
 
@@ -145,6 +145,11 @@ sudo ./migration/restore-on-srv-main.sh amp
 ```
 
 - `files` copie environ 9 To : compter **une journée**. La commande est relançable.
+- `files` restaure aussi la **seedbox** (configuration OpenVPN et torrents de `BT_backup`), puis la démarre.
+  - Le conteneur monte `movies` et `shows` sur `/data/Films` et `/data/Series`, les anciens chemins : les torrents repartent en seed sans changer de dossier.
+  - Relancer ensuite `make deploy TAGS=seedbox` pour réimposer les réglages d'accès de qBittorrent.
+  - Accès : `https://seedbox.louisvolat.fr`, utilisateur `admin`, mot de passe `seedbox_password` du vault (`make vault-view`). Le changer avec `make seedbox-pass`.
+- `files` restaure aussi la seedbox : configuration OpenVPN et torrents (`BT_backup`), puis la démarre. Le conteneur monte `movies` et `shows` sur `/data/Films` et `/data/Series`, les anciens chemins : les torrents repartent en seed sans changer leur dossier (qBittorrent revérifie les fichiers au besoin). Relancer ensuite `make deploy TAGS=seedbox`. Accès : `https://seedbox.louisvolat.fr`, utilisateur `admin` et mot de passe unique `seedbox_password` du vault (`make vault-view`, à changer avec `make seedbox-pass`).
 - `NC_USER` choisit le compte Nextcloud qui reçoit l'ancien dossier `Data` du datastore. Sans `NC_USER`, ce dossier n'est pas copié.
 - `databases` restaure Litopia et Backpaking dans leurs conteneurs PostgreSQL 16, à partir des dumps de PostgreSQL 12.
 - `amp` remet `/home/amp` tel quel, avec les instances, les mondes et la configuration d'AMP, puis recharge les bases et les comptes MySQL des plugins et redémarre AMP.

@@ -48,7 +48,9 @@ storage:
   media:
     jellyfin_movies: "{{ drive_bulk_path }}/media/movies"
     jellyfin_shows: "{{ drive_bulk_path }}/media/shows"
+    jellyfin_music: "{{ drive_bulk_path }}/media/music"
     jellyfin_root: "{{ drive_bulk_path }}/media"
+    torrents: "{{ drive_bulk_path }}/media/torrents"  # .torrent créés pour seeder la médiathèque
     immich_photos: "{{ drive_bulk_path }}/photos/immich"
     nextcloud_data: "{{ drive_bulk_path }}/cloud/data"
     backups: "{{ drive_bulk_path }}/backups"

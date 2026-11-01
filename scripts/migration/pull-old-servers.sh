@@ -117,8 +117,9 @@ stop_photoprism() {  # MariaDB dans Docker (albums, favoris, métadonnées)
   rsh photoprism "cd /photoprism && sudo docker compose stop photoprism && sudo docker compose exec -T mariadb mariadb-dump -uroot -pinsecure --all-databases | sudo tee $D/photoprism.sql >/dev/null"
 }
 
-stop_datastore() {  # Jellyfin arrêté pour copier une base cohérente
+stop_datastore() {  # Jellyfin et la seedbox arrêtés pour copier une base et des torrents (fastresume) cohérents
   rsh datastore "sudo systemctl stop jellyfin"
+  rsh datastore "sudo docker stop proton_seedbox" >/dev/null || log "  seedbox (proton_seedbox) non arrêtée"
 }
 
 stop_reverseproxy() { :; }

@@ -8,7 +8,7 @@
 #   - Ansible installé sur srv-main-sim, qui sert de contrôleur pour les deux VMs
 #   - inventaire et variables réseau générés avec les IPs des VMs
 set -euo pipefail
-export MSYS_NO_PATHCONV=1
+source "$(dirname "$0")/lib.sh"  # mp : multipass avec délai et message d'erreur
 
 MAIN_VM="srv-main-sim"
 BACKUP_VM="srv-backup-sim"
@@ -28,17 +28,28 @@ ANSIBLE_DIR="$PROJECT_ROOT/ansible"
 
 command -v multipass >/dev/null || { echo "Multipass n'est pas installé : https://multipass.run/install"; exit 1; }
 
-vm_exists() { multipass info "$1" >/dev/null 2>&1; }
+# multipass list répond même quand la VM est injoignable (multipass info échoue alors)
+vm_exists() { mp list --format csv | grep -q "^$1,"; }
 # IP lue dans la VM : multipass info peut afficher une ancienne IP en cache
-vm_ip() { multipass exec "$1" -- ip -4 -o addr show eth0 | awk '{print $4}' | cut -d/ -f1; }
+vm_ip() { mp exec "$1" -- bash -c "ip -4 -o addr show \$(ip route | awk '/^default/ {print \$5; exit}') | awk '{print \$4}' | cut -d/ -f1 | head -1"; }
 step() { echo ""; echo "[$(date +%H:%M:%S)] === $* ==="; }
 
 # Le script est reprenable : les VMs déjà créées sont conservées (make sim-down pour repartir de zéro)
 step "Création des VMs"
-vm_exists "$MAIN_VM" || multipass launch "$UBUNTU" --name "$MAIN_VM" --cpus "$MAIN_CPUS" \
+vm_exists "$MAIN_VM" || MP_TIMEOUT=900 mp launch "$UBUNTU" --name "$MAIN_VM" --cpus "$MAIN_CPUS" \
   --memory "$MAIN_MEM" --disk "$MAIN_DISK" --mount "$PROJECT_ROOT:/home/ubuntu/infra"
-vm_exists "$BACKUP_VM" || multipass launch "$UBUNTU" --name "$BACKUP_VM" --cpus "$BACKUP_CPUS" \
+vm_exists "$BACKUP_VM" || MP_TIMEOUT=900 mp launch "$UBUNTU" --name "$BACKUP_VM" --cpus "$BACKUP_CPUS" \
   --memory "$BACKUP_MEM" --disk "$BACKUP_DISK"
+
+# Une VM peut exister sans être joignable : IP figée (plus bas) dans l'ancienne plage du
+# Default Switch d'Hyper-V, qui en change parfois au redémarrage de Windows
+for vm in "$MAIN_VM" "$BACKUP_VM"; do
+  mp exec "$vm" -- true || {
+    echo "ERREUR : $vm existe mais ne répond pas (Windows redémarré ? le Default Switch a pu changer de plage)." >&2
+    echo "         Repartir de zéro : make sim-down && make sim-up" >&2
+    exit 1
+  }
+done
 
 bash "$SIM_DIR/ensure-mount.sh"
 
@@ -46,16 +57,16 @@ step "Simulation des disques"
 # Copie en base64 puis exécution locale : sous Windows, multipass transfer, l'entrée standard
 # de multipass exec et la lecture d'un script sur le dossier monté sont peu fiables
 run_sim_disks() {
-  multipass exec "$1" -- bash -c "echo $(base64 -w0 "$SIM_DIR/simulate-disks.sh") | base64 -d > /tmp/simulate-disks.sh"
-  multipass exec "$1" -- sudo SSD_SIZE="${SSD_SIZE:-2G}" VAULT_SIZE="${VAULT_SIZE:-33G}" bash /tmp/simulate-disks.sh "$2"
+  mp exec "$1" -- bash -c "echo $(base64 -w0 "$SIM_DIR/simulate-disks.sh") | base64 -d > /tmp/simulate-disks.sh"
+  MP_TIMEOUT=900 mp exec "$1" -- sudo SSD_SIZE="${SSD_SIZE:-2G}" VAULT_SIZE="${VAULT_SIZE:-33G}" bash /tmp/simulate-disks.sh "$2"
 }
 run_sim_disks "$MAIN_VM" srv-main
 run_sim_disks "$BACKUP_VM" srv-backup
 
 step "Installation d'Ansible sur $MAIN_VM (contrôleur)"
-multipass exec "$MAIN_VM" -- sudo bash /home/ubuntu/infra/scripts/bootstrap.sh
+MP_TIMEOUT=1800 mp exec "$MAIN_VM" -- sudo bash /home/ubuntu/infra/scripts/bootstrap.sh
 
-step "IPs fixes (le DHCP de Hyper-V change l'IP au redémarrage)"
+step "IPs fixes (pilote hyperv : le DHCP du Default Switch change l'IP au redémarrage)"
 # Fige l'IP actuelle de la VM en configuration statique (script envoyé en base64)
 PIN_IP_SCRIPT=$(cat <<'EOF'
 test -f /etc/netplan/60-sim-static.yaml && exit 0
@@ -78,15 +89,21 @@ netplan apply
 EOF
 )
 pin_ip() {
-  multipass exec "$1" -- bash -c "echo $(printf '%s' "$PIN_IP_SCRIPT" | base64 -w0) | base64 -d | sudo bash"
+  mp exec "$1" -- bash -c "echo $(printf '%s' "$PIN_IP_SCRIPT" | base64 -w0) | base64 -d | sudo bash"
 }
-pin_ip "$MAIN_VM"
-pin_ip "$BACKUP_VM"
+# Pilote hcs : Multipass lit l'IP dans le bail DHCP de HNS. Sans DHCP dans la VM, plus de bail,
+# donc plus d'IP connue et multipass exec échoue (« IP not available »). On garde le DHCP.
+if [[ "$(mp get local.driver)" == "hcs" ]]; then
+  echo "Pilote hcs : IPs laissées en DHCP"
+else
+  pin_ip "$MAIN_VM"
+  pin_ip "$BACKUP_VM"
+fi
 
 step "Accès SSH $MAIN_VM -> $BACKUP_VM"
-multipass exec "$MAIN_VM" -- bash -c 'test -f ~/.ssh/id_ed25519 || ssh-keygen -q -t ed25519 -N "" -f ~/.ssh/id_ed25519'
-PUBKEY=$(multipass exec "$MAIN_VM" -- cat /home/ubuntu/.ssh/id_ed25519.pub)
-multipass exec "$BACKUP_VM" -- bash -c "grep -qF '$PUBKEY' ~/.ssh/authorized_keys || echo '$PUBKEY' >> ~/.ssh/authorized_keys"
+mp exec "$MAIN_VM" -- bash -c 'test -f ~/.ssh/id_ed25519 || ssh-keygen -q -t ed25519 -N "" -f ~/.ssh/id_ed25519'
+PUBKEY=$(mp exec "$MAIN_VM" -- cat /home/ubuntu/.ssh/id_ed25519.pub)
+mp exec "$BACKUP_VM" -- bash -c "grep -qF '$PUBKEY' ~/.ssh/authorized_keys || echo '$PUBKEY' >> ~/.ssh/authorized_keys"
 
 MAIN_IP=$(vm_ip "$MAIN_VM")
 BACKUP_IP=$(vm_ip "$BACKUP_VM")

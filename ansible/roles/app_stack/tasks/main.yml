@@ -59,6 +59,7 @@
     pull: always
     wait: true
     wait_timeout: "{{ app_wait_timeout }}"
+  when: app_start | bool
 
 - name: Déconnexion de GHCR
   community.docker.docker_login:

@@ -4,7 +4,7 @@
 # ========================================
 # À lancer sur srv-main, en root, APRÈS make deploy. Voir docs/MIGRATION.md.
 #
-#   restore-on-srv-main.sh files       Médiathèque, photos, uploads Backpaking, données Nextcloud
+#   restore-on-srv-main.sh files       Médiathèque, seedbox, photos, uploads Backpaking, données Nextcloud
 #   restore-on-srv-main.sh databases   Bases PostgreSQL de Litopia et Backpaking
 #   restore-on-srv-main.sh amp         Serveurs de jeu AMP et leur MySQL (après le rôle amp)
 #
@@ -59,6 +59,22 @@ case "$MODE" in
     pull datastore/home/louis/Mediatheque/Films    /mnt/tank/media/movies 1000:1000
     pull datastore/home/louis/Mediatheque/Series   /mnt/tank/media/shows  1000:1000
     pull datastore/home/louis/Mediatheque/Musiques /mnt/tank/media/music  1000:1000
+
+    log "== Seedbox (torrents en seed, configuration OpenVPN)"
+    # Les torrents gardent leurs chemins /data/Films et /data/Series : le conteneur
+    # monte movies et shows à ces emplacements (rôle apps/seedbox)
+    pull datastore/home/louis/Mediatheque/READY_TORRENTS /mnt/tank/media/torrents 1000:1000
+    if [[ -f /opt/epicea/docker/seedbox/docker-compose.yml ]]; then
+      compose seedbox stop
+      pull datastore/home/louis/torent/config /opt/epicea/docker/seedbox/config 1000:1000 \
+        --exclude='supervisord.log*' --exclude=/qBittorrent/config/lockfile --exclude=/qBittorrent/config/ipc-socket
+      log "  $(find /opt/epicea/docker/seedbox/config/qBittorrent/data/BT_backup -name '*.torrent' | wc -l) torrents restaurés"
+      # Démarre aussi une seedbox jamais lancée (pas de .ovpn lors du make deploy)
+      compose seedbox up -d
+      log "  Seedbox démarrée : relancer make deploy TAGS=seedbox pour réimposer ses réglages d'accès"
+    else
+      log "  Seedbox non déployée (make deploy), configuration non restaurée"
+    fi
 
     log "== Photos PhotoPrism (à importer dans Immich, voir le guide)"
     pull photoprism/home/louis/Pictures /mnt/tank/photos/a-importer 1000:1000

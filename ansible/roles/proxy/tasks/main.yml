@@ -43,6 +43,8 @@
     mode: '0644'
     owner: "{{ common_system_user }}"
     group: "{{ common_system_group }}"
+    trim_blocks: true
+    lstrip_blocks: true
   notify: Restart traefik
 
 - name: Générer fichier .env Traefik

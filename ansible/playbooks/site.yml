@@ -66,6 +66,10 @@
       tags: [jellyfin, services]
       when: "'jellyfin' in enabled_services"
 
+    - role: ../roles/apps/seedbox
+      tags: [seedbox, services]
+      when: "'seedbox' in enabled_services"
+
     - role: ../roles/apps/litopia
       tags: [litopia, services]
       when: "'litopia' in enabled_services"

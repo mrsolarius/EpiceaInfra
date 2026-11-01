@@ -37,6 +37,11 @@
       "dependencyDashboardApproval": true
     },
     {
+      "description": "Seedbox : tags binhex 5.3.0-1-01 (version qBittorrent - révision du paquet - révision de l'image)",
+      "matchPackageNames": ["binhex/arch-qbittorrentvpn"],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-(?<build>\\d+)-(?<revision>\\d+)$"
+    },
+    {
       "description": "Actions GitHub de la CI (remplace Dependabot)",
       "matchManagers": ["github-actions"],
       "groupName": "github-actions"

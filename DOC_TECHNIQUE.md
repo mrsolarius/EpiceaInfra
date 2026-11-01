@@ -79,7 +79,7 @@ Les chemins des services sont centralisés dans l'objet `storage` de `common.yml
 | `proxy` | Traefik : HTTP redirigé vers HTTPS, Let's Encrypt (HTTP challenge), dashboard protégé par `traefik_auth`, accès Docker via un socket proxy en lecture seule |
 | `monitoring` | Prometheus, Alertmanager (Discord), Grafana (dashboards provisionnés), Loki + Promtail, cAdvisor, redis-exporter |
 | `redis` | Redis partagé : AOF, `maxmemory 400mb`, `noeviction` (requis par la file de tâches d'Immich) |
-| `apps/*` | Nextcloud, Immich, Jellyfin, Litopia, Backpaking, activés via `enabled_services` |
+| `apps/*` | Nextcloud, Immich, Jellyfin, Seedbox (qBittorrent derrière ProtonVPN, mot de passe unique `seedbox_auth` via Traefik), Litopia, Backpaking, activés via `enabled_services` |
 | `app_stack` | Rôle partagé des applications : dossier, base PostgreSQL, fichiers générés, `docker compose up` |
 | `amp` | Serveurs de jeu AMP (CubeCoders), installés en natif (non dockerisable) : dépôt CubeCoders, Java Temurin, services systemd, `/home/amp` sur `ssd_tank/amp`. MySQL des plugins dans Docker (`127.0.0.1:3306`). Panneau et Bluemap publiés par Traefik (`amp_web_routes`). AMP ouvre lui-même les ports de jeu dans UFW. |
 | `backup_server` | srv-backup : socle système, réplication syncoid en mode pull (`tasks/source.yml` s'exécute sur srv-main) |

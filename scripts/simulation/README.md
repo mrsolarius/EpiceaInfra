@@ -6,6 +6,7 @@ Deux VMs Multipass reproduisent **srv-main** et **srv-backup** pour tester la co
 make sim-all            # VMs + disques simulés, déploiement des deux serveurs, tests de bout en bout
 make sim-test-restore   # tester les procédures de restauration (docs/GUIDE.md §5)
 make sim-test-migration # tester la migration AMP : ancien gameserver -> srv-backup -> srv-main (docs/MIGRATION.md)
+make sim-host           # domaines de la simulation dans le fichier hosts de Windows (fenêtre UAC), à relancer après sim-up
 make sim-down           # tout détruire
 ```
 

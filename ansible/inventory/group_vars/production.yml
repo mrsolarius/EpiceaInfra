@@ -29,6 +29,7 @@ service_domains:
   traefik: "traefik.{{ base_domain }}"
   immich: "photos.{{ base_domain }}"
   jellyfin: "jellyfin.{{ base_domain }}"
+  seedbox: "seedbox.{{ base_domain }}"
   nextcloud: "cloud.{{ base_domain }}"
   grafana: "monitoring.{{ base_domain }}"
   litopia: "{{ litopia_domain }}"
@@ -40,6 +41,7 @@ enabled_services:
   - redis
   - immich
   - jellyfin
+  - seedbox
   - nextcloud
   - monitoring
   - litopia

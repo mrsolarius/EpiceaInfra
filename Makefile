@@ -1,4 +1,4 @@
-.PHONY: help init secrets vault-encrypt vault-decrypt vault-view traefik-pass sim-up sim-deploy sim-deploy-backup sim-test sim-test-restore sim-all sim-status sim-down deploy deploy-backup validate lint
+.PHONY: help init secrets vault-encrypt vault-decrypt vault-view traefik-pass seedbox-pass sim-up sim-host sim-deploy sim-deploy-backup sim-test sim-test-restore sim-all sim-status sim-down deploy deploy-backup validate lint
 
 # ========================================
 # Makefile Epicea Infrastructure
@@ -28,6 +28,7 @@ help:
 	@echo "Simulation (VMs Multipass reproduisant srv-main et srv-backup) :"
 	@echo "  make sim-all            # Tout enchaîner : VMs, déploiements, tests"
 	@echo "  make sim-up             # Créer les VMs et simuler les disques"
+	@echo "  make sim-host           # Domaines de la simulation dans le hosts Windows"
 	@echo "  make sim-deploy         # Déployer srv-main (configuration de production)"
 	@echo "  make sim-deploy-backup  # Déployer srv-backup + réplication"
 	@echo "  make sim-test           # Tests de bout en bout"
@@ -43,6 +44,7 @@ help:
 	@echo "  make vault-decrypt      # Déchiffrer vault.yml (le laisse en clair)"
 	@echo "  make vault-view         # Afficher les secrets sans déchiffrer le fichier"
 	@echo "  make traefik-pass       # Changer le mot de passe du dashboard Traefik"
+	@echo "  make seedbox-pass       # Changer le mot de passe unique de la seedbox"
 	@echo "  make deploy             # Déployer srv-main"
 	@echo "  make deploy-backup      # Déployer srv-backup + réplication ZFS"
 	@echo ""
@@ -88,12 +90,23 @@ vault-view:
 	$(ANSIBLE_VAULT) view $(VAULT_ARGS) $(VAULT_FILE)
 
 # Déchiffre le vault si besoin, y écrit le hash du mot de passe, puis le rechiffre s'il l'était
-traefik-pass:
+# $(1) : clé du vault, $(2) : tags à redéployer
+define set_htpasswd
 	@was_encrypted=0; \
 	if $(VAULT_IS_ENCRYPTED); then was_encrypted=1; $(MAKE) --no-print-directory vault-decrypt || exit 1; fi; \
-	bash scripts/traefik-pass.sh $(VAULT_FILE); status=$$?; \
+	bash scripts/vault-htpasswd.sh $(VAULT_FILE) $(1) $(2); status=$$?; \
 	if [ $$was_encrypted = 1 ]; then $(MAKE) --no-print-directory vault-encrypt; fi; \
 	exit $$status
+endef
+
+traefik-pass:
+	$(call set_htpasswd,traefik_auth,proxy)
+
+# Le middleware seedbox-auth est dans la configuration dynamique de Traefik (tag proxy).
+# Virgule dans une variable : en clair, $(call) la prendrait pour un séparateur d'arguments
+comma := ,
+seedbox-pass:
+	$(call set_htpasswd,seedbox_auth,proxy$(comma)seedbox)
 
 # ========================================
 # SIMULATION (VMs reproduisant srv-main et srv-backup)
@@ -103,10 +116,16 @@ SIM_MAIN := srv-main-sim
 SIM_BACKUP := srv-backup-sim
 # ANSIBLE_CONFIG explicite : Ansible ignore le ansible.cfg d'un dossier monté (droits trop ouverts).
 # Les surcharges de la simulation viennent du groupe « simulation » de cet inventaire.
+# </dev/null sur chaque multipass exec : sous Windows, il reste parfois bloqué sans rien afficher
+# s'il hérite du terminal (voir mp dans scripts/simulation/lib.sh)
 SIM_ANSIBLE := MSYS_NO_PATHCONV=1 multipass exec $(SIM_MAIN) -- bash -c "cd /home/ubuntu/infra && ANSIBLE_CONFIG=/home/ubuntu/infra/ansible.cfg ansible-playbook -i ansible/inventory/simulation.yml $(if $(TAGS),--tags $(TAGS))
 
 sim-up:
 	bash ./scripts/simulation/setup-sim.sh
+
+# Domaines de la simulation -> IP de srv-main-sim dans le fichier hosts de Windows (UAC)
+sim-host:
+	bash ./scripts/simulation/sim-hosts.sh
 
 # Vault chiffré : le mot de passe (ansible/.vault_pass) est recopié dans la VM en 0600. Lu depuis
 # le dossier monté, il paraîtrait exécutable et Ansible le lancerait comme un script.
@@ -115,15 +134,15 @@ SIM_VAULT_PASS := /home/ubuntu/.vault_pass
 sim-deploy:
 	@bash ./scripts/simulation/ensure-mount.sh
 	@if [ -f $(VAULT_PASS_FILE) ]; then \
-		MSYS_NO_PATHCONV=1 multipass exec $(SIM_MAIN) -- bash -c "echo $$(base64 -w0 $(VAULT_PASS_FILE)) | base64 -d > $(SIM_VAULT_PASS) && chmod 600 $(SIM_VAULT_PASS)"; \
+		MSYS_NO_PATHCONV=1 multipass exec $(SIM_MAIN) -- bash -c "echo $$(base64 -w0 $(VAULT_PASS_FILE)) | base64 -d > $(SIM_VAULT_PASS) && chmod 600 $(SIM_VAULT_PASS)" </dev/null; \
 	elif $(VAULT_IS_ENCRYPTED); then \
 		echo "❌ vault.yml est chiffré : mettre son mot de passe dans $(VAULT_PASS_FILE) pour la simulation"; exit 1; \
 	fi
-	$(SIM_ANSIBLE) $(if $(wildcard $(VAULT_PASS_FILE)),--vault-password-file $(SIM_VAULT_PASS)) ansible/playbooks/site.yml"
+	$(SIM_ANSIBLE) $(if $(wildcard $(VAULT_PASS_FILE)),--vault-password-file $(SIM_VAULT_PASS)) ansible/playbooks/site.yml" </dev/null
 
 sim-deploy-backup:
 	@bash ./scripts/simulation/ensure-mount.sh
-	$(SIM_ANSIBLE) ansible/playbooks/backup.yml"
+	$(SIM_ANSIBLE) ansible/playbooks/backup.yml" </dev/null
 
 sim-test:
 	bash ./scripts/simulation/test-sim.sh
@@ -137,9 +156,9 @@ sim-test-migration:
 sim-all: sim-up sim-deploy sim-deploy-backup sim-test
 
 sim-status:
-	@MSYS_NO_PATHCONV=1 multipass exec $(SIM_MAIN) -- sudo docker ps --format "{{.Names}}\t{{.Status}}"
-	@MSYS_NO_PATHCONV=1 multipass exec $(SIM_MAIN) -- sudo zpool list
-	@MSYS_NO_PATHCONV=1 multipass exec $(SIM_BACKUP) -- sudo zpool list
+	@MSYS_NO_PATHCONV=1 multipass exec $(SIM_MAIN) -- sudo docker ps --format "{{.Names}}\t{{.Status}}" </dev/null
+	@MSYS_NO_PATHCONV=1 multipass exec $(SIM_MAIN) -- sudo zpool list </dev/null
+	@MSYS_NO_PATHCONV=1 multipass exec $(SIM_BACKUP) -- sudo zpool list </dev/null
 
 sim-down:
 	-MSYS_NO_PATHCONV=1 multipass delete --purge $(SIM_MAIN) $(SIM_BACKUP)

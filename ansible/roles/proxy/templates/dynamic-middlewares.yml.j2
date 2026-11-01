@@ -13,6 +13,15 @@ http:
           - '{{ traefik_auth }}'
         removeHeader: true
 
+{% if 'seedbox' in enabled_services %}
+    # Mot de passe unique de la seedbox (htpasswd du vault)
+    seedbox-auth:
+      basicAuth:
+        users:
+          - '{{ seedbox_auth }}'
+        removeHeader: true
+
+{% endif %}
     # Compression (utilisée par les applications)
     compression:
       compress:

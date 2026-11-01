@@ -1,0 +1,52 @@
+services:
+  seedbox:
+    image: docker.io/binhex/arch-qbittorrentvpn:{{ docker_versions.seedbox }}
+    container_name: seedbox
+    restart: {{ docker_restart_policy }}
+    # Requis par l'image pour monter le tunnel VPN et son pare-feu (aucun trafic hors VPN)
+    privileged: true
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.all.disable_ipv6=1
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    env_file: .env
+    # Les chemins /data/* sont ceux de l'ancienne seedbox : les torrents restaurés
+    # retrouvent leurs fichiers sans changer leur dossier d'enregistrement
+    volumes:
+      - ${SEEDBOX_CONFIG_PATH}:/config
+      - ${SEEDBOX_MOVIES_PATH}:/data/Films
+      - ${SEEDBOX_SHOWS_PATH}:/data/Series
+      - ${SEEDBOX_MUSIC_PATH}:/data/Musiques
+      - ${SEEDBOX_TORRENTS_PATH}:/data/READY_TORRENTS
+    # Aucun port publié : WebUI via Traefik uniquement, entrant BitTorrent par le
+    # port forwarding du VPN
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:8080{{ ' && ip link show tun0 >/dev/null' if seedbox_vpn_enabled | bool else '' }}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ docker_proxy_network_name }}"
+      - "traefik.http.routers.seedbox-https.rule=Host(`${SEEDBOX_DOMAIN}`)"
+      - "traefik.http.routers.seedbox-https.entrypoints=websecure"
+      - "traefik.http.routers.seedbox-https.service=seedbox"
+      - "traefik.http.routers.seedbox-https.middlewares=seedbox-auth@file"
+      - "traefik.http.routers.seedbox-https.tls=true"
+      - "traefik.http.routers.seedbox-https.tls.certresolver={{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
+      - "traefik.http.services.seedbox.loadbalancer.server.port=8080"
+
+networks:
+  proxy:
+    name: {{ docker_proxy_network_name }}
+    external: true

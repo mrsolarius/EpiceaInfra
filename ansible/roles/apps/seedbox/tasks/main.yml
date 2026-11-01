@@ -1,0 +1,82 @@
+---
+- name: Créer les dossiers de la seedbox
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ common_system_user }}"
+    group: "{{ common_system_group }}"
+  loop:
+    - "{{ seedbox_config_path }}/openvpn"
+    - "{{ storage.media.jellyfin_movies }}"
+    - "{{ storage.media.jellyfin_shows }}"
+    - "{{ storage.media.jellyfin_music }}"
+    - "{{ storage.media.torrents }}"
+
+# Sans fichier .ovpn, le conteneur ne démarre pas : il est restauré depuis l'ancien
+# datastore (restore-on-srv-main.sh files), qui démarre ensuite la seedbox
+- name: Chercher la configuration OpenVPN
+  ansible.builtin.find:
+    paths: "{{ seedbox_config_path }}/openvpn"
+    patterns: "*.ovpn"
+  register: seedbox_ovpn
+  when: seedbox_vpn_enabled | bool
+
+- name: Déterminer si la seedbox peut démarrer
+  ansible.builtin.set_fact:
+    seedbox_can_start: "{{ not (seedbox_vpn_enabled | bool) or seedbox_ovpn.matched > 0 }}"
+
+- name: Signaler l'absence de configuration OpenVPN
+  ansible.builtin.debug:
+    msg: "Aucun .ovpn dans {{ seedbox_config_path }}/openvpn : seedbox non démarrée. Lancer restore-on-srv-main.sh files (ou y déposer un .ovpn ProtonVPN)."
+  when: not seedbox_can_start | bool
+
+- name: Déployer la seedbox
+  ansible.builtin.import_role:
+    name: app_stack
+  vars:
+    app_name: seedbox
+    app_start: "{{ seedbox_can_start }}"
+    app_files:
+      - {src: seedbox.env.j2, dest: .env, mode: '0600'}
+      - {src: docker-compose.yml.j2, dest: docker-compose.yml}
+
+# qBittorrent réécrit son fichier en s'arrêtant : il faut l'arrêter avant de le modifier
+- name: Vérifier les réglages d'accès de qBittorrent
+  community.general.ini_file:
+    path: "{{ seedbox_config_path }}/qBittorrent/config/qBittorrent.conf"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    no_extra_spaces: true
+    create: false
+  loop: "{{ seedbox_qbittorrent_settings }}"
+  check_mode: true
+  register: seedbox_conf_check
+  failed_when: false
+
+- name: Imposer les réglages d'accès de qBittorrent
+  when: seedbox_conf_check.results | selectattr('changed') | list | length > 0
+  block:
+    - name: Arrêter la seedbox
+      community.docker.docker_compose_v2:
+        project_src: "{{ storage.ansible.compose }}/seedbox"
+        state: stopped
+
+    - name: Écrire les réglages dans qBittorrent.conf
+      community.general.ini_file:
+        path: "{{ seedbox_config_path }}/qBittorrent/config/qBittorrent.conf"
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        no_extra_spaces: true
+        create: false
+      loop: "{{ seedbox_qbittorrent_settings }}"
+
+    - name: Redémarrer la seedbox
+      community.docker.docker_compose_v2:
+        project_src: "{{ storage.ansible.compose }}/seedbox"
+        state: present
+        wait: true
+        wait_timeout: 300
+      when: seedbox_can_start | bool
