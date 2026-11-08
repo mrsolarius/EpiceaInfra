@@ -21,7 +21,7 @@ Objectif : vider les VMs Proxmox vers **srv-backup**, réinstaller la machine en
 | | | Base PhotoPrism (albums, favoris) | 185 Mo | Archive (Immich ne la lit pas) |
 | webservice | .250 | PostgreSQL 12 : `LitopiaDB`, `backpackingv2` | quelques Mo | Bases `litopia-db` et `backpaking-db` |
 | | | Uploads Backpaking (`/opt/backpaking/uploads`) | 16 Go | `tank/apps/backpaking-uploads` |
-| | | `LitopiaMapDB` : carte **BlueMap** (le serveur Litopia y écrit via `192.168.1.250`) | à mesurer | **Non restaurée** : la carte se régénère. Après la migration, changer le stockage dans la config BlueMap de l'instance Litopia (l'IP .250 n'existera plus) |
+| | | `LitopiaMapDB` : carte **BlueMap** (le serveur Litopia y écrit via `192.168.1.250`) | à mesurer | **Non restaurée** : la carte se régénère. Après la migration, changer le stockage dans la config BlueMap de l'instance Litopia (l'IP .250 sera celle de srv-main, sans cette base) |
 | | | remina-survey, reversi, laforge, projets dans `/home/louis` | ~5 Go | Archive |
 | gameserver | .200 | AMP : 5 instances déclarées (ADS01, Litopia, LitopiaCrea, Tuturu01, ServeurDragonWild01), plus 5 dossiers d'anciennes instances | 146 Go, dont 96 Go de sauvegardes internes d'AMP | `ssd_tank/amp`, monté sur `/home/amp` (rôle `amp`) |
 | | | MySQL 8.0 : `BluemapLitopia` (vide) et `DynmapLitopia` (104 Go de tuiles Dynmap) | 104 Go | Conteneur `amp-mysql` (`ssd_tank/amp-db`). Dynmap semble remplacé par BlueMap : `AMP_SKIP_DBS=DynmapLitopia` l'exclut |
@@ -55,6 +55,8 @@ Ces éléments sont **sauvegardés quand même** dans `vault/migration`, rien n'
 
 ### Étape 0 - Installer srv-backup
 
+Installer Ubuntu Server 26.04.1 sur le NVMe, avec l'IP 192.168.1.240. srv-main sera installé dans la même version (étape 4) : les deux machines ont ainsi la même version de ZFS, ce qui garantit qu'une restauration par `zfs send` depuis srv-backup sera toujours lisible par srv-main.
+
 Avec notre playbook, en ciblant srv-backup seul tant que srv-main n'existe pas :
 
 ```bash
@@ -79,7 +81,7 @@ echo "louis ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/99-migration
 
 Le sudo sans mot de passe est nécessaire : beaucoup de fichiers (Nextcloud, bases, AMP) ne sont lisibles qu'en root. Les VMs vont disparaître, donc ce n'est pas gênant.
 
-Copier le dossier `scripts/migration/` sur srv-backup, par exemple avec `scp -r scripts/migration louis@192.168.1.101:`.
+Copier le dossier `scripts/migration/` sur srv-backup, par exemple avec `scp -r scripts/migration louis@192.168.1.240:`.
 
 ### Étape 2 - Copie à chaud (sans coupure)
 
@@ -119,7 +121,7 @@ Ce que fait `final` :
 
 ### Étape 4 - Réinstaller la machine en srv-main
 
-1. Éteindre Proxmox et installer Ubuntu Server 24.04 sur le NVMe Sabrent, avec l'IP 192.168.1.100.
+1. Éteindre Proxmox et installer Ubuntu Server 26.04.1 (ou une version 26.04.x plus récente) sur le NVMe Sabrent, avec l'IP 192.168.1.250. C'est l'IP de l'ancienne VM webservice : elle est libre une fois Proxmox éteint. La clé SSH de cette VM reste enregistrée pour cette IP : l'oublier sur ton PC (`ssh-keygen -R 192.168.1.250`) et sur srv-backup (`sudo ssh-keygen -R 192.168.1.250`), sinon SSH refuse la connexion (« REMOTE HOST IDENTIFICATION HAS CHANGED »).
 2. Lancer `sudo bash scripts/bootstrap.sh`.
 3. Vault (déjà fait le 25/10/2026) : rien ne vient d'AMP, tout se connaît à l'avance.
    - `amp_mysql_root_password` : un nouveau mot de passe, généré. C'est le root du MySQL que crée le rôle ; les comptes des plugins sont repris tels quels à l'étape 5.
@@ -169,8 +171,8 @@ L'ancien Nextcloud tourne sur MariaDB, le nouveau sur PostgreSQL. Le script `nex
 Sur srv-main, après l'étape 5 :
 
 ```bash
-scp root@192.168.1.101:/mnt/vault/migration/nextcloud/var/backups/migration/nextcloud.sql /root/
-scp root@192.168.1.101:/mnt/vault/migration/nextcloud/var/www/nextcloud/config/config.php /root/old-config.php
+scp root@192.168.1.240:/mnt/vault/migration/nextcloud/var/backups/migration/nextcloud.sql /root/
+scp root@192.168.1.240:/mnt/vault/migration/nextcloud/var/www/nextcloud/config/config.php /root/old-config.php
 sudo ./migration/nextcloud-convert.sh /root/nextcloud.sql /root/old-config.php
 ```
 
@@ -211,15 +213,15 @@ Puis ouvrir `https://dashboard.litopia.fr` et se connecter avec les **identifian
 
   À ne faire que sur le vrai srv-main, jamais dans la simulation : la licence suit la dernière machine activée.
 - **Premier démarrage :** AMP réécrit lui-même ses fichiers de configuration (`AMPConfig.conf`, `*.kvp`, `server.properties`) et purge ses vieux journaux. C'est normal, les mondes ne sont pas touchés.
-- **BlueMap :** sa carte était dans PostgreSQL sur webservice (`LitopiaMapDB`, `192.168.1.250`), qui disparaît. La base n'est pas migrée, la carte se régénère. Dans la config BlueMap de l'instance Litopia, passer au stockage sur fichiers.
+- **BlueMap :** sa carte était dans PostgreSQL sur webservice (`LitopiaMapDB`, `192.168.1.250`), qui disparaît : cette IP devient celle de srv-main, où cette base n'existe pas. La base n'est pas migrée, la carte se régénère. Dans la config BlueMap de l'instance Litopia, passer au stockage sur fichiers avant de démarrer l'instance, sinon BlueMap cherche son PostgreSQL sur srv-main.
 - **Dynmap :** non migré avec `AMP_SKIP_DBS=DynmapLitopia`. La carte se régénère depuis le monde si le plugin est encore utilisé.
 - **Anciennes instances :** les 5 dossiers non déclarés dans AMP (Cobbelmod01, LitopiaAdmin01, LitopiaEvent, LitopiaHytale01, MegaStunt) sont copiés mais restent inactifs, comme aujourd'hui.
 
 ### Étape 8 - Bascule réseau
 
 Sur la box :
-- rediriger les ports **80 et 443 vers 192.168.1.100**, à la place de .254 ;
-- rediriger les **ports de jeu vers 192.168.1.100**, à la place de .200 : Minecraft 25565, 25566, 25569, 25570, Dragonwilds 7777/udp, etc.
+- rediriger les ports **80 et 443 vers 192.168.1.250**, à la place de .254 ;
+- rediriger les **ports de jeu vers 192.168.1.250**, à la place de .200 : Minecraft 25565, 25566, 25569, 25570, Dragonwilds 7777/udp, etc.
 
 Les noms de domaine ne changent pas, et Traefik obtient les certificats seul, y compris pour `dashboard.litopia.fr` et `bluemap.litopia.fr`.
 

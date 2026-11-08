@@ -170,7 +170,7 @@ monitoring_grafana_admin_password: "{{ grafana_admin_password }}"  # vault.yml
 monitoring_prometheus_node_exporter_enabled: true
 # Node exporters d'autres machines du LAN à superviser
 monitoring_extra_node_targets:
-  - {target: "192.168.1.101:9100", instance: "srv-backup"}  # À MODIFIER avec l'IP de srv-backup
+  - {target: "192.168.1.240:9100", instance: "srv-backup"}
 
 # Backup
 # Copie quotidienne de /opt/epicea (NVMe, non ZFS) vers tank/backups,

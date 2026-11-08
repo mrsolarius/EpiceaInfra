@@ -13,7 +13,7 @@
 set -euo pipefail
 
 MODE="${1:-}"
-BACKUP="${BACKUP:-root@192.168.1.101}"
+BACKUP="${BACKUP:-root@192.168.1.240}"
 SNAP_DIR="${SNAP_DIR:-}"   # vide : la copie courante. Sinon ex. /mnt/vault/migration/.zfs/snapshot/final-20261101-0900
 SRC="${SNAP_DIR:-/mnt/vault/migration}"
 NC_USER="${NC_USER:-}"     # compte Nextcloud qui reçoit l'ancien dossier Data du datastore (ex. louis)
