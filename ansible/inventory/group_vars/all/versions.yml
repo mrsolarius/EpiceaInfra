@@ -20,20 +20,20 @@ docker_versions:
     # renovate: datasource=docker depName=prometheuscommunity/postgres-exporter
     postgres_exporter: "v0.20.1"
     # renovate: datasource=docker depName=oliver006/redis_exporter
-    redis_exporter: "v1.96.0"
+    redis_exporter: "v1.97.0"
 
   # Stack Monitoring
   monitoring:
     # renovate: datasource=docker depName=prom/prometheus
-    prometheus: "v3.15.1"
+    prometheus: "v3.16.0"
     # renovate: datasource=docker depName=prom/alertmanager
-    alertmanager: "v0.34.1"
+    alertmanager: "v0.35.0"
     # renovate: datasource=docker depName=gcr.io/cadvisor/cadvisor
     cadvisor: "v0.55.1"
     # renovate: datasource=docker depName=grafana/grafana
-    grafana: "13.3.0"
+    grafana: "13.3.1"
     # renovate: datasource=docker depName=grafana/loki
-    loki: "3.7.9"
+    loki: "3.7.10"
     # renovate: datasource=docker depName=grafana/promtail
     promtail: "3.6.11"
 
