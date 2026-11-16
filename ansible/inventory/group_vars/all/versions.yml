@@ -52,7 +52,7 @@ docker_versions:
   # renovate: datasource=docker depName=jellyfin/jellyfin
   jellyfin: "10.11.11"
   # renovate: datasource=docker depName=binhex/arch-qbittorrentvpn
-  seedbox: "5.3.0-1-01"
+  seedbox: "5.3.0-2-01"
   amp:
     # renovate: datasource=docker depName=mysql
     mysql: "8.4"  # même version majeure que l'ancien serveur de jeu
