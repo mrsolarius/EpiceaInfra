@@ -58,7 +58,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 20s
+      # JVM limitée à 0.5 CPU + migrations Liquibase sur base vide : > 50 s au premier démarrage
+      start_period: 120s
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ docker_proxy_network_name }}"
