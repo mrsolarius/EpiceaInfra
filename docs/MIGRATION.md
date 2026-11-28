@@ -21,7 +21,7 @@ Objectif : vider les VMs Proxmox vers **srv-backup**, réinstaller la machine en
 | | | Base PhotoPrism (albums, favoris) | 185 Mo | Archive (Immich ne la lit pas) |
 | webservice | .250 | PostgreSQL 12 : `LitopiaDB`, `backpackingv2` | quelques Mo | Bases `litopia-db` et `backpaking-db` |
 | | | Uploads Backpaking (`/opt/backpaking/uploads`) | 16 Go | `tank/apps/backpaking-uploads` |
-| | | `LitopiaMapDB` : carte **BlueMap** (le serveur Litopia y écrit via `192.168.1.250`) | à mesurer | **Non restaurée** : la carte se régénère. Après la migration, changer le stockage dans la config BlueMap de l'instance Litopia (l'IP .250 sera celle de srv-main, sans cette base) |
+| | | `LitopiaMapDB` : carte **BlueMap** (le serveur Litopia y écrit via `192.168.1.250`) | 127 Go | **Non restaurée** : la carte se régénère. Après la migration, changer le stockage dans la config BlueMap de l'instance Litopia (l'IP .250 sera celle de srv-main, sans cette base) |
 | | | remina-survey, reversi, laforge, projets dans `/home/louis` | ~5 Go | Archive |
 | gameserver | .200 | AMP : 5 instances déclarées (ADS01, Litopia, LitopiaCrea, Tuturu01, ServeurDragonWild01), plus 5 dossiers d'anciennes instances | 146 Go, dont 96 Go de sauvegardes internes d'AMP | `ssd_tank/amp`, monté sur `/home/amp` (rôle `amp`) |
 | | | MySQL 8.0 : `BluemapLitopia` (vide) et `DynmapLitopia` (104 Go de tuiles Dynmap) | 104 Go | Conteneur `amp-mysql` (`ssd_tank/amp-db`). Dynmap semble remplacé par BlueMap : `AMP_SKIP_DBS=DynmapLitopia` l'exclut |
@@ -99,11 +99,11 @@ sudo ./migration/pull-old-servers.sh sync
 ### Étape 3 - Jour J : passe finale et vérification
 
 ```bash
-sudo AMP_SKIP_DBS=DynmapLitopia ./migration/pull-old-servers.sh final    # coupe les services, exporte les bases, dernière copie, snapshot
+sudo AMP_SKIP_DBS=DynmapLitopia PG_SKIP_DBS=LitopiaMapDB ./migration/pull-old-servers.sh final    # coupe les services, exporte les bases, dernière copie, snapshot
 sudo ./migration/pull-old-servers.sh verify   # doit afficher 0 différence partout
 ```
 
-`AMP_SKIP_DBS=DynmapLitopia` laisse de côté les 104 Go de tuiles Dynmap. Le retirer pour les garder.
+`AMP_SKIP_DBS=DynmapLitopia` laisse de côté les 104 Go de tuiles Dynmap, `PG_SKIP_DBS=LitopiaMapDB` les 127 Go de la carte BlueMap (non restaurée). Les retirer pour les garder.
 
 Ce que fait `final` :
 - arrête les services : Nextcloud en maintenance, Backpaking, Litopia, PhotoPrism, AMP, Jellyfin, la seedbox ;
@@ -190,7 +190,7 @@ Les étapes ci-dessus migrent AMP avec le reste. Résumé pour AMP seul, dans l'
 | Quand | Commande | Ce qui se passe |
 |-------|----------|-----------------|
 | Étape 2 | `pull-old-servers.sh sync` | `/home/amp` (instances, mondes, config AMP) copié à chaud vers `vault/migration/gameserver` |
-| Étape 3 | `AMP_SKIP_DBS=DynmapLitopia pull-old-servers.sh final` | `ampinstmgr stopall`, export MySQL (`amp-databases.sql`, `amp-users.sql`) via le compte de maintenance Debian, dernière copie |
+| Étape 3 | `AMP_SKIP_DBS=DynmapLitopia PG_SKIP_DBS=LitopiaMapDB pull-old-servers.sh final` | `ampinstmgr stopall`, export MySQL (`amp-databases.sql`, `amp-users.sql`) via le compte de maintenance Debian, dernière copie |
 | Étape 4 | `make deploy` | Le rôle `amp` installe AMP, Java et le conteneur `amp-mysql`, sans instance |
 | Étape 5 | `restore-on-srv-main.sh amp` | `/home/amp` remis tel quel, bases et comptes MySQL rechargés, AMP redémarré |
 

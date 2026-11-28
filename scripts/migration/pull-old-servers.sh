@@ -107,14 +107,19 @@ stop_nextcloud() {  # mode maintenance puis export MariaDB
 stop_webservice() {  # PostgreSQL 12 natif (Litopia, Backpaking) + base Docker de remina-survey
   rsh webservice "sudo systemctl stop backpaking pm2-louis"
   rsh webservice "sudo -u postgres pg_dumpall --globals-only | sudo tee $D/globals.sql >/dev/null"
+  # PG_SKIP_DBS="base1 base2" : bases non exportées (ex. LitopiaMapDB, 127 Go de tuiles BlueMap régénérables)
   for db in $(rsh webservice "sudo -u postgres psql -Atc \"SELECT datname FROM pg_database WHERE NOT datistemplate AND datname <> 'postgres'\""); do
+    if [[ " ${PG_SKIP_DBS:-} " == *" $db "* ]]; then log "  base $db non exportée (PG_SKIP_DBS)"; continue; fi
     rsh webservice "sudo -u postgres pg_dump -Fc '$db' | sudo tee '$D/$db.dump' >/dev/null"
   done
   rsh webservice "sudo docker exec remina-postgres pg_dumpall -U postgres | sudo tee $D/remina.sql >/dev/null" || log "  remina-postgres non exporté"
 }
 
 stop_photoprism() {  # MariaDB dans Docker (albums, favoris, métadonnées)
-  rsh photoprism "cd /photoprism && sudo docker compose stop photoprism && sudo docker compose exec -T mariadb mariadb-dump -uroot -pinsecure --all-databases | sudo tee $D/photoprism.sql >/dev/null"
+  # La VM n'a que l'ancien docker-compose (v1), pas le plugin « docker compose »
+  rsh photoprism "cd /photoprism && if sudo docker compose version >/dev/null 2>&1; then dc='sudo docker compose'; else dc='sudo docker-compose'; fi \
+    && \$dc stop photoprism \
+    && \$dc exec -T mariadb sh -c 'if command -v mariadb-dump >/dev/null; then mariadb-dump -uroot -pinsecure --all-databases; else mysqldump -uroot -pinsecure --all-databases; fi' | sudo tee $D/photoprism.sql >/dev/null"
 }
 
 stop_datastore() {  # Jellyfin et la seedbox arrêtés pour copier une base et des torrents (fastresume) cohérents
