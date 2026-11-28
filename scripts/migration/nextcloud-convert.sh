@@ -29,6 +29,19 @@ docker run -d --name nc-mariadb --network "$NET" \
 until docker exec nc-mariadb mariadb -uroot -pmigration -e 'SELECT 1' nextcloud >/dev/null 2>&1; do sleep 2; done
 docker exec -i nc-mariadb mariadb -uroot -pmigration nextcloud < "$DUMP"
 
+# Le dossier de données change (/home/nextcloud/data -> /var/www/html/data). Le stockage racine
+# (appdata : aperçus, thèmes, données des applis) est identifié par son chemin dans oc_storages :
+# sans mise à jour, Nextcloud en créerait un nouveau et l'ancien resterait orphelin.
+conf() { sed -n "s/.*'$1'[[:space:]]*=>[[:space:]]*'\([^']*\)'.*/\1/p" "$OLD_CONFIG" | head -1; }
+PREFIX=$(conf dbtableprefix); PREFIX=${PREFIX:-oc_}
+OLD_DATADIR=$(conf datadirectory)
+if [[ -n "$OLD_DATADIR" && "${OLD_DATADIR%/}" != /var/www/html/data ]]; then
+  log "Stockage racine : local::${OLD_DATADIR%/}/ -> local::/var/www/html/data/"
+  docker exec -i nc-mariadb mariadb -uroot -pmigration nextcloud <<EOF
+UPDATE ${PREFIX}storages SET id = 'local::/var/www/html/data/' WHERE id = 'local::${OLD_DATADIR%/}/';
+EOF
+fi
+
 log "Configuration : identité de l'ancienne instance, base MariaDB temporaire"
 docker compose --project-directory /opt/epicea/docker/nextcloud start nextcloud
 until docker exec nextcloud test -f /var/www/html/config/config.php; do sleep 2; done
