@@ -47,12 +47,11 @@ entryPoints:
   websecure:
     address: ":443"
     http:
+      # Pas de "domains" ici : un wildcard *.domaine exige le challenge DNS-01, et avec
+      # httpChallenge chaque routeur hériterait de ce wildcard impossible à obtenir.
+      # Chaque routeur obtient donc son propre certificat d'après sa règle Host().
       tls:
         certResolver: "{{ 'letsencrypt' if proxy_enable_letsencrypt else '' }}"
-        domains:
-          - main: "{{ base_domain }}"
-            sans:
-              - "*.{{ base_domain }}"
 
   # EntryPoint dédié aux métriques/API (interne seulement)
   traefik:
