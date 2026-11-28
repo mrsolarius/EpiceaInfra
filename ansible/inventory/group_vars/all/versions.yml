@@ -48,7 +48,7 @@ docker_versions:
 
   # Autres Applications
   # renovate: datasource=docker depName=nextcloud
-  nextcloud: "35.0.2"  # >= version de l'ancien serveur (pas de retour en arrière possible)
+  nextcloud: "35.0.3"  # >= version de l'ancien serveur (pas de retour en arrière possible)
   # renovate: datasource=docker depName=jellyfin/jellyfin
   jellyfin: "10.11.11"
   # renovate: datasource=docker depName=binhex/arch-qbittorrentvpn
